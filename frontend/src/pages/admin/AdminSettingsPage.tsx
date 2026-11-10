@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { api } from '../../services/api';
+import { api, resolveMediaUrl } from '../../services/api';
 import { useToast } from '../../components/Toast';
 import { MaintenanceStatus, SystemInfo, SystemBranding } from '../../types';
 import { useSystemBranding } from '../../context/SystemBrandingContext';
@@ -740,9 +740,10 @@ export const AdminSettingsPage: React.FC = () => {
                         }}
                       >
                         <img
-                          src={brandingForm.logoUrl}
+                          src={resolveMediaUrl(brandingForm.logoUrl)}
                           alt="Logo bảo tàng"
                           style={{ maxHeight: '100%', maxWidth: '100%', width: 'auto', height: 'auto', objectFit: 'contain' }}
+                          onError={(e) => { e.currentTarget.style.display = 'none'; }}
                         />
                       </div>
 
@@ -1152,7 +1153,7 @@ export const AdminSettingsPage: React.FC = () => {
                     {brandingForm.logoUrl ? (
                       <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', width: 36, height: 36 }}>
                         <img
-                          src={brandingForm.logoUrl}
+                          src={resolveMediaUrl(brandingForm.logoUrl)}
                           alt=""
                           style={{
                             maxHeight: '100%',
@@ -1162,6 +1163,7 @@ export const AdminSettingsPage: React.FC = () => {
                             objectFit: 'contain',
                             display: 'block'
                           }}
+                          onError={(e) => { e.currentTarget.style.display = 'none'; }}
                         />
                       </div>
                     ) : (
@@ -1214,9 +1216,10 @@ export const AdminSettingsPage: React.FC = () => {
                     {brandingForm.logoUrl && (
                       <div style={{ marginBottom: 6, display: 'flex', justifyContent: 'center', height: 32, alignItems: 'center' }}>
                         <img
-                          src={brandingForm.logoUrl}
+                          src={resolveMediaUrl(brandingForm.logoUrl)}
                           alt=""
                           style={{ maxHeight: 28, maxWidth: 110, objectFit: 'contain' }}
+                          onError={(e) => { e.currentTarget.style.display = 'none'; }}
                         />
                       </div>
                     )}
@@ -1819,9 +1822,10 @@ export const AdminSettingsPage: React.FC = () => {
                   {branding.logoUrl ? (
                     <div style={{ marginBottom: 10, display: 'flex', justifyContent: 'center' }}>
                       <img
-                        src={branding.logoUrl}
+                        src={resolveMediaUrl(branding.logoUrl)}
                         alt=""
                         style={{ maxHeight: 42, maxWidth: 100, objectFit: 'contain' }}
+                        onError={(e) => { e.currentTarget.style.display = 'none'; }}
                       />
                     </div>
                   ) : (

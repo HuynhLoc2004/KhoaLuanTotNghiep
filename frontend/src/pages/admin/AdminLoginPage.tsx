@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../components/Toast';
 import { useSystemBranding } from '../../context/SystemBrandingContext';
+import { resolveMediaUrl } from '../../services/api';
 import {
   Mail,
   ArrowRight,
@@ -20,6 +21,11 @@ export const AdminLoginPage: React.FC<AdminLoginPageProps> = ({ onBackToHome }) 
   const { sendOtp, loginWithOtp } = useAuth();
   const { showToast } = useToast();
   const { branding } = useSystemBranding();
+  const [logoError, setLogoError] = useState(false);
+
+  useEffect(() => {
+    setLogoError(false);
+  }, [branding.logoUrl]);
 
   // State cho Đăng nhập Xác thực OTP Email Bảo Mật
   const [email, setEmail] = useState('');
@@ -176,12 +182,13 @@ export const AdminLoginPage: React.FC<AdminLoginPageProps> = ({ onBackToHome }) 
       <div className="admin-login-card">
         {/* Header danh tính bảo tàng */}
         <div className="login-card-header">
-          {branding.logoUrl ? (
+          {branding.logoUrl && !logoError ? (
             <div className="login-logo-container">
               <img
-                src={branding.logoUrl}
+                src={resolveMediaUrl(branding.logoUrl)}
                 alt={branding.shortName || branding.museumName}
                 className="login-museum-logo-img"
+                onError={() => setLogoError(true)}
               />
             </div>
           ) : (

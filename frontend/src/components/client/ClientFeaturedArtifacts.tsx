@@ -1,7 +1,7 @@
 import React from 'react';
 import { Box, ArrowRight } from 'lucide-react';
 import { Artifact } from '../../types';
-import { API_ROOT } from '../../services/api';
+import { API_ROOT, resolveMediaUrl } from '../../services/api';
 import { useSystemBranding } from '../../context/SystemBrandingContext';
 import { useClientTranslation } from '../../context/ClientTranslationContext';
 
@@ -58,11 +58,17 @@ export const ClientFeaturedArtifacts: React.FC<ClientFeaturedArtifactsProps> = (
     return sorted.slice(0, 2);
   }, [artifacts, branding.artifactsFeaturedId]);
 
+  const [failedThumbs, setFailedThumbs] = React.useState<Record<string, boolean>>({});
+
+  const handleThumbError = (artId: string) => {
+    setFailedThumbs((prev) => ({ ...prev, [artId]: true }));
+  };
+
   const getArtifactThumb = (art?: Artifact) => {
     if (!art) return '';
     const raw = art.thumbnailUrl || (art.images && art.images[0]) || '';
     if (!raw) return '';
-    return raw.startsWith('http') ? raw : `${API_ROOT}${raw.startsWith('/') ? '' : '/'}${raw}`;
+    return resolveMediaUrl(raw);
   };
 
   const handleArtifactClick = (art: Artifact) => {
@@ -123,8 +129,13 @@ export const ClientFeaturedArtifacts: React.FC<ClientFeaturedArtifactsProps> = (
                   title={`Chiêm ngưỡng: ${artName}`}
                 >
                   <div className="client-artifact-gallery-media">
-                    {thumbUrl ? (
-                      <img src={thumbUrl} alt={artName} loading="lazy" />
+                    {thumbUrl && !failedThumbs[art.id] ? (
+                      <img
+                        src={thumbUrl}
+                        alt={artName}
+                        loading="lazy"
+                        onError={() => handleThumbError(art.id)}
+                      />
                     ) : (
                       <div className="client-media-placeholder-inner">
                         <Box size={32} strokeWidth={1.5} />

@@ -4,6 +4,7 @@ import { AdminTab } from '../types';
 import { useSystemBranding } from '../context/SystemBrandingContext';
 import { useClientTranslation } from '../context/ClientTranslationContext';
 import { HOMEPAGE_SECTIONS } from '../constants/homepageSections';
+import { resolveMediaUrl } from '../services/api';
 
 interface SidebarProps {
   currentTab: AdminTab;
@@ -29,6 +30,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const { branding } = useSystemBranding();
   const { t, currentLang } = useClientTranslation();
   const [isHomepageExpanded, setIsHomepageExpanded] = useState<boolean>(currentTab === 'homepage_cms');
+  const [logoError, setLogoError] = useState(false);
+
+  useEffect(() => {
+    setLogoError(false);
+  }, [branding.logoUrl]);
 
   // Tự động mở menu con Trang chủ khi đang ở tab homepage_cms, tự động đóng gọn khi ở các tab khác
   useEffect(() => {
@@ -69,11 +75,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
     <aside className={`admin-sidebar ${isOpen ? 'open' : ''}`}>
       <div className="sidebar-header">
         <div className="sidebar-brand">
-          {branding.logoUrl ? (
+          {branding.logoUrl && !logoError ? (
             <img
-              src={branding.logoUrl}
+              src={resolveMediaUrl(branding.logoUrl)}
               alt=""
               style={{ width: 28, height: 28, objectFit: 'contain', borderRadius: 4 }}
+              onError={() => setLogoError(true)}
             />
           ) : (
             <div

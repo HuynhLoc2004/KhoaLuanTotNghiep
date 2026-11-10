@@ -182,15 +182,8 @@ export const ClientHomePage: React.FC<ClientHomePageProps> = ({
           languageCount={activeLanguages.length || 5}
           onExploreTourClick={() => onNavigatePage('rooms')}
           onExploreArtifactsClick={() => onNavigatePage('artifacts')}
-          featuredImageUrl={
-            branding.heroBannerUrl
-              ? (branding.heroBannerUrl.startsWith('http')
-                  ? branding.heroBannerUrl
-                  : `${API_ROOT}${branding.heroBannerUrl.startsWith('/') ? '' : '/'}${branding.heroBannerUrl}`)
-              : (rooms[0]?.panoramaUrl
-                  ? `${API_ROOT}${rooms[0].panoramaUrl.startsWith('/') ? '' : '/'}${rooms[0].panoramaUrl}`
-                  : undefined)
-          }
+          featuredImageUrl={branding.heroBannerUrl}
+          fallbackImageUrl={rooms[0]?.panoramaUrl || rooms[0]?.thumbnailUrl}
           videoUrl={branding.heroVideoUrl}
         />
 
@@ -200,6 +193,7 @@ export const ClientHomePage: React.FC<ClientHomePageProps> = ({
           artifactCount={artifacts.length}
           topicCount={topics.length}
           onExploreRooms={() => onNavigatePage('rooms')}
+          fallbackImageUrl={rooms[0]?.thumbnailUrl || rooms[0]?.panoramaUrl}
         />
 
         {/* 4. Khối Gian phòng Trưng bày 360° (Đại diện cho trang Gian phòng 360°) */}

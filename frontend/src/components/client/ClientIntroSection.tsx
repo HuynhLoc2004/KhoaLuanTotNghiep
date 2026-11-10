@@ -1,50 +1,52 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Landmark } from 'lucide-react';
 import { useSystemBranding } from '../../context/SystemBrandingContext';
 import { useClientTranslation } from '../../context/ClientTranslationContext';
-import { API_ROOT } from '../../services/api';
+import { API_ROOT, resolveMediaUrl } from '../../services/api';
 
 interface ClientIntroSectionProps {
   roomCount?: number;
   artifactCount?: number;
   topicCount?: number;
   onExploreRooms?: () => void;
+  fallbackImageUrl?: string;
 }
 
 export const ClientIntroSection: React.FC<ClientIntroSectionProps> = ({
   roomCount = 0,
   artifactCount = 0,
-  onExploreRooms
+  onExploreRooms,
+  fallbackImageUrl
 }) => {
   const { branding } = useSystemBranding();
   const { t } = useClientTranslation();
-  const [loadFailed, setLoadFailed] = useState(false);
-  const [usingFallback, setUsingFallback] = useState(false);
-
-  const getMediaUrl = (path?: string) => {
-    if (!path) return '';
-    return path.startsWith('http') ? path : `${API_ROOT}${path.startsWith('/') ? '' : '/'}${path}`;
-  };
+  const [failedUrls, setFailedUrls] = useState<Record<string, boolean>>({});
 
   // Reset trang thai loi khi admin thay doi URL anh trong CSDL / CMS
   useEffect(() => {
-    setLoadFailed(false);
-    setUsingFallback(false);
-  }, [branding.introImageUrl]);
+    setFailedUrls({});
+  }, [branding.introImageUrl, branding.heroBannerUrl, fallbackImageUrl]);
 
-  const rawTargetUrl = !usingFallback ? (branding.introImageUrl || '') : (branding.heroBannerUrl || '');
-  const activeImageUrl = getMediaUrl(rawTargetUrl);
+  const candidates = useMemo(() => {
+    const list: string[] = [];
+    const primary = resolveMediaUrl(branding.introImageUrl);
+    if (primary) list.push(primary);
+    const hero = resolveMediaUrl(branding.heroBannerUrl);
+    if (hero && !list.includes(hero)) list.push(hero);
+    const fallback = resolveMediaUrl(fallbackImageUrl);
+    if (fallback && !list.includes(fallback)) list.push(fallback);
+    const defaultLocal = '/images/default_architecture.jpg';
+    if (!list.includes(defaultLocal)) list.push(defaultLocal);
+    return list;
+  }, [branding.introImageUrl, branding.heroBannerUrl, fallbackImageUrl]);
 
-  const handleImageError = () => {
-    if (!usingFallback && branding.heroBannerUrl && branding.heroBannerUrl !== branding.introImageUrl) {
-      // Tu dong chuyen sang anh kien truc chuan cua bao tang
-      setUsingFallback(true);
-    } else {
-      setLoadFailed(true);
-    }
+  const activeImageUrl = candidates.find((url) => !failedUrls[url]) || '';
+
+  const handleImageError = (url: string) => {
+    setFailedUrls((prev) => ({ ...prev, [url]: true }));
   };
 
-  const hasImage = Boolean(activeImageUrl && !loadFailed);
+  const hasImage = Boolean(activeImageUrl);
 
   return (
     <section id="intro" className="client-section client-section-alt">
@@ -58,7 +60,7 @@ export const ClientIntroSection: React.FC<ClientIntroSectionProps> = ({
                 alt={branding.introTitle || branding.museumName || 'Kiến trúc Bảo tàng Lịch sử'}
                 className="client-intro-img"
                 loading="lazy"
-                onError={handleImageError}
+                onError={() => handleImageError(activeImageUrl)}
               />
             ) : (
               <div className="client-media-placeholder">

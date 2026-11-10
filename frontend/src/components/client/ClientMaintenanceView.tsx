@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { MaintenanceStatus } from '../../types';
 import { useSystemBranding } from '../../context/SystemBrandingContext';
+import { resolveMediaUrl } from '../../services/api';
 import { Clock, RefreshCw, LogIn, MapPin, ShieldAlert } from 'lucide-react';
 
 interface ClientMaintenanceViewProps {
@@ -17,6 +18,11 @@ export const ClientMaintenanceView: React.FC<ClientMaintenanceViewProps> = ({
   const { branding } = useSystemBranding();
   const [isRetrying, setIsRetrying] = useState(false);
   const [timeRemainingText, setTimeRemainingText] = useState('');
+  const [logoError, setLogoError] = useState(false);
+
+  useEffect(() => {
+    setLogoError(false);
+  }, [branding.logoUrl]);
 
   // Tính toán thời gian dự kiến hoàn tất & đếm ngược
   useEffect(() => {
@@ -100,9 +106,9 @@ export const ClientMaintenanceView: React.FC<ClientMaintenanceViewProps> = ({
       >
         {/* Biểu trưng hoặc Logo bảo tàng */}
         <div style={{ marginBottom: 16 }}>
-          {branding.logoUrl ? (
+          {branding.logoUrl && !logoError ? (
             <img
-              src={branding.logoUrl}
+              src={resolveMediaUrl(branding.logoUrl)}
               alt={branding.shortName || 'Logo'}
               style={{
                 maxHeight: 64,
@@ -111,6 +117,7 @@ export const ClientMaintenanceView: React.FC<ClientMaintenanceViewProps> = ({
                 margin: '0 auto',
                 display: 'block'
               }}
+              onError={() => setLogoError(true)}
             />
           ) : (
             <div

@@ -8,6 +8,34 @@ export const API_ROOT = import.meta.env.VITE_API_URL
 
 export const API_BASE = `${API_ROOT}/api`;
 
+/**
+ * Chuẩn hóa và làm sạch URL hình ảnh / media trên toàn bộ ứng dụng:
+ * - Tự động phát hiện và chuyển đổi URL localhost sang domain hiện tại trên production
+ * - Tự động ghép nối API_ROOT cho các đường dẫn tương đối (/uploads/...)
+ * - Hỗ trợ fallback an toàn khi URL trống hoặc không hợp lệ
+ */
+export const resolveMediaUrl = (path?: string, fallback: string = ''): string => {
+  if (!path || typeof path !== 'string' || !path.trim()) {
+    return fallback;
+  }
+  let trimmed = path.trim();
+
+  // Khi chạy trên domain thật (như museumhcm.duckdns.org), tự động chuẩn hóa URL localhost:3000 / localhost:5000 còn sót trong CSDL
+  if (
+    typeof window !== 'undefined' &&
+    window.location.hostname !== 'localhost' &&
+    window.location.hostname !== '127.0.0.1'
+  ) {
+    trimmed = trimmed.replace(/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/i, API_ROOT);
+  }
+
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://') || trimmed.startsWith('data:') || trimmed.startsWith('blob:')) {
+    return trimmed;
+  }
+
+  return `${API_ROOT}${trimmed.startsWith('/') ? '' : '/'}${trimmed}`;
+};
+
 export const getAuthHeaders = (contentType: boolean = true): Record<string, string> => {
   const headers: Record<string, string> = {};
   if (contentType) {

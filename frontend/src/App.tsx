@@ -10,7 +10,7 @@ import { AdminLoginPage } from './pages/admin/AdminLoginPage';
 import { AdminArtifactsPage } from './pages/admin/AdminArtifactsPage';
 import { PublicArtifactView } from './pages/public/PublicArtifactView';
 import { MuseumRoom, AdminTab, Artifact, TopicItem } from './types';
-import { api } from './services/api';
+import { api, resolveMediaUrl } from './services/api';
 import { Loader2, AlertCircle, Landmark, RefreshCw, QrCode, Bot } from 'lucide-react';
 import { ToastProvider, useToast } from './components/Toast';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -48,6 +48,11 @@ const AppContent: React.FC = () => {
   const { maintenance, refreshMaintenance } = useMaintenance();
   const { showToast } = useToast();
   const { t } = useClientTranslation();
+  const [logoError, setLogoError] = useState(false);
+
+  useEffect(() => {
+    setLogoError(false);
+  }, [branding.logoUrl]);
   const [currentTab, setCurrentTab] = useState<AdminTab>('rooms');
   const [homepageSection, setHomepageSection] = useState<string>('panel-brand');
   const [rooms, setRooms] = useState<MuseumRoom[]>([]);
@@ -737,9 +742,9 @@ const AppContent: React.FC = () => {
   if (isAuthLoading) {
     return (
       <div className="admin-auth-loading">
-        {branding.logoUrl ? (
+        {branding.logoUrl && !logoError ? (
           <img
-            src={branding.logoUrl}
+            src={resolveMediaUrl(branding.logoUrl)}
             alt={branding.shortName}
             style={{
               width: 48,
@@ -748,6 +753,7 @@ const AppContent: React.FC = () => {
               borderRadius: 8,
               marginBottom: 8
             }}
+            onError={() => setLogoError(true)}
           />
         ) : (
           <div

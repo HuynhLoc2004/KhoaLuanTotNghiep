@@ -21,7 +21,7 @@ import {
   RefreshCw,
   Loader2
 } from 'lucide-react';
-import { api, API_ROOT } from '../../services/api';
+import { api, API_ROOT, resolveMediaUrl } from '../../services/api';
 import { Artifact, LanguageItem } from '../../types';
 import { Turntable360Viewer } from '../../components/Turntable360Viewer';
 import { useSystemBranding } from '../../context/SystemBrandingContext';
@@ -39,6 +39,11 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
 }) => {
   const { branding } = useSystemBranding();
   const { currentLang, changeLanguage, t, activeLanguages } = useClientTranslation();
+  const [logoError, setLogoError] = useState(false);
+
+  useEffect(() => {
+    setLogoError(false);
+  }, [branding.logoUrl]);
   const [artifact, setArtifact] = useState<Artifact | null>(null);
   const [systemLanguages, setSystemLanguages] = useState<LanguageItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -434,8 +439,13 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
     return (
       <div className="public-artifact-loading-screen">
         <div className="loading-emblem-wrap">
-          {branding.logoUrl ? (
-            <img src={branding.logoUrl} alt={branding.shortName || 'Museum'} className="loading-emblem-img" />
+          {branding.logoUrl && !logoError ? (
+            <img
+              src={resolveMediaUrl(branding.logoUrl)}
+              alt={branding.shortName || 'Museum'}
+              className="loading-emblem-img"
+              onError={() => setLogoError(true)}
+            />
           ) : (
             <div className="loading-emblem-icon">
               <Layers size={36} />

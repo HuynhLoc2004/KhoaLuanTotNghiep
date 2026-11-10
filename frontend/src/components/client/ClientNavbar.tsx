@@ -21,6 +21,7 @@ import {
 import { useSystemBranding, DEFAULT_HEADER_MENU } from '../../context/SystemBrandingContext';
 import { useClientTranslation } from '../../context/ClientTranslationContext';
 import { useAuth } from '../../context/AuthContext';
+import { resolveMediaUrl } from '../../services/api';
 import { HeaderMenuItem, HeaderSubMenuItem } from '../../types';
 
 interface ClientNavbarProps {
@@ -52,6 +53,11 @@ export const ClientNavbar: React.FC<ClientNavbarProps> = ({
   const [activeDropdownId, setActiveDropdownId] = useState<string | null>(null);
   const [mobileExpandedIds, setMobileExpandedIds] = useState<Record<string, boolean>>({});
   const [isScrolled, setIsScrolled] = useState(false);
+  const [logoError, setLogoError] = useState(false);
+
+  useEffect(() => {
+    setLogoError(false);
+  }, [branding.logoUrl]);
 
   const userDropdownRef = useRef<HTMLDivElement>(null);
   const langDropdownRef = useRef<HTMLDivElement>(null);
@@ -201,8 +207,13 @@ export const ClientNavbar: React.FC<ClientNavbarProps> = ({
             }
           }}
         >
-          {branding.logoUrl ? (
-            <img src={branding.logoUrl} alt={branding.shortName} className="client-nav-logo" />
+          {branding.logoUrl && !logoError ? (
+            <img
+              src={resolveMediaUrl(branding.logoUrl)}
+              alt={branding.shortName || 'Bảo tàng Lịch sử'}
+              className="client-nav-logo"
+              onError={() => setLogoError(true)}
+            />
           ) : (
             <div className="client-nav-emblem" title={branding.shortName || 'Bảo tàng Lịch sử'}>
               <span>{branding.emblemText || 'BT'}</span>

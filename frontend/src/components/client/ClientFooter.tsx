@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { ArrowUp, GraduationCap } from 'lucide-react';
 import { useSystemBranding } from '../../context/SystemBrandingContext';
 import { useClientTranslation } from '../../context/ClientTranslationContext';
+import { resolveMediaUrl } from '../../services/api';
 
 interface ClientFooterProps {
   onNavigatePage?: (page: any) => void;
@@ -10,6 +11,11 @@ interface ClientFooterProps {
 export const ClientFooter: React.FC<ClientFooterProps> = ({ onNavigatePage }) => {
   const { branding } = useSystemBranding();
   const { t } = useClientTranslation();
+  const [logoError, setLogoError] = useState(false);
+
+  useEffect(() => {
+    setLogoError(false);
+  }, [branding.logoUrl]);
 
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -37,11 +43,12 @@ export const ClientFooter: React.FC<ClientFooterProps> = ({ onNavigatePage }) =>
           {/* Cột 1: Thông tin bảo tàng & Nhận diện thương hiệu đồng bộ */}
           <div className="client-footer-brand-col">
             <div className="client-footer-brand-header">
-              {branding.logoUrl ? (
+              {branding.logoUrl && !logoError ? (
                 <img
-                  src={branding.logoUrl}
+                  src={resolveMediaUrl(branding.logoUrl)}
                   alt={branding.shortName || branding.museumName}
                   className="client-footer-logo"
+                  onError={() => setLogoError(true)}
                 />
               ) : (
                 <div className="client-footer-emblem" title={branding.shortName || 'Bảo tàng Lịch sử'}>

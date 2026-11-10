@@ -13,7 +13,7 @@ import {
   Check,
   RotateCcw
 } from 'lucide-react';
-import { API_ROOT } from '../../services/api';
+import { API_ROOT, resolveMediaUrl } from '../../services/api';
 import { useClientTranslation } from '../../context/ClientTranslationContext';
 import { ClientNavbar } from '../../components/client/ClientNavbar';
 import { ClientFooter } from '../../components/client/ClientFooter';
@@ -139,12 +139,12 @@ export const ClientRoomsPage: React.FC<ClientRoomsPageProps> = ({
     return () => clearTimeout(timer);
   }, [paginatedRooms]);
 
+  const [failedThumbs, setFailedThumbs] = useState<Record<string, boolean>>({});
+
   const getRoomThumb = (room: MuseumRoom) => {
     const raw = room.thumbnailUrl || room.panoramaUrl;
     if (!raw) return '';
-    return raw.startsWith('http')
-      ? raw
-      : `${API_ROOT}${raw.startsWith('/') ? '' : '/'}${raw}`;
+    return resolveMediaUrl(raw);
   };
 
   const currentFilterLabel =
@@ -427,15 +427,21 @@ export const ClientRoomsPage: React.FC<ClientRoomsPageProps> = ({
                         tabIndex={0}
                         title={`Bấm để vào tham quan 360° ${title}`}
                       >
-                        {thumb ? (
-                          <img src={thumb} alt={title} className="client-gallery-img client-room-gallery-img" loading="lazy" />
+                        {thumb && !failedThumbs[room.id] ? (
+                          <img
+                            src={thumb}
+                            alt={title}
+                            className="client-gallery-img client-room-gallery-img"
+                            loading="lazy"
+                            onError={() => setFailedThumbs((prev) => ({ ...prev, [room.id]: true }))}
+                          />
                         ) : (
-                          <div className="client-media-placeholder" style={{ padding: '24px 12px' }}>
-                            <div className="client-media-placeholder-icon" style={{ width: 44, height: 44, marginBottom: 8 }}>
-                              <Compass size={22} strokeWidth={1.5} />
-                            </div>
-                            <span className="client-media-placeholder-title" style={{ fontSize: 13 }}>{t('rooms.noPanorama', 'Chưa có ảnh 360°')}</span>
-                          </div>
+                          <img
+                            src="/images/default_banner.jpg"
+                            alt={title}
+                            className="client-gallery-img client-room-gallery-img"
+                            loading="lazy"
+                          />
                         )}
                         <div className="client-zigzag-badge-float">
                           <span>{thumb ? t('rooms.ready360', '360° Sẵn sàng') : t('rooms.updating', 'Đang cập nhật')}</span>

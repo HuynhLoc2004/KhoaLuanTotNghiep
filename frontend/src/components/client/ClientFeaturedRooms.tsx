@@ -1,7 +1,7 @@
 import React from 'react';
 import { Compass, ArrowRight, Eye } from 'lucide-react';
 import { MuseumRoom } from '../../types';
-import { API_ROOT } from '../../services/api';
+import { API_ROOT, resolveMediaUrl } from '../../services/api';
 import { useSystemBranding } from '../../context/SystemBrandingContext';
 import { useClientTranslation } from '../../context/ClientTranslationContext';
 
@@ -39,12 +39,17 @@ export const ClientFeaturedRooms: React.FC<ClientFeaturedRoomsProps> = ({
 
   const featuredSingle = showcaseRooms[0];
   const isSingleRoom = showcaseRooms.length === 1;
+  const [failedThumbs, setFailedThumbs] = React.useState<Record<string, boolean>>({});
+
+  const handleThumbError = (roomId: string) => {
+    setFailedThumbs((prev) => ({ ...prev, [roomId]: true }));
+  };
 
   const getRoomThumb = (room?: MuseumRoom) => {
     if (!room) return '';
     const raw = room.thumbnailUrl || room.panoramaUrl || '';
     if (!raw) return '';
-    return raw.startsWith('http') ? raw : `${API_ROOT}${raw.startsWith('/') ? '' : '/'}${raw}`;
+    return resolveMediaUrl(raw);
   };
 
   return (
@@ -77,17 +82,21 @@ export const ClientFeaturedRooms: React.FC<ClientFeaturedRoomsProps> = ({
             title={t('rooms.clickToEnter', 'Bấm để bắt đầu chuyến tham quan 360°')}
           >
             <div className="client-room-teaser-media">
-              {getRoomThumb(featuredSingle) ? (
+              {getRoomThumb(featuredSingle) && !failedThumbs[featuredSingle.id] ? (
                 <img
                   src={getRoomThumb(featuredSingle)}
                   alt={localize(featuredSingle, 'name', featuredSingle.name)}
                   className="client-room-teaser-img"
                   loading="lazy"
+                  onError={() => handleThumbError(featuredSingle.id)}
                 />
               ) : (
-                <div className="client-media-placeholder">
-                  <Compass size={36} strokeWidth={1.5} />
-                </div>
+                <img
+                  src="/images/default_banner.jpg"
+                  alt={localize(featuredSingle, 'name', featuredSingle.name)}
+                  className="client-room-teaser-img"
+                  loading="lazy"
+                />
               )}
               <div className="client-room-teaser-badge">
                 <span className="client-guide-pulse-dot" />
@@ -144,12 +153,19 @@ export const ClientFeaturedRooms: React.FC<ClientFeaturedRoomsProps> = ({
                   title={`Bắt đầu tham quan: ${roomName}`}
                 >
                   <div className="client-room-gallery-media">
-                    {thumbUrl ? (
-                      <img src={thumbUrl} alt={roomName} loading="lazy" />
+                    {thumbUrl && !failedThumbs[room.id] ? (
+                      <img
+                        src={thumbUrl}
+                        alt={roomName}
+                        loading="lazy"
+                        onError={() => handleThumbError(room.id)}
+                      />
                     ) : (
-                      <div className="client-media-placeholder">
-                        <Compass size={28} strokeWidth={1.5} />
-                      </div>
+                      <img
+                        src="/images/default_banner.jpg"
+                        alt={roomName}
+                        loading="lazy"
+                      />
                     )}
                     <div className="client-room-gallery-badge">
                       <span>360° Tour</span>

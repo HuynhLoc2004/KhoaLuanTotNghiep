@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { useSystemBranding } from '../../context/SystemBrandingContext';
 import { useClientTranslation } from '../../context/ClientTranslationContext';
-import { API_ROOT } from '../../services/api';
+import { API_ROOT, resolveMediaUrl } from '../../services/api';
 
 interface ClientHeroBannerProps {
   roomCount: number;
@@ -17,6 +17,7 @@ interface ClientHeroBannerProps {
   onExploreTourClick: () => void;
   onExploreArtifactsClick: () => void;
   featuredImageUrl?: string;
+  fallbackImageUrl?: string;
   videoUrl?: string;
 }
 
@@ -27,24 +28,35 @@ export const ClientHeroBanner: React.FC<ClientHeroBannerProps> = ({
   onExploreTourClick,
   onExploreArtifactsClick,
   featuredImageUrl,
+  fallbackImageUrl,
   videoUrl
 }) => {
   const { branding } = useSystemBranding();
   const { t } = useClientTranslation();
 
-  // Tính URL ảnh banner thực tế: ưu tiên featuredImageUrl -> branding.heroBannerUrl
-  const effectiveImageUrl = React.useMemo(() => {
-    const raw = featuredImageUrl || branding.heroBannerUrl || '';
-    if (!raw.trim()) return '';
-    return raw.startsWith('http') ? raw.trim() : `${API_ROOT}${raw.startsWith('/') ? '' : '/'}${raw.trim()}`;
-  }, [featuredImageUrl, branding.heroBannerUrl]);
+  const [failedUrls, setFailedUrls] = React.useState<Record<string, boolean>>({});
 
-  const [hasImgError, setHasImgError] = React.useState(false);
-
-  // Khi URL ảnh banner thay đổi, tự động reset cờ lỗi để tải ảnh mới ngay lập tức
+  // Reset khi URL nguồn thay đổi từ CMS hoặc props
   React.useEffect(() => {
-    setHasImgError(false);
-  }, [effectiveImageUrl]);
+    setFailedUrls({});
+  }, [featuredImageUrl, branding.heroBannerUrl, fallbackImageUrl]);
+
+  const candidates = React.useMemo(() => {
+    const list: string[] = [];
+    const primary = resolveMediaUrl(featuredImageUrl || branding.heroBannerUrl);
+    if (primary) list.push(primary);
+    const fallback = resolveMediaUrl(fallbackImageUrl);
+    if (fallback && !list.includes(fallback)) list.push(fallback);
+    const defaultLocal = '/images/default_banner.jpg';
+    if (!list.includes(defaultLocal)) list.push(defaultLocal);
+    return list;
+  }, [featuredImageUrl, branding.heroBannerUrl, fallbackImageUrl]);
+
+  const activeImageUrl = candidates.find((url) => !failedUrls[url]) || '';
+
+  const handleImageError = (url: string) => {
+    setFailedUrls((prev) => ({ ...prev, [url]: true }));
+  };
 
   const effectiveVideoUrl = (videoUrl || branding.heroVideoUrl || '').trim();
   const hasValidVideo = Boolean(effectiveVideoUrl && effectiveVideoUrl.length > 5);
@@ -93,18 +105,18 @@ export const ClientHeroBanner: React.FC<ClientHeroBannerProps> = ({
             muted
             playsInline
             className="client-hero-media"
-            poster={effectiveImageUrl || undefined}
+            poster={activeImageUrl || undefined}
           >
             <source src={effectiveVideoUrl} type="video/mp4" />
           </video>
-        ) : effectiveImageUrl && !hasImgError ? (
+        ) : activeImageUrl ? (
           <img
-            key={effectiveImageUrl}
-            src={effectiveImageUrl}
+            key={activeImageUrl}
+            src={activeImageUrl}
             alt={branding.museumName || 'Bảo tàng Lịch sử'}
             className="client-hero-media"
             loading="eager"
-            onError={() => setHasImgError(true)}
+            onError={() => handleImageError(activeImageUrl)}
           />
         ) : (
           <div

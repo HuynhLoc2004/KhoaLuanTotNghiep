@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { ChevronRight, Menu, Sun, Moon, ExternalLink, Landmark, Shield, ArrowLeft, LogOut } from 'lucide-react';
 import { AdminTab, MuseumRoom } from '../types';
 import { useTheme } from '../context/ThemeContext';
@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import { useSystemBranding } from '../context/SystemBrandingContext';
 import { ClientLanguagePicker } from './ClientLanguagePicker';
 import { useClientTranslation } from '../context/ClientTranslationContext';
+import { resolveMediaUrl } from '../services/api';
 
 interface HeaderProps {
   currentTab: AdminTab;
@@ -24,6 +25,11 @@ export const Header: React.FC<HeaderProps> = ({
   const { user, logout } = useAuth();
   const { branding } = useSystemBranding();
   const { t, localize, currentLang } = useClientTranslation();
+  const [logoError, setLogoError] = useState(false);
+
+  useEffect(() => {
+    setLogoError(false);
+  }, [branding.logoUrl]);
 
   const getTabLabel = (tab: AdminTab): string => {
     switch (tab) {
@@ -62,11 +68,12 @@ export const Header: React.FC<HeaderProps> = ({
 
         <nav className="header-breadcrumbs" aria-label="Đường dẫn điều hướng">
           <div className="breadcrumb-root">
-            {branding.logoUrl ? (
+            {branding.logoUrl && !logoError ? (
               <img
-                src={branding.logoUrl}
+                src={resolveMediaUrl(branding.logoUrl)}
                 alt=""
                 style={{ width: 15, height: 15, objectFit: 'contain', marginRight: 4, verticalAlign: 'middle' }}
+                onError={() => setLogoError(true)}
               />
             ) : (
               <Landmark size={14} className="breadcrumb-museum-icon" />

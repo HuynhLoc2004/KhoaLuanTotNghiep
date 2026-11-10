@@ -283,7 +283,7 @@
           updateFavicon(b.logoUrl.trim());
           const emblem = document.getElementById('museumEmblem');
           if (emblem) {
-            emblem.innerHTML = `<img src="${b.logoUrl.trim()}" alt="${b.shortName || ''}" style="width: 100%; height: 100%; object-fit: contain; border-radius: 4px;" />`;
+            emblem.innerHTML = `<img src="${b.logoUrl.trim()}" alt="${b.shortName || ''}" style="width: 100%; height: 100%; object-fit: contain; border-radius: 4px;" onerror="this.remove(); document.getElementById('museumEmblem').textContent='${b.emblemText || 'BT'}';" />`;
             emblem.style.background = 'transparent';
             emblem.style.border = 'none';
           }
@@ -363,7 +363,7 @@
             if (b.logoUrl) {
               const emblem = document.getElementById('museumEmblem');
               if (emblem) {
-                emblem.innerHTML = `<img src="${b.logoUrl}" alt="${b.shortName || ''}" style="width: 100%; height: 100%; object-fit: contain; border-radius: 4px;" />`;
+                emblem.innerHTML = `<img src="${b.logoUrl}" alt="${b.shortName || ''}" style="width: 100%; height: 100%; object-fit: contain; border-radius: 4px;" onerror="this.remove(); document.getElementById('museumEmblem').textContent='${b.emblemText || 'BT'}';" />`;
                 emblem.style.background = 'transparent';
                 emblem.style.border = 'none';
               }

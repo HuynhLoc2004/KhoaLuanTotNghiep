@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { Artifact } from '../../types';
 import { Pagination } from '../../components/Pagination';
 import { Box, Search, ArrowRight, ArrowLeft, RotateCw, Sparkles, Filter } from 'lucide-react';
-import { API_ROOT } from '../../services/api';
+import { API_ROOT, resolveMediaUrl } from '../../services/api';
 import { useClientTranslation } from '../../context/ClientTranslationContext';
 import { ClientNavbar } from '../../components/client/ClientNavbar';
 import { ClientFooter } from '../../components/client/ClientFooter';
@@ -108,12 +108,12 @@ export const ClientArtifactsPage: React.FC<ClientArtifactsPageProps> = ({
     return () => clearTimeout(timer);
   }, [paginatedArtifacts]);
 
+  const [failedThumbs, setFailedThumbs] = useState<Record<string, boolean>>({});
+
   const getArtifactThumb = (art: Artifact) => {
     const raw = art.thumbnailUrl || (art.images && art.images[0]);
     if (!raw) return '';
-    return raw.startsWith('http')
-      ? raw
-      : `${API_ROOT}${raw.startsWith('/') ? '' : '/'}${raw}`;
+    return resolveMediaUrl(raw);
   };
 
   return (
@@ -247,8 +247,14 @@ export const ClientArtifactsPage: React.FC<ClientArtifactsPageProps> = ({
                         role="button"
                         tabIndex={0}
                       >
-                        {thumb ? (
-                          <img src={thumb} alt={title} className="client-gallery-img client-artifact-img" loading="lazy" />
+                        {thumb && !failedThumbs[artId] ? (
+                          <img
+                            src={thumb}
+                            alt={title}
+                            className="client-gallery-img client-artifact-img"
+                            loading="lazy"
+                            onError={() => setFailedThumbs((prev) => ({ ...prev, [artId]: true }))}
+                          />
                         ) : (
                           <div className="client-media-placeholder" style={{ padding: '24px 12px' }}>
                             <div className="client-media-placeholder-icon" style={{ width: 44, height: 44, marginBottom: 8 }}>
