@@ -42,12 +42,9 @@ WORKDIR /app
 COPY stitching_worker/requirements.txt ./stitching_worker/
 RUN python3 -m pip install --no-cache-dir --break-system-packages -r stitching_worker/requirements.txt
 
-# Cài đặt CHỈ Production Node Dependencies (bỏ qua TypeScript, types, tsx...)
-COPY backend/package*.json ./backend/
+# Tận dụng node_modules đã cài đặt từ ts-builder (tránh npm install lại từ đầu làm nghẽn mạng VPS khi tải sharp)
 WORKDIR /app/backend
-RUN npm install --omit=dev --no-audit --no-fund && npm cache clean --force
-
-# Copy mã nguồn đã build (dist) từ stage 1
+COPY --from=ts-builder /app/backend/node_modules ./node_modules
 COPY --from=ts-builder /app/backend/dist ./dist
 COPY stitching_worker /app/stitching_worker
 
