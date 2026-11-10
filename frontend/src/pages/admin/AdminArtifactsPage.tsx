@@ -2865,6 +2865,235 @@ export const AdminArtifactsPage: React.FC = () => {
                   )}
                 </div>
 
+                {/* TÙY CHỌN TỰ ĐỘNG DỰNG MÔ HÌNH 3D NGAY DƯỚI KHỐI ẢNH TƯ LIỆU */}
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 10,
+                    padding: '12px 14px',
+                    borderRadius: 'var(--radius-sm, 6px)',
+                    background: 'var(--bg-subtle)',
+                    border: '1px solid var(--border-color)',
+                    marginTop: 2
+                  }}
+                >
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', margin: 0 }}>
+                    <input
+                      type="checkbox"
+                      id="autoGenerate3DCheckbox"
+                      checked={autoGenerate3D}
+                      onChange={(e) => setAutoGenerate3D(e.target.checked)}
+                      style={{ width: 16, height: 16, accentColor: 'var(--accent-gold)', cursor: 'pointer' }}
+                    />
+                    <div style={{ flex: 1 }}>
+                      <span style={{ fontSize: '13px', color: 'var(--heading-color)', fontWeight: 600 }}>
+                        Tự động dựng mô hình 3D sau khi lưu
+                      </span>
+                      <span style={{ display: 'block', fontSize: '11px', color: 'var(--text-muted)', marginTop: 2 }}>
+                        Sử dụng các ảnh tư liệu đã tải lên ở trên để số hóa thành mô hình 3D xoay 360° trong nền
+                      </span>
+                    </div>
+                  </label>
+
+                  {autoGenerate3D && (
+                    <div style={{
+                      marginTop: 2,
+                      paddingTop: 10,
+                      borderTop: '1px dashed var(--border-color)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 8
+                    }}>
+                      {/* Lựa chọn Động cơ Tái tạo 3D */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 4 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--heading-color)', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                            <Cpu size={14} style={{ color: 'var(--accent-gold)' }} />
+                            Động cơ tái tạo 3D:
+                          </span>
+                        </div>
+                        <div className="artifact-3d-radios-grid">
+                          {/* Động cơ 1: Local VPS CPU */}
+                          <label
+                            style={{
+                              display: 'flex',
+                              alignItems: 'flex-start',
+                              gap: 8,
+                              padding: '9px 12px',
+                              borderRadius: 6,
+                              cursor: 'pointer',
+                              border: aiEngine === 'local' ? '1px solid var(--accent-gold)' : '1px solid var(--border-color)',
+                              background: aiEngine === 'local' ? 'rgba(212, 175, 55, 0.08)' : 'rgba(0,0,0,0.2)',
+                              transition: 'all 0.15s ease'
+                            }}
+                          >
+                            <input
+                              type="radio"
+                              name="artifactAiEngine"
+                              checked={aiEngine === 'local'}
+                              onChange={() => setAiEngine('local')}
+                              style={{ marginTop: 2, accentColor: 'var(--accent-gold)' }}
+                            />
+                            <div style={{ flex: 1 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
+                                <span style={{ fontSize: '12px', fontWeight: 600, color: aiEngine === 'local' ? 'var(--accent-gold)' : 'var(--heading-color)' }}>
+                                  Máy chủ nội bộ (Cục bộ)
+                                </span>
+                                <span style={{ fontSize: '9.5px', color: 'var(--accent-gold)', background: 'rgba(212, 175, 55, 0.12)', border: '1px solid rgba(212, 175, 55, 0.25)', padding: '1px 6px', borderRadius: 4, whiteSpace: 'nowrap' }}>
+                                  CPU Server
+                                </span>
+                              </div>
+                              <div style={{ fontSize: '10.5px', color: 'var(--text-muted)', marginTop: 3, lineHeight: '1.4' }}>
+                                Dựng hình học 3D trực tiếp trên máy chủ bằng thuật toán đối xứng trục Radial-Axial. Vận hành độc lập, không lo hết quota.
+                              </div>
+                            </div>
+                          </label>
+
+                          {/* Động cơ 2: Cloud TRELLIS */}
+                          <label
+                            style={{
+                              display: 'flex',
+                              alignItems: 'flex-start',
+                              gap: 8,
+                              padding: '9px 12px',
+                              borderRadius: 6,
+                              cursor: 'pointer',
+                              border: aiEngine === 'trellis' ? '1px solid var(--accent-gold)' : '1px solid var(--border-color)',
+                              background: aiEngine === 'trellis' ? 'rgba(212, 175, 55, 0.08)' : 'rgba(0,0,0,0.2)',
+                              transition: 'all 0.15s ease'
+                            }}
+                          >
+                            <input
+                              type="radio"
+                              name="artifactAiEngine"
+                              checked={aiEngine === 'trellis'}
+                              onChange={() => setAiEngine('trellis')}
+                              style={{ marginTop: 2, accentColor: 'var(--accent-gold)' }}
+                            />
+                            <div style={{ flex: 1 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
+                                <span style={{ fontSize: '12px', fontWeight: 600, color: aiEngine === 'trellis' ? 'var(--accent-gold)' : 'var(--heading-color)' }}>
+                                  Đám mây AI (TRELLIS)
+                                </span>
+                                <span style={{ fontSize: '9.5px', color: 'var(--text-muted)', background: 'rgba(255, 255, 255, 0.06)', border: '1px solid var(--border-color)', padding: '1px 6px', borderRadius: 4, whiteSpace: 'nowrap' }}>
+                                  ZeroGPU A100
+                                </span>
+                              </div>
+                              <div style={{ fontSize: '10.5px', color: 'var(--text-muted)', marginTop: 3, lineHeight: '1.4' }}>
+                                Dựng mô hình 3D qua Deep Learning trên cụm HuggingFace GPU. Cần quota GPU miễn phí hàng ngày.
+                              </div>
+                            </div>
+                          </label>
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--heading-color)' }}>
+                          Nguồn ảnh dựng 3D:
+                        </span>
+                        <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                          {(editingArtifact.images?.length || 0) +
+                            (editingArtifact.anglePhotos?.length || 0)} ảnh đã tải
+                        </span>
+                      </div>
+
+                      {/* 3 Lựa chọn dạng Radio sạch sẽ */}
+                      <div className="artifact-3d-radios-grid">
+                        <label
+                          style={{
+                            display: 'flex',
+                            alignItems: 'flex-start',
+                            gap: 8,
+                            padding: '9px 12px',
+                            borderRadius: 6,
+                            cursor: 'pointer',
+                            border: reconstructionMode === 'single' ? '1px solid var(--accent-gold)' : '1px solid var(--border-color)',
+                            background: reconstructionMode === 'single' ? 'rgba(212, 175, 55, 0.08)' : 'rgba(0,0,0,0.2)',
+                            transition: 'all 0.15s ease'
+                          }}
+                        >
+                          <input
+                            type="radio"
+                            name="artifactReconMode"
+                            checked={reconstructionMode === 'single'}
+                            onChange={() => setReconstructionMode('single')}
+                            style={{ marginTop: 2, accentColor: 'var(--accent-gold)' }}
+                          />
+                          <div>
+                            <div style={{ fontSize: '12px', fontWeight: 600, color: reconstructionMode === 'single' ? 'var(--accent-gold)' : 'var(--heading-color)' }}>
+                              1 ảnh đại diện
+                            </div>
+                            <div style={{ fontSize: '10.5px', color: 'var(--text-muted)', marginTop: 2 }}>
+                              Dựng 3D từ ảnh chính
+                            </div>
+                          </div>
+                        </label>
+
+                        <label
+                          style={{
+                            display: 'flex',
+                            alignItems: 'flex-start',
+                            gap: 8,
+                            padding: '9px 12px',
+                            borderRadius: 6,
+                            cursor: 'pointer',
+                            border: reconstructionMode === 'front_back' ? '1px solid var(--accent-gold)' : '1px solid var(--border-color)',
+                            background: reconstructionMode === 'front_back' ? 'rgba(212, 175, 55, 0.08)' : 'rgba(0,0,0,0.2)',
+                            transition: 'all 0.15s ease'
+                          }}
+                        >
+                          <input
+                            type="radio"
+                            name="artifactReconMode"
+                            checked={reconstructionMode === 'front_back'}
+                            onChange={() => setReconstructionMode('front_back')}
+                            style={{ marginTop: 2, accentColor: 'var(--accent-gold)' }}
+                          />
+                          <div>
+                            <div style={{ fontSize: '12px', fontWeight: 600, color: reconstructionMode === 'front_back' ? 'var(--accent-gold)' : 'var(--heading-color)' }}>
+                              2 góc ảnh
+                            </div>
+                            <div style={{ fontSize: '10.5px', color: 'var(--text-muted)', marginTop: 2 }}>
+                              Ghép mặt trước và mặt lưng
+                            </div>
+                          </div>
+                        </label>
+
+                        <label
+                          style={{
+                            display: 'flex',
+                            alignItems: 'flex-start',
+                            gap: 8,
+                            padding: '9px 12px',
+                            borderRadius: 6,
+                            cursor: 'pointer',
+                            border: reconstructionMode === 'multiview' ? '1px solid var(--accent-gold)' : '1px solid var(--border-color)',
+                            background: reconstructionMode === 'multiview' ? 'rgba(212, 175, 55, 0.08)' : 'rgba(0,0,0,0.2)',
+                            transition: 'all 0.15s ease'
+                          }}
+                        >
+                          <input
+                            type="radio"
+                            name="artifactReconMode"
+                            checked={reconstructionMode === 'multiview'}
+                            onChange={() => setReconstructionMode('multiview')}
+                            style={{ marginTop: 2, accentColor: 'var(--accent-gold)' }}
+                          />
+                          <div>
+                            <div style={{ fontSize: '12px', fontWeight: 600, color: reconstructionMode === 'multiview' ? 'var(--accent-gold)' : 'var(--heading-color)' }}>
+                              Đa góc độ
+                            </div>
+                            <div style={{ fontSize: '10.5px', color: 'var(--text-muted)', marginTop: 2 }}>
+                              Ghép toàn bộ các góc chụp
+                            </div>
+                          </div>
+                        </label>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
                 {/* KHỐI ẢNH CHỤP XUNG QUANH HIỆN VẬT (GÓC TƯ LIỆU ĐA HƯỚNG) */}
                 <div style={{
                   padding: '14px 16px',
@@ -3105,237 +3334,6 @@ export const AdminArtifactsPage: React.FC = () => {
                         </div>
                       </div>
                     )}
-                </div>
-
-                {/* Tùy chọn tự động Dựng mô hình 3D ngay khi lưu */}
-                <div
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 10,
-                    padding: '12px 14px',
-                    borderRadius: 'var(--radius-sm, 6px)',
-                    background: 'var(--bg-subtle)',
-                    border: '1px solid var(--border-color)',
-                    marginTop: 2
-                  }}
-                >
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', margin: 0 }}>
-                    <input
-                      type="checkbox"
-                      id="autoGenerate3DCheckbox"
-                      checked={autoGenerate3D}
-                      onChange={(e) => setAutoGenerate3D(e.target.checked)}
-                      style={{ width: 16, height: 16, accentColor: 'var(--primary)', cursor: 'pointer' }}
-                    />
-                    <div style={{ flex: 1 }}>
-                      <span style={{ fontSize: '13px', color: 'var(--heading-color)', fontWeight: 600 }}>
-                        Tự động dựng mô hình 3D sau khi lưu
-                      </span>
-                      <span style={{ display: 'block', fontSize: '11px', color: 'var(--text-muted)', marginTop: 2 }}>
-                        Sử dụng các ảnh tư liệu đã tải lên ở trên để tạo mô hình 3D xoay 360° trong nền
-                      </span>
-                    </div>
-                  </label>
-
-                  {autoGenerate3D && (
-                    <div style={{
-                      marginTop: 2,
-                      paddingTop: 10,
-                      borderTop: '1px dashed var(--border-color)',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: 8
-                    }}>
-                                            {/* Lựa chọn Động cơ Tái tạo 3D */}
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 4 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                          <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--heading-color)', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                            <Cpu size={14} style={{ color: 'var(--accent-gold)' }} />
-                            Động cơ tái tạo 3D:
-                          </span>
-                        </div>
-                        <div className="artifact-3d-radios-grid">
-                          {/* Động cơ 1: Local VPS CPU */}
-                          <label
-                            style={{
-                              display: 'flex',
-                              alignItems: 'flex-start',
-                              gap: 8,
-                              padding: '9px 12px',
-                              borderRadius: 6,
-                              cursor: 'pointer',
-                              border: aiEngine === 'local' ? '1px solid var(--accent-gold)' : '1px solid var(--border-color)',
-                              background: aiEngine === 'local' ? 'rgba(212, 175, 55, 0.08)' : 'rgba(0,0,0,0.2)',
-                              transition: 'all 0.15s ease'
-                            }}
-                          >
-                            <input
-                              type="radio"
-                              name="artifactAiEngine"
-                              checked={aiEngine === 'local'}
-                              onChange={() => setAiEngine('local')}
-                              style={{ marginTop: 2, accentColor: 'var(--accent-gold)' }}
-                            />
-                            <div style={{ flex: 1 }}>
-                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
-                                <span style={{ fontSize: '12px', fontWeight: 600, color: aiEngine === 'local' ? 'var(--accent-gold)' : 'var(--heading-color)' }}>
-                                  Máy chủ nội bộ (Cục bộ)
-                                </span>
-                                <span style={{ fontSize: '9.5px', color: 'var(--accent-gold)', background: 'rgba(212, 175, 55, 0.12)', border: '1px solid rgba(212, 175, 55, 0.25)', padding: '1px 6px', borderRadius: 4, whiteSpace: 'nowrap' }}>
-                                  CPU Server
-                                </span>
-                              </div>
-                              <div style={{ fontSize: '10.5px', color: 'var(--text-muted)', marginTop: 3, lineHeight: '1.4' }}>
-                                Dựng hình học 3D trực tiếp trên máy chủ, vận hành độc lập, không phụ thuộc dịch vụ ngoài.
-                              </div>
-                            </div>
-                          </label>
-
-                          {/* Động cơ 2: Cloud TRELLIS */}
-                          <label
-                            style={{
-                              display: 'flex',
-                              alignItems: 'flex-start',
-                              gap: 8,
-                              padding: '9px 12px',
-                              borderRadius: 6,
-                              cursor: 'pointer',
-                              border: aiEngine === 'trellis' ? '1px solid var(--accent-gold)' : '1px solid var(--border-color)',
-                              background: aiEngine === 'trellis' ? 'rgba(212, 175, 55, 0.08)' : 'rgba(0,0,0,0.2)',
-                              transition: 'all 0.15s ease'
-                            }}
-                          >
-                            <input
-                              type="radio"
-                              name="artifactAiEngine"
-                              checked={aiEngine === 'trellis'}
-                              onChange={() => setAiEngine('trellis')}
-                              style={{ marginTop: 2, accentColor: 'var(--accent-gold)' }}
-                            />
-                            <div style={{ flex: 1 }}>
-                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
-                                <span style={{ fontSize: '12px', fontWeight: 600, color: aiEngine === 'trellis' ? 'var(--accent-gold)' : 'var(--heading-color)' }}>
-                                  Đám mây AI (TRELLIS)
-                                </span>
-                                <span style={{ fontSize: '9.5px', color: 'var(--text-muted)', background: 'rgba(255, 255, 255, 0.06)', border: '1px solid var(--border-color)', padding: '1px 6px', borderRadius: 4, whiteSpace: 'nowrap' }}>
-                                  ZeroGPU A100
-                                </span>
-                              </div>
-                              <div style={{ fontSize: '10.5px', color: 'var(--text-muted)', marginTop: 3, lineHeight: '1.4' }}>
-                                Tái tạo đa chiều qua cụm điện toán đám mây, tối ưu độ chi tiết quang học của bề mặt.
-                              </div>
-                            </div>
-                          </label>
-                        </div>
-                      </div>
-<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--heading-color)' }}>
-                          Nguồn ảnh dựng 3D:
-                        </span>
-                        <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                          {(editingArtifact.images?.length || 0) +
-                            (editingArtifact.anglePhotos?.length || 0)} ảnh đã tải
-                        </span>
-                      </div>
-
-                      {/* 3 Lựa chọn dạng Radio sạch sẽ, chuẩn giao diện quản trị */}
-                      <div className="artifact-3d-radios-grid">
-                        {/* Chế độ 1: 1 ảnh đại diện */}
-                        <label
-                          style={{
-                            display: 'flex',
-                            alignItems: 'flex-start',
-                            gap: 8,
-                            padding: '9px 12px',
-                            borderRadius: 6,
-                            cursor: 'pointer',
-                            border: reconstructionMode === 'single' ? '1px solid var(--accent-gold)' : '1px solid var(--border-color)',
-                            background: reconstructionMode === 'single' ? 'rgba(212, 175, 55, 0.08)' : 'rgba(0,0,0,0.2)',
-                            transition: 'all 0.15s ease'
-                          }}
-                        >
-                          <input
-                            type="radio"
-                            name="artifactReconMode"
-                            checked={reconstructionMode === 'single'}
-                            onChange={() => setReconstructionMode('single')}
-                            style={{ marginTop: 2, accentColor: 'var(--accent-gold)' }}
-                          />
-                          <div>
-                            <div style={{ fontSize: '12px', fontWeight: 600, color: reconstructionMode === 'single' ? 'var(--accent-gold)' : 'var(--heading-color)' }}>
-                              1 ảnh đại diện
-                            </div>
-                            <div style={{ fontSize: '10.5px', color: 'var(--text-muted)', marginTop: 2 }}>
-                              Dựng 3D từ 1 ảnh đại diện duy nhất
-                            </div>
-                          </div>
-                        </label>
-
-                        {/* Chế độ 2: 2 góc ảnh đối xứng */}
-                        <label
-                          style={{
-                            display: 'flex',
-                            alignItems: 'flex-start',
-                            gap: 8,
-                            padding: '9px 12px',
-                            borderRadius: 6,
-                            cursor: 'pointer',
-                            border: reconstructionMode === 'front_back' ? '1px solid var(--accent-gold)' : '1px solid var(--border-color)',
-                            background: reconstructionMode === 'front_back' ? 'rgba(212, 175, 55, 0.08)' : 'rgba(0,0,0,0.2)',
-                            transition: 'all 0.15s ease'
-                          }}
-                        >
-                          <input
-                            type="radio"
-                            name="artifactReconMode"
-                            checked={reconstructionMode === 'front_back'}
-                            onChange={() => setReconstructionMode('front_back')}
-                            style={{ marginTop: 2, accentColor: 'var(--accent-gold)' }}
-                          />
-                          <div>
-                            <div style={{ fontSize: '12px', fontWeight: 600, color: reconstructionMode === 'front_back' ? 'var(--accent-gold)' : 'var(--heading-color)' }}>
-                              2 góc ảnh
-                            </div>
-                            <div style={{ fontSize: '10.5px', color: 'var(--text-muted)', marginTop: 2 }}>
-                              Ghép 2 góc ảnh bổ trợ lẫn nhau
-                            </div>
-                          </div>
-                        </label>
-
-                        {/* Chế độ 3: Đa góc độ */}
-                        <label
-                          style={{
-                            display: 'flex',
-                            alignItems: 'flex-start',
-                            gap: 8,
-                            padding: '9px 12px',
-                            borderRadius: 6,
-                            cursor: 'pointer',
-                            border: reconstructionMode === 'multiview' ? '1px solid var(--accent-gold)' : '1px solid var(--border-color)',
-                            background: reconstructionMode === 'multiview' ? 'rgba(212, 175, 55, 0.08)' : 'rgba(0,0,0,0.2)',
-                            transition: 'all 0.15s ease'
-                          }}
-                        >
-                          <input
-                            type="radio"
-                            name="artifactReconMode"
-                            checked={reconstructionMode === 'multiview'}
-                            onChange={() => setReconstructionMode('multiview')}
-                            style={{ marginTop: 2, accentColor: 'var(--accent-gold)' }}
-                          />
-                          <div>
-                            <div style={{ fontSize: '12px', fontWeight: 600, color: reconstructionMode === 'multiview' ? 'var(--accent-gold)' : 'var(--heading-color)' }}>
-                              Đa góc độ (Toàn diện)
-                            </div>
-                            <div style={{ fontSize: '10.5px', color: 'var(--text-muted)', marginTop: 2 }}>
-                              Ghép toàn bộ các góc chụp đã tải
-                            </div>
-                          </div>
-                        </label>
-                      </div>
-                    </div>
-                  )}
                 </div>
 
                 {/* File 3D (Tùy chọn) */}
