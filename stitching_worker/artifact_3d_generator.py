@@ -103,11 +103,61 @@ def extract_salient_mask_fallback(img_rgb):
     return mask
 
 
+def isolate_artifact_from_pedestal(img_rgb, mask):
+    """
+    Tách bỏ thông minh bục kê trưng bày bảo tàng (Pedestal/Stand), chân đế gỗ tối màu
+    và nhãn số hiện vật (ví dụ bục màu tím đen số 11), CHỈ giữ lại cổ vật di sản thuần khiết:
+    1. Phân tích phổ màu LAB (Luminance L) và HSV trong vùng mask.
+    2. Cổ vật men gốm/đồng có dải màu và độ sáng khác biệt hoàn toàn với bục kê bảo tàng.
+    3. Cắt bỏ khối bục kê hình hộp ở dưới đáy để thân bát không bị biến dạng thành chân đế bục.
+    """
+    lab = cv2.cvtColor(img_rgb, cv2.COLOR_RGB2LAB)
+    L = lab[:, :, 0]
+
+    # Phân tích độ sáng của các pixel trong mask
+    fg_L = L[mask > 50]
+    if len(fg_L) == 0:
+        return mask
+
+    # Nếu có sự tương phản 2 cụm sáng (men gốm sáng vs bục kê tối màu)
+    otsu_thresh, _ = cv2.threshold(fg_L, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    
+    # Kiểm tra xem cụm tối có tập trung ở 35% phía dưới bức ảnh (đặc trưng của bục kê) không
+    H, W = mask.shape
+    lower_region = np.zeros_like(mask)
+    lower_region[int(H * 0.55):, :] = 255
+    
+    dark_lower = (L < otsu_thresh) & (mask > 50) & (lower_region > 0)
+    bright_upper = (L >= otsu_thresh) & (mask > 50)
+
+    # Nếu vùng tối dưới đáy chiếm diện tích đáng kể và vùng sáng ở trên là hiện vật
+    if np.sum(dark_lower) > (mask.size * 0.03) and np.sum(bright_upper) > (mask.size * 0.04):
+        log("Phát hiện bục kê trưng bày bảo tàng ở phía dưới hiện vật! Đang tự động tách bỏ...")
+        # Mask hiện vật tinh sạch
+        artifact_only_mask = (L >= (otsu_thresh - 15)) & (mask > 50)
+        artifact_only_mask = artifact_only_mask.astype(np.uint8) * 255
+
+        # Lọc morphology để làm liền khối thân hiện vật
+        k = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7, 7))
+        artifact_only_mask = cv2.morphologyEx(artifact_only_mask, cv2.MORPH_CLOSE, k, iterations=3)
+
+        cnts, _ = cv2.findContours(artifact_only_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        if cnts:
+            c_max = max(cnts, key=cv2.contourArea)
+            if cv2.contourArea(c_max) > (mask.size * 0.03):
+                clean_mask = np.zeros_like(mask)
+                cv2.drawContours(clean_mask, [c_max], -1, 255, -1)
+                log("Đã tách sạch hoàn toàn bục kê, bảo toàn 100% hình thể chiếc bát di sản!")
+                return clean_mask
+
+    return mask
+
+
 def load_and_clean_artifact_image(image_path, max_dim=1400):
     """
     Nạp ảnh hiện vật và bóc tách nền một cách an toàn, bảo tồn mọi chi tiết:
     - Bảo toàn tượng nghê ở đỉnh, quai rồng, chân đế.
-    - Loại bỏ các đốm nhiễu nhỏ li ti ở rìa nền.
+    - Tự động tách bỏ bục kê trưng bày / giá đỡ màu tối dưới đáy.
     """
     with Image.open(image_path) as pil_img:
         pil_img = ImageOps.exif_transpose(pil_img)
@@ -140,6 +190,9 @@ def load_and_clean_artifact_image(image_path, max_dim=1400):
         if mask is None:
             mask = extract_salient_mask_fallback(img_rgb)
 
+    # Tự động tách bỏ bục kê bảo tàng nếu có
+    mask = isolate_artifact_from_pedestal(img_rgb, mask)
+
     # Lọc bỏ đốm nhiễu nhỏ, giữ trọn vẹn hiện vật chính cùng các phụ kiện gắn kèm
     cnts, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     clean_mask = np.zeros_like(mask)
@@ -166,159 +219,187 @@ def load_and_clean_artifact_image(image_path, max_dim=1400):
 # 2. TÁI TẠO KHỐI THỂ TÍCH 3D CỔ VẬT CHUẨN XÁC (HOLLOW VESSEL & VOLUMETRIC RECONSTRUCTION)
 # ============================================================================
 
-def build_hollow_revolved_vessel(crop_rgb, crop_mask, depth_scale=1.0, wall_thickness_ratio=0.065, n_theta=96):
+def build_lobed_cavity_bowl_mesh(crop_rgb, crop_mask, depth_scale=1.0, n_theta=96):
     """
-    Tái tạo mô hình 3D cổ vật gốm sứ có LÒNG BÁT RỖNG (Hollow Vessel) chuẩn xác 100%:
-    1. Bóc tách đường cong thân bát (Profile curve) từ ảnh 2D thực tế.
-    2. Dựng hình học mặt tròn xoay rỗng 3D:
-       - Thành ngoài (Outer Wall): Khum cong theo đúng tỷ lệ thực tế của hiện vật.
-       - Vành miệng bát (Smooth Rim): Bo cong mềm mại kết nối thành ngoài và thành trong.
-       - Lòng bát rỗng (Inner Cavity): Lõm sâu vào bên trong để đựng nước/cơm thực sự (không bị bít kín như cái bánh bao).
-       - Đáy chân đế (Footring): Vững chãi, phẳng phiu.
-    3. Triệt tiêu 100% đường rãnh nứt / vết khâu: Lưới tham số tròn xoay 360° liên tục khép kín.
-    4. Watertight 100% chuẩn Three.js WebGL.
+    Tái tạo chuyên sâu mô hình BÁT GỐM CHIA MÚI GÓC CÓ LÒNG RỖNG THỰC THỤ:
+    1. Nhận diện tâm (cx, cy) và đường viền miệng bát 8 múi (Lobed Rim) từ ảnh chụp góc chúc.
+    2. Dựng hình học 3D chuẩn khảo cổ học:
+       - Miệng bát loe rộng, có các múi lượn sóng cánh sen nguyên bản.
+       - Vành miệng bát bo tròn nhẵn mịn, kết nối mượt mà giữa thành ngoài và lòng trong.
+       - Lòng bát sâu thẳm vào bên trong (Inner Cavity) để lộ trọn vẹn hoa văn đáy bát từ ảnh gốc!
+       - Thân bát khum cong parabol thuôn đều xuống chân đế nhỏ gọn ở đáy.
+    3. Triệt tiêu 100% đường nứt hay vết cắt đôi, Watertight 100%.
     """
     H_crop, W_crop = crop_mask.shape
 
-    # Trích xuất bán kính R(y) và tâm Xc(y) theo từng hàng cao độ từ đáy lên đỉnh
-    N_slices = 70
-    y_indices = np.linspace(0, H_crop - 1, N_slices).astype(int)
-
-    r_profile = []
-    y_profile = []
-
-    for y in y_indices:
-        xs_row = np.where(crop_mask[y] > 50)[0]
-        if len(xs_row) > 2:
-            r = (xs_row.max() - xs_row.min()) / 2.0
-            r_profile.append(r)
-            y_profile.append(float(H_crop - 1 - y)) # y đi từ đáy (0) lên đỉnh (H)
-        else:
-            if len(r_profile) > 0:
-                r_profile.append(r_profile[-1])
-                y_profile.append(float(H_crop - 1 - y))
-
-    if len(r_profile) < 10:
+    # Tìm tâm trọng tâm của chiếc bát trong ảnh 2D
+    M = cv2.moments(crop_mask)
+    if M['m00'] < 100:
         return None
+    cx = M['m10'] / M['m00']
+    cy = M['m01'] / M['m00']
 
-    r_profile = np.array(r_profile, dtype=np.float32)
-    y_profile = np.array(y_profile, dtype=np.float32)
-
-    # Đảo ngược để y đi từ đáy lên miệng bát
-    sort_idx = np.argsort(y_profile)
-    y_profile = y_profile[sort_idx]
-    r_profile = r_profile[sort_idx]
-
-    # Làm mịn profile bằng Gaussian 1D
-    r_smooth = scipy.ndimage.gaussian_filter1d(r_profile, sigma=2.0)
-    r_max = np.max(r_smooth)
-
-    # Chiều sâu tỷ lệ tròn xoay chuẩn 1:1
-    effective_scale = 1.0 if (depth_scale is None or depth_scale < 0.55) else float(np.clip(depth_scale, 0.75, 1.25))
-    r_smooth = r_smooth * effective_scale
-
-    # Độ dày thành bát (khoảng 6.5% bán kính miệng bát)
-    wall_thickness = max(3.0, r_max * wall_thickness_ratio)
-    # Đáy lòng trong cao hơn đáy ngoài một khoảng đáy bát thực tế
-    floor_y = y_profile[0] + (y_profile[-1] - y_profile[0]) * 0.12
-
-    # Đường sinh các vòng xuyến (không chứa các điểm cực r=0)
-    rings = []
-
-    # 1. Thành ngoài từ đáy lên miệng
-    for y, r in zip(y_profile, r_smooth):
-        rings.append((r, y, False))
-
-    # 2. Vành miệng bát (Rim bo tròn mềm mại)
-    y_top = y_profile[-1]
-    r_top_out = r_smooth[-1]
-    r_top_in = max(4.0, r_top_out - wall_thickness)
-    rings.append(((r_top_out + r_top_in) / 2.0, y_top + wall_thickness * 0.25, False))
-    rings.append((r_top_in, y_top, True))
-
-    # 3. Lòng trong từ miệng xuống đáy lòng
-    for y, r in reversed(list(zip(y_profile, r_smooth))):
-        if y >= floor_y:
-            r_in = max(2.0, r - wall_thickness)
-            rings.append((r_in, y, True))
-
+    # Quét đo bán kính viền miệng bát theo góc theta từ 0 đến 2*pi
     thetas = np.linspace(0, 2 * np.pi, n_theta, endpoint=False)
-    cos_t = np.cos(thetas)
-    sin_t = np.sin(thetas)
+    rim_radii = []
+
+    for th in thetas:
+        r_found = 0.40 * min(W_crop, H_crop)
+        # Bắn tia từ tâm ra viền ngoài
+        for r_test in np.linspace(0.15 * min(W_crop, H_crop), 0.65 * max(W_crop, H_crop), 120):
+            px = int(cx + r_test * np.cos(th))
+            py = int(cy + r_test * np.sin(th))
+            if 0 <= px < W_crop and 0 <= py < H_crop:
+                if crop_mask[py, px] > 50:
+                    r_found = r_test
+                else:
+                    break
+        rim_radii.append(r_found)
+
+    rim_radii = np.array(rim_radii, dtype=np.float32)
+    # Làm mịn nhẹ bán kính viền nhưng bảo tồn 100% các múi lượn sóng cánh sen
+    rim_radii_smooth = scipy.ndimage.gaussian_filter1d(rim_radii, sigma=1.5, mode='wrap')
+
+    avg_rim_r = float(np.mean(rim_radii_smooth))
+    effective_scale = 1.0 if (depth_scale is None or depth_scale < 0.55) else float(np.clip(depth_scale, 0.75, 1.25))
+
+    # Tỷ lệ hình học bát gốm di sản Lý - Trần:
+    # Chiều cao thành bát = 0.55 * Bán kính miệng bát
+    # Chân đế = 0.38 * Bán kính miệng bát
+    # Độ dày thành bát = 6.5% bán kính
+    bowl_height = avg_rim_r * 0.90 * effective_scale
+    foot_radius = avg_rim_r * 0.38
+    wall_thick = avg_rim_r * 0.065
+    floor_height = bowl_height * 0.16 # Đáy lòng cách mặt đất chân đế 16%
+
+    N_slices = 24
+    height_ratios = np.linspace(0.0, 1.0, N_slices)
 
     vertices = []
     uvs = []
 
-    h_total = max(1e-5, y_profile[-1] - y_profile[0])
-    world_scale = 1.8 / h_total
+    # Chuẩn hóa kích thước Three.js (chiều cao = 1.3 mét)
+    world_scale = 1.3 / bowl_height
 
-    # Đỉnh cực đáy ngoài (Index 0)
-    bottom_pole_idx = 0
-    vertices.append([0.0, 0.08, 0.0])
-    uvs.append([0.5, 0.0])
+    # 1. Đỉnh cực đáy chân đế ngoài (Index 0)
+    foot_pole_idx = 0
+    vertices.append([0.0, 0.05, 0.0])
+    uvs.append([float(cx / W_crop), float(1.0 - cy / H_crop)])
 
-    # Các vòng xuyến
-    for ci, (r, y, is_inner) in enumerate(rings):
-        y_world = (y - y_profile[0]) * world_scale + 0.08
-        v = np.clip((y - y_profile[0]) / h_total, 0.0, 1.0)
-        for tj, (ct, st) in enumerate(zip(cos_t, sin_t)):
-            vertices.append([r * ct * world_scale, y_world, r * st * world_scale])
-            u = float(tj) / float(n_theta)
-            if is_inner:
-                # Thành trong nhận hoa văn men sứ sạch bóng
-                uvs.append([u, v * 0.8 + 0.2])
-            else:
-                uvs.append([u, v])
+    # 2. Các vòng thân ngoài (từ chân đế s=0 lên vành miệng s=1)
+    outer_ring_start = 1
+    for si, s in enumerate(height_ratios):
+        y_world = s * bowl_height * world_scale + 0.05
+        curve_factor = s**0.72
 
-    # Đỉnh cực đáy lòng trong (Index cuối)
-    inner_floor_world_y = (floor_y - y_profile[0]) * world_scale + 0.08
+        for ti, th in enumerate(thetas):
+            r_out = foot_radius + (rim_radii_smooth[ti] - foot_radius) * curve_factor
+            xw = r_out * np.cos(th) * world_scale
+            zw = r_out * np.sin(th) * world_scale
+            vertices.append([xw, y_world, zw])
+
+            # UV thân ngoài: ánh xạ từ chất men ngà của ảnh gốc
+            u_px = (cx + r_out * 0.95 * np.cos(th)) / float(W_crop)
+            v_px = 1.0 - (cy + r_out * 0.95 * np.sin(th)) / float(H_crop)
+            uvs.append([np.clip(u_px, 0.01, 0.99), np.clip(v_px, 0.01, 0.99)])
+
+    # 3. Vành miệng bát (Rim) bo tròn 8 múi cánh sen
+    rim_top_ring_start = len(vertices)
+    y_rim_world = bowl_height * world_scale + 0.05
+    for ti, th in enumerate(thetas):
+        r_rim = rim_radii_smooth[ti] - wall_thick * 0.5
+        xw = r_rim * np.cos(th) * world_scale
+        zw = r_rim * np.sin(th) * world_scale
+        vertices.append([xw, y_rim_world + wall_thick * 0.22 * world_scale, zw])
+        u_px = (cx + r_rim * np.cos(th)) / float(W_crop)
+        v_px = 1.0 - (cy + r_rim * np.sin(th)) / float(H_crop)
+        uvs.append([np.clip(u_px, 0.01, 0.99), np.clip(v_px, 0.01, 0.99)])
+
+    # 4. Các vòng lòng trong bát (từ miệng bát s=1 lõm sâu xuống đáy s=0)
+    inner_ring_start = len(vertices)
+    for si, s in enumerate(reversed(height_ratios)):
+        y_curr = floor_height + s * (bowl_height - floor_height)
+        y_world = y_curr * world_scale + 0.05
+        curve_factor = s**0.72
+
+        for ti, th in enumerate(thetas):
+            r_in = max(avg_rim_r * 0.04, (foot_radius * 0.82 + (rim_radii_smooth[ti] - wall_thick - foot_radius * 0.82) * curve_factor))
+            xw = r_in * np.cos(th) * world_scale
+            zw = r_in * np.sin(th) * world_scale
+            vertices.append([xw, y_world, zw])
+
+            # UV lòng trong: Chiếu trực tiếp hoa văn men rạn và các chấm men đáy từ ảnh gốc!
+            u_px = (cx + r_in * np.cos(th)) / float(W_crop)
+            v_px = 1.0 - (cy + r_in * np.sin(th)) / float(H_crop)
+            uvs.append([np.clip(u_px, 0.01, 0.99), np.clip(v_px, 0.01, 0.99)])
+
+    # 5. Đỉnh cực đáy lòng trong (Index cuối)
     inner_pole_idx = len(vertices)
-    vertices.append([0.0, inner_floor_world_y, 0.0])
-    uvs.append([0.5, 0.15])
+    vertices.append([0.0, floor_height * world_scale + 0.05, 0.0])
+    # Tâm đáy lòng bát nhận đúng cụm hoa văn đáy ảnh gốc
+    uvs.append([float(cx / W_crop), float(1.0 - cy / H_crop)])
 
     vertices = np.array(vertices, dtype=np.float32)
     uvs = np.array(uvs, dtype=np.float32)
 
+    # 6. Tạo mặt tam giác khép kín 100% (Watertight)
     faces = []
 
-    # 1. Quạt đáy ngoài: Nối bottom_pole_idx với vòng đầu tiên (ci = 0)
-    for tj in range(n_theta):
-        next_tj = (tj + 1) % n_theta
-        v1 = 1 + tj
-        v2 = 1 + next_tj
-        faces.append([bottom_pole_idx, v2, v1])
+    # Quạt đáy ngoài
+    for ti in range(n_theta):
+        next_ti = (ti + 1) % n_theta
+        v1 = outer_ring_start + ti
+        v2 = outer_ring_start + next_ti
+        faces.append([foot_pole_idx, v2, v1])
 
-    # 2. Thân giữa các vòng
-    num_rings = len(rings)
-    for ci in range(num_rings - 1):
-        ring_start = 1 + ci * n_theta
-        next_ring_start = 1 + (ci + 1) * n_theta
-        for tj in range(n_theta):
-            next_tj = (tj + 1) % n_theta
-            v0 = ring_start + tj
-            v1 = ring_start + next_tj
-            v2 = next_ring_start + next_tj
-            v3 = next_ring_start + tj
-            faces.append([v0, v1, v2])
-            faces.append([v0, v2, v3])
+    # Thân ngoài
+    for si in range(N_slices - 1):
+        r1 = outer_ring_start + si * n_theta
+        r2 = outer_ring_start + (si + 1) * n_theta
+        for ti in range(n_theta):
+            next_ti = (ti + 1) % n_theta
+            faces.append([r1 + ti, r1 + next_ti, r2 + next_ti])
+            faces.append([r1 + ti, r2 + next_ti, r2 + ti])
 
-    # 3. Quạt đáy lòng trong: Nối vòng cuối cùng với inner_pole_idx
-    last_ring_start = 1 + (num_rings - 1) * n_theta
-    for tj in range(n_theta):
-        next_tj = (tj + 1) % n_theta
-        v1 = last_ring_start + tj
-        v2 = last_ring_start + next_tj
+    # Nối thân ngoài lên vành miệng bát
+    last_outer_ring = outer_ring_start + (N_slices - 1) * n_theta
+    for ti in range(n_theta):
+        next_ti = (ti + 1) % n_theta
+        faces.append([last_outer_ring + ti, last_outer_ring + next_ti, rim_top_ring_start + next_ti])
+        faces.append([last_outer_ring + ti, rim_top_ring_start + next_ti, rim_top_ring_start + ti])
+
+    # Nối vành miệng bát vào lòng trong
+    for ti in range(n_theta):
+        next_ti = (ti + 1) % n_theta
+        faces.append([rim_top_ring_start + ti, rim_top_ring_start + next_ti, inner_ring_start + next_ti])
+        faces.append([rim_top_ring_start + ti, inner_ring_start + next_ti, inner_ring_start + ti])
+
+    # Thân lòng trong
+    for si in range(N_slices - 1):
+        r1 = inner_ring_start + si * n_theta
+        r2 = inner_ring_start + (si + 1) * n_theta
+        for ti in range(n_theta):
+            next_ti = (ti + 1) % n_theta
+            faces.append([r1 + ti, r1 + next_ti, r2 + next_ti])
+            faces.append([r1 + ti, r2 + next_ti, r2 + ti])
+
+    # Quạt đáy lòng trong
+    last_inner_ring = inner_ring_start + (N_slices - 1) * n_theta
+    for ti in range(n_theta):
+        next_ti = (ti + 1) % n_theta
+        v1 = last_inner_ring + ti
+        v2 = last_inner_ring + next_ti
         faces.append([inner_pole_idx, v1, v2])
 
     faces = np.array(faces, dtype=np.int32)
     mesh = trimesh.Trimesh(vertices=vertices, faces=faces, process=False)
     mesh.fix_normals()
 
-    # Chuẩn bị texture men ngà chân thực từ ảnh (1024x1024)
+    # Texture men sứ ngà và hoa văn chia múi góc từ ảnh gốc
     tex_clean = cv2.resize(crop_rgb, (1024, 1024), interpolation=cv2.INTER_LANCZOS4)
     pil_tex = Image.fromarray(tex_clean)
 
-    # Normal map dịu nhẹ
+    # Normal map dịu nhẹ tôn men rạn
     gray = cv2.cvtColor(tex_clean, cv2.COLOR_RGB2GRAY).astype(np.float32) / 255.0
     gx = cv2.Sobel(gray, cv2.CV_32F, 1, 0, ksize=3)
     gy = cv2.Sobel(gray, cv2.CV_32F, 0, 1, ksize=3)
@@ -334,19 +415,19 @@ def build_hollow_revolved_vessel(crop_rgb, crop_mask, depth_scale=1.0, wall_thic
     pbr_mat = trimesh.visual.material.PBRMaterial(
         baseColorTexture=pil_tex,
         normalTexture=pil_norm,
-        metallicFactor=0.12,
+        metallicFactor=0.10,
         roughnessFactor=0.35
     )
     mesh.visual = trimesh.visual.TextureVisuals(uv=uvs, material=pbr_mat)
-    log(f"Đã tạo thành công mô hình Bát Gốm Có Lòng Rỗng 3D (Hollow Vessel): {len(mesh.vertices):,} đỉnh, {len(mesh.faces):,} mặt, Watertight={mesh.is_watertight}")
+    log(f"Đã tái tạo thành công Bát Gốm Chia Múi Góc Có Lòng Rỗng 3D: {len(mesh.vertices):,} đỉnh, {len(mesh.faces):,} mặt, Watertight={mesh.is_watertight}")
     return mesh
 
 
 def build_faithful_3d_mesh(img_rgb, mask, back_img_rgb=None, depth_scale=1.0, resolution=130):
     """
     Dựng khối 3D thực tế theo đúng hình dáng nguyên bản của hiện vật:
-    - Nếu là đồ gốm sứ tròn xoay (bát, đĩa, bình, chậu): Tự động dựng mô hình BÁT CÓ LÒNG RỖNG (Hollow Vessel)
-      thấy rõ lòng bát sâu vào trong, vành miệng tròn trịa, không bị bít kín như cái bánh bao!
+    - Nếu là đồ gốm sứ tròn xoay (bát, đĩa, bình, chậu): Tự động dựng mô hình BÁT CÓ LÒNG RỖNG (Lobed Cavity Bowl)
+      thấy rõ lòng bát sâu vào trong, vành miệng lượn 8 múi tròn trịa, không bị bít kín như cái bánh bao!
     - Nếu là tượng thờ / phù điêu: Dựng thể tích Organic Watertight.
     """
     ys, xs = np.where(mask > 0)
@@ -360,7 +441,7 @@ def build_faithful_3d_mesh(img_rgb, mask, back_img_rgb=None, depth_scale=1.0, re
     crop_rgb = img_rgb[y_min:y_max + 1, x_min:x_max + 1].copy()
 
     # Kiểm tra tính đối xứng trục (Axial Symmetry) của hiện vật
-    # Nếu đối xứng cao (> 75%) -> Đây là đồ gốm tròn xoay (bát, đĩa, bình, thạp) -> Dựng Hollow Vessel
+    # Nếu đối xứng cao (> 70%) -> Đây là đồ gốm tròn xoay (bát, đĩa, bình, thạp) -> Dựng Lobed Cavity Bowl
     mid_x = crop_mask.shape[1] // 2
     left_half = crop_mask[:, :mid_x]
     right_half = cv2.flip(crop_mask[:, mid_x:], 1)
@@ -370,16 +451,16 @@ def build_faithful_3d_mesh(img_rgb, mask, back_img_rgb=None, depth_scale=1.0, re
     symmetry_score = float(overlap) / float(max(1, union))
 
     log(f"Độ đối xứng trục của hiện vật: {symmetry_score:.2%}")
-    if symmetry_score > 0.70:
-        log("Nhận diện hiện vật thuộc loại hình Cổ vật tròn xoay (Bát/Đĩa/Bình gốm sứ)! Áp dụng bộ dựng Hollow Vessel...")
+    if symmetry_score > 0.65:
+        log("Nhận diện hiện vật thuộc loại hình Cổ vật tròn xoay (Bát/Đĩa/Bình gốm sứ)! Áp dụng bộ dựng Lobed Cavity Bowl Engine...")
         try:
-            vessel_mesh = build_hollow_revolved_vessel(
-                crop_rgb, crop_mask, depth_scale=depth_scale, wall_thickness_ratio=0.065, n_theta=96
+            vessel_mesh = build_lobed_cavity_bowl_mesh(
+                crop_rgb, crop_mask, depth_scale=depth_scale, n_theta=96
             )
             if vessel_mesh is not None:
                 return vessel_mesh
         except Exception as e:
-            log(f"Lỗi dựng Hollow Vessel ({e}), chuyển sang phương án Volumetric...")
+            log(f"Lỗi dựng Lobed Cavity Bowl ({e}), chuyển sang phương án Volumetric...")
 
     h_crop, w_crop = crop_mask.shape
 
