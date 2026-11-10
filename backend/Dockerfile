@@ -41,8 +41,6 @@ WORKDIR /app
 
 COPY stitching_worker/requirements.txt ./stitching_worker/
 RUN python3 -m pip install --no-cache-dir --break-system-packages -r stitching_worker/requirements.txt
-# Kiểm tra thư viện rembg sẵn sàng (tránh tải file 170MB làm treo tiến trình build VPS, model sẽ tải tự động khi dùng)
-RUN python3 -c "import rembg; print('[rembg] Ready')"
 
 # Cài đặt CHỈ Production Node Dependencies (bỏ qua TypeScript, types, tsx...)
 COPY backend/package*.json ./backend/
