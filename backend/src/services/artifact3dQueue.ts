@@ -116,7 +116,7 @@ export async function enqueue3DReconstruction(
   if (multiImages.length > 0) {
     fileHash += `_multi_${multiImages.map(p => computeFileHash(p).substring(0, 6)).join('_')}`;
   }
-  fileHash += `_${aiEngine}_${reconstructionMode}_v18`;
+  fileHash += `_${aiEngine}_${reconstructionMode}_v19`;
   const cacheKey = `artifact:3d_cache:${fileHash}`;
 
   const cached = await cacheGet<{ model3dUrl: string; metadata: any }>(cacheKey);
@@ -217,6 +217,20 @@ async function runLocalVpsReconstruction(
   const tStart = Date.now();
   console.log(`[Local 3D Engine] Bắt đầu tái tạo 3D trực tiếp trên CPU VPS cho hiện vật ${artifactId}...`);
 
+  let artifactName = '';
+  try {
+    const query = mongoose.isValidObjectId(artifactId)
+      ? { $or: [{ _id: artifactId }, { id: artifactId }, { code: artifactId }] }
+      : { $or: [{ id: artifactId }, { code: artifactId }] };
+    const art = await ArtifactModel.findOne(query).select('name type category').lean();
+    if (art) {
+      artifactName = [art.name, (art as any).type, (art as any).category].filter(Boolean).join(' ');
+      console.log(`[Local 3D Engine] Đã nhận diện tên hiện vật: "${artifactName}"`);
+    }
+  } catch (err: any) {
+    console.warn('[Local 3D Engine] Không lấy được tên hiện vật:', err.message);
+  }
+
   const pyArgs = [
     ARTIFACT_SCRIPT,
     '--image', imagePath,
@@ -224,6 +238,9 @@ async function runLocalVpsReconstruction(
     '--depth-scale', String(job.depthScale || 1.0),
     '--resolution', String(job.resolution || 130)
   ];
+  if (artifactName) {
+    pyArgs.push('--artifact-name', artifactName);
+  }
   if (job.backImagePath && fs.existsSync(job.backImagePath)) {
     pyArgs.push('--back-image', job.backImagePath);
   }
@@ -281,7 +298,7 @@ async function runLocalVpsReconstruction(
   if (job.backImagePath && fs.existsSync(job.backImagePath)) {
     fileHash += `_back_${computeFileHash(job.backImagePath).substring(0, 8)}`;
   }
-  fileHash += `_local_vps_${reconstructionMode}_v18`;
+  fileHash += `_local_vps_${reconstructionMode}_v19`;
 
   const metadata = {
     aiEngine: 'local_vps',

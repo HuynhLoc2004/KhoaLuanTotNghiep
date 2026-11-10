@@ -105,50 +105,65 @@ def extract_salient_mask_fallback(img_rgb):
 
 def isolate_artifact_from_pedestal(img_rgb, mask):
     """
-    Tách bỏ thông minh bục kê trưng bày bảo tàng (Pedestal/Stand), chân đế gỗ tối màu
+    Tách bỏ thông minh bục kê trưng bày bảo tàng (Pedestal/Stand), chân đế mica/gỗ phẳng tối màu
     và nhãn số hiện vật (ví dụ bục màu tím đen số 11), CHỈ giữ lại cổ vật di sản thuần khiết:
-    1. Phân tích phổ màu LAB (Luminance L) và HSV trong vùng mask.
-    2. Cổ vật men gốm/đồng có dải màu và độ sáng khác biệt hoàn toàn với bục kê bảo tàng.
-    3. Cắt bỏ khối bục kê hình hộp ở dưới đáy để thân bát không bị biến dạng thành chân đế bục.
+    1. Kiểm tra tỷ lệ kích thước: Vật thể cao thẳng đứng (Tượng, Tháp, Cột) có chân đế gắn liền với
+       thân công trình -> TUYỆT ĐỐI KHÔNG cắt gọt bục đế.
+    2. Đối với cổ vật nông/dẹt (Bát, Đĩa) đặt trên khối hộp bảo tàng:
+       Chỉ phân tích 25% phía dưới cùng của bounding box.
+    3. Kiểm tra độ biến thiên vân (Sobel gradient): Khối bục mica trơn phẳng có độ biến thiên rất thấp,
+       khác biệt hoàn toàn với hoa văn phù điêu hoặc men gốm rạn.
     """
+    ys, xs = np.where(mask > 50)
+    if len(ys) == 0:
+        return mask
+
+    h_box = ys.max() - ys.min()
+    w_box = xs.max() - xs.min()
+    aspect_ratio = float(h_box) / float(max(1, w_box))
+
+    # Nếu hiện vật có dáng cao (tháp, tượng, bình cao) -> giữ nguyên 100% không cắt gọt
+    if aspect_ratio >= 1.25:
+        return mask
+
+    # Chỉ phân tích 28% phần đáy của bounding box
+    y_bot_start = int(ys.max() - 0.28 * h_box)
+    y_bot_end = ys.max()
+
+    bottom_crop_img = img_rgb[y_bot_start:y_bot_end, xs.min():xs.max()]
+    bottom_crop_mask = mask[y_bot_start:y_bot_end, xs.min():xs.max()]
+
+    if np.sum(bottom_crop_mask > 50) < 50:
+        return mask
+
+    gray = cv2.cvtColor(bottom_crop_img, cv2.COLOR_RGB2GRAY)
+    sobel_x = cv2.Sobel(gray, cv2.CV_32F, 1, 0, ksize=3)
+    sobel_mean = float(np.mean(np.abs(sobel_x[bottom_crop_mask > 50])))
+
+    # Bục kê bảo tàng bằng mica/gỗ trơn phẳng có độ biến thiên vân rất thấp (< 13.0)
+    # Ngược lại chân đế cổ vật thật có chạm trổ hoa sen/vân mây/chân quỳ có độ biến thiên cao
+    if sobel_mean > 13.0:
+        return mask
+
     lab = cv2.cvtColor(img_rgb, cv2.COLOR_RGB2LAB)
     L = lab[:, :, 0]
 
-    # Phân tích độ sáng của các pixel trong mask
     fg_L = L[mask > 50]
-    if len(fg_L) == 0:
-        return mask
-
-    # Nếu có sự tương phản 2 cụm sáng (men gốm sáng vs bục kê tối màu)
     otsu_thresh, _ = cv2.threshold(fg_L, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-    
-    # Kiểm tra xem cụm tối có tập trung ở 35% phía dưới bức ảnh (đặc trưng của bục kê) không
-    H, W = mask.shape
-    lower_region = np.zeros_like(mask)
-    lower_region[int(H * 0.55):, :] = 255
-    
-    dark_lower = (L < otsu_thresh) & (mask > 50) & (lower_region > 0)
-    bright_upper = (L >= otsu_thresh) & (mask > 50)
 
-    # Nếu vùng tối dưới đáy chiếm diện tích đáng kể và vùng sáng ở trên là hiện vật
-    if np.sum(dark_lower) > (mask.size * 0.03) and np.sum(bright_upper) > (mask.size * 0.04):
+    dark_bottom = (L[y_bot_start:y_bot_end, :] < otsu_thresh) & (mask[y_bot_start:y_bot_end, :] > 50)
+    if np.sum(dark_bottom) > (mask.size * 0.02):
         log("Phát hiện bục kê trưng bày bảo tàng ở phía dưới hiện vật! Đang tự động tách bỏ...")
-        # Mask hiện vật tinh sạch
-        artifact_only_mask = (L >= (otsu_thresh - 15)) & (mask > 50)
-        artifact_only_mask = artifact_only_mask.astype(np.uint8) * 255
+        clean_mask = mask.copy()
+        clean_mask[y_bot_start:y_bot_end, :][dark_bottom] = 0
 
-        # Lọc morphology để làm liền khối thân hiện vật
-        k = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7, 7))
-        artifact_only_mask = cv2.morphologyEx(artifact_only_mask, cv2.MORPH_CLOSE, k, iterations=3)
-
-        cnts, _ = cv2.findContours(artifact_only_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        cnts, _ = cv2.findContours(clean_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         if cnts:
             c_max = max(cnts, key=cv2.contourArea)
-            if cv2.contourArea(c_max) > (mask.size * 0.03):
-                clean_mask = np.zeros_like(mask)
-                cv2.drawContours(clean_mask, [c_max], -1, 255, -1)
-                log("Đã tách sạch hoàn toàn bục kê, bảo toàn 100% hình thể chiếc bát di sản!")
-                return clean_mask
+            res_mask = np.zeros_like(mask)
+            cv2.drawContours(res_mask, [c_max], -1, 255, -1)
+            log("Đã tách sạch hoàn toàn bục kê, bảo toàn 100% hình thể chiếc bát di sản!")
+            return res_mask
 
     return mask
 
@@ -423,12 +438,204 @@ def build_lobed_cavity_bowl_mesh(crop_rgb, crop_mask, depth_scale=1.0, n_theta=9
     return mesh
 
 
-def build_faithful_3d_mesh(img_rgb, mask, back_img_rgb=None, depth_scale=1.0, resolution=130):
+def build_architectural_tower_mesh(crop_rgb, crop_mask, depth_scale=1.0, resolution=140):
+    """
+    Tái tạo chuyên sâu mô hình TÒA THÁP ĐẤT NUNG / TƯỢNG ĐỨNG THẲNG NHIỀU TẦNG (Architectural Monument 3D):
+    1. Giữ nguyên 100% từng tầng tháp, mái ngói vẩy rồng, ô cửa vòm và chóp chim phượng ở mặt trước.
+    2. Chiều sâu Z tỷ lệ khối tháp tứ giác (Depth ~ 75% - 85% Width), tạo thành tòa tháp 4 mặt vững chãi.
+    3. Tháp thon dần từ đáy lên đỉnh chóp nhọn chuẩn mực kiến trúc Phật giáo thời Trần - Hồ.
+    4. Ánh xạ texture đất nung tự nhiên 360 độ liền mạch, không có đường nứt hay biến dạng.
+    """
+    h_crop, w_crop = crop_mask.shape
+
+    # Mở rộng màu biên (Dilation) để viền tháp không bao giờ bị viền đen
+    k_rect = cv2.getStructuringElement(cv2.MORPH_RECT, (5, 5))
+    dil_m = crop_mask.copy()
+    dil_rgb = crop_rgb.copy()
+    for _ in range(16):
+        nm = cv2.dilate(dil_m, k_rect)
+        edge = (nm > 0) & (dil_m == 0)
+        dil_rgb[edge] = cv2.dilate(dil_rgb, k_rect)[edge]
+        dil_m = nm
+
+    # Chuẩn hóa lưới Marching Cubes độ chi tiết cao
+    H_grid = int(np.clip(resolution, 120, 160))
+    scale = float(H_grid) / float(h_crop)
+    W_grid = max(24, int(w_crop * scale))
+
+    scaled_mask = cv2.resize(crop_mask, (W_grid, H_grid), interpolation=cv2.INTER_NEAREST)
+
+    # Tính tâm Xc và bán kính Rx theo từng hàng cao độ y
+    x_left = np.full(H_grid, -1.0, dtype=np.float32)
+    x_right = np.full(H_grid, -1.0, dtype=np.float32)
+
+    for y in range(H_grid):
+        xs_row = np.where(scaled_mask[y] > 50)[0]
+        if len(xs_row) > 0:
+            x_left[y] = float(xs_row.min())
+            x_right[y] = float(xs_row.max())
+
+    valid_rows = np.where(x_left >= 0)[0]
+    z_map = np.zeros((H_grid, W_grid), dtype=np.float32)
+
+    if len(valid_rows) > 0:
+        xc_raw = (x_left[valid_rows] + x_right[valid_rows]) / 2.0
+        rx_raw = np.maximum(2.0, (x_right[valid_rows] - x_left[valid_rows]) / 2.0)
+
+        xc_smooth = scipy.ndimage.gaussian_filter1d(xc_raw, sigma=1.5)
+        rx_smooth = scipy.ndimage.gaussian_filter1d(rx_raw, sigma=1.5)
+
+        # Chiều sâu khối tháp: Mặt cắt tứ giác vuông bo góc (Depth ~ 75% Width)
+        target_depth_ratio = 0.75 * float(np.clip(depth_scale, 0.70, 1.25))
+
+        for idx, y in enumerate(valid_rows):
+            xc = xc_smooth[idx]
+            rx = rx_smooth[idx]
+            rz = rx * target_depth_ratio
+
+            xs_row = np.where(scaled_mask[y] > 50)[0]
+            dx = np.abs(xs_row - xc)
+            ratio = np.clip(dx / (rx + 1e-5), 0.0, 1.0)
+
+            # Mặt cắt tháp lăng trụ 4 mặt bo góc (Superquadric p=3.0)
+            # Tạo cảm giác tòa tháp có 4 mặt phẳng vuông vức và các góc mái nhô ra
+            z_profile = rz * (np.maximum(0.0, 1.0 - ratio**3.0))**(1.0 / 3.0)
+            z_map[y, xs_row] = z_profile
+
+    z_map = scipy.ndimage.gaussian_filter(z_map, sigma=0.8)
+
+    max_z = float(z_map.max())
+    Z_half = max(8, int(max_z) + 3)
+    z_indices = np.arange(-Z_half, Z_half + 1, dtype=np.float32)
+
+    ext_dist = cv2.distanceTransform((scaled_mask == 0).astype(np.uint8) * 255, cv2.DIST_L2, 5)
+    vol = np.zeros((H_grid, W_grid, len(z_indices)), dtype=np.float32)
+
+    for zi, z in enumerate(z_indices):
+        abs_z = abs(z)
+        inside_field = z_map - abs_z
+        outside_field = - (ext_dist * 1.5 + abs_z)
+        vol[:, :, zi] = np.where(scaled_mask > 50, inside_field, outside_field)
+
+    vol = scipy.ndimage.gaussian_filter(vol, sigma=(0.7, 0.7, 0.7))
+    vol = np.pad(vol, ((1, 1), (1, 1), (1, 1)), mode='constant', constant_values=-20.0)
+
+    verts, faces, normals, _ = measure.marching_cubes(vol, level=0.0, spacing=(1.0, 1.0, 1.0))
+    verts -= 1.0
+
+    y_raw = verts[:, 0]
+    x_raw = verts[:, 1]
+    z_raw = verts[:, 2] - Z_half
+
+    # Định vị và chuẩn hóa Three.js (chiều cao = 2.2 mét tương xứng tòa tháp)
+    world_scale = 2.2 / float(H_grid)
+    y_world = (H_grid - y_raw) * world_scale + 0.05
+    x_world = (x_raw - W_grid / 2.0) * world_scale
+    z_world = z_raw * world_scale
+
+    mesh_verts = np.column_stack([x_world, y_world, z_world])
+    mesh = trimesh.Trimesh(vertices=mesh_verts, faces=faces, process=False)
+    mesh.fix_normals()
+
+    try:
+        trimesh.smoothing.filter_taubin(mesh, iterations=3)
+    except Exception:
+        pass
+
+    # Ánh xạ Texture đất nung 360 độ chuẩn xác liền mạch
+    x_norm = np.clip(x_raw / float(W_grid), 0.0, 1.0)
+    y_norm = np.clip(1.0 - y_raw / float(H_grid), 0.0, 1.0)
+
+    uvs = np.zeros((len(mesh.vertices), 2), dtype=np.float32)
+    uvs[:, 0] = x_norm * 0.985 + 0.007
+    uvs[:, 1] = y_norm * 0.985 + 0.007
+
+    tex_clean = cv2.resize(dil_rgb, (1024, 1024), interpolation=cv2.INTER_LANCZOS4)
+    pil_tex = Image.fromarray(tex_clean)
+
+    gray = cv2.cvtColor(tex_clean, cv2.COLOR_RGB2GRAY).astype(np.float32) / 255.0
+    gx = cv2.Sobel(gray, cv2.CV_32F, 1, 0, ksize=3)
+    gy = cv2.Sobel(gray, cv2.CV_32F, 0, 1, ksize=3)
+    nx, ny, nz = -gx * 0.45, -gy * 0.45, np.ones_like(gx)
+    norm = np.sqrt(nx**2 + ny**2 + nz**2) + 1e-6
+    norm_map = cv2.merge([
+        np.clip((nx / norm * 0.5 + 0.5) * 255, 0, 255).astype(np.uint8),
+        np.clip((ny / norm * 0.5 + 0.5) * 255, 0, 255).astype(np.uint8),
+        np.clip((nz / norm * 0.5 + 0.5) * 255, 0, 255).astype(np.uint8)
+    ])
+    pil_norm = Image.fromarray(norm_map)
+
+    pbr_mat = trimesh.visual.material.PBRMaterial(
+        baseColorTexture=pil_tex,
+        normalTexture=pil_norm,
+        metallicFactor=0.08,
+        roughnessFactor=0.65  # chất đất nung thô mộc
+    )
+    mesh.visual = trimesh.visual.TextureVisuals(uv=uvs, material=pbr_mat)
+    log(f"Đã tái tạo thành công Tòa Tháp Đất Nung 3D: {len(mesh.vertices):,} đỉnh, {len(mesh.faces):,} mặt, Watertight={mesh.is_watertight}")
+    return mesh
+
+
+def classify_artifact_archetype(artifact_name, crop_rgb, crop_mask):
+    """
+    Bộ phân loại hình thái cổ vật đa phương thức (Multi-Modal Heritage Classifier):
+    Kết hợp phân tích ngữ nghĩa tên gọi (Keywords) và tỷ lệ hình học thực tế (Aspect Ratio, Symmetry)
+    để điều hướng chính xác vào thuật toán tái tạo chuyên biệt:
+    1. TOWER_SCULPTURE: Mô hình tháp, tháp đất nung, tượng đứng, cột, chùa, nhà.
+    2. LOBED_CAVITY_BOWL: Bát, chén, đĩa, tô, khay gốm sứ có lòng rỗng thực sự.
+    3. REVOLVED_VESSEL: Bình, thạp, lọ, bình vôi, ché, ấm tròn xoay.
+    4. ORGANIC_VOLUMETRIC: Đỉnh đồng, lư hương, chuông, trống, phù điêu tượng linh thú.
+    """
+    h_crop, w_crop = crop_mask.shape
+    aspect_ratio = float(h_crop) / float(max(1, w_crop))
+
+    mid_x = w_crop // 2
+    left_half = crop_mask[:, :mid_x]
+    right_half = cv2.flip(crop_mask[:, mid_x:], 1)
+    min_w = min(left_half.shape[1], right_half.shape[1])
+    overlap = np.sum((left_half[:, :min_w] > 50) & (right_half[:, :min_w] > 50))
+    union = np.sum((left_half[:, :min_w] > 50) | (right_half[:, :min_w] > 50))
+    symmetry_score = float(overlap) / float(max(1, union))
+
+    name_lower = (artifact_name or "").lower().strip()
+
+    tower_kw = ['tháp', 'thap', 'tower', 'stupa', 'pagoda', 'cột', 'trụ', 'tượng', 'tuong', 'statue', 'nhà', 'bia', 'chùa']
+    censer_kw = ['đỉnh', 'dinh', 'lư', 'lu', 'hương', 'huong', 'censer', 'chuông', 'chuong', 'trống', 'trong', 'drum', 'bell', 'nghê', 'nghe', 'kỳ lân', 'linh thú']
+    bowl_kw = ['bát', 'bat', 'chén', 'chen', 'đĩa', 'dia', 'tô', 'to', 'khay', 'chậu', 'chau', 'tách', 'tach', 'bowl', 'dish', 'plate', 'saucer']
+    vase_kw = ['bình', 'binh', 'thạp', 'thap', 'lọ', 'lo', 'ché', 'che', 'ấm', 'am', 'vase', 'jar', 'urn', 'bottle']
+
+    is_tower = any(k in name_lower for k in tower_kw)
+    is_censer = any(k in name_lower for k in censer_kw)
+    is_bowl = any(k in name_lower for k in bowl_kw)
+    is_vase = any(k in name_lower for k in vase_kw)
+
+    # Ưu tiên nhận diện theo từ khóa chính xác
+    if is_tower or (aspect_ratio >= 1.35 and not (is_bowl or is_censer)):
+        return "TOWER_SCULPTURE"
+    if is_censer:
+        return "ORGANIC_VOLUMETRIC"
+    if is_bowl:
+        return "LOBED_CAVITY_BOWL"
+    if is_vase:
+        return "REVOLVED_VESSEL"
+
+    # Phân tích hình học thuần túy nếu không có từ khóa hoặc tên gọi chung chung
+    if aspect_ratio >= 1.35:
+        return "TOWER_SCULPTURE"
+    if aspect_ratio <= 1.05 and symmetry_score > 0.70:
+        return "LOBED_CAVITY_BOWL"
+    if aspect_ratio < 1.35 and symmetry_score > 0.65:
+        return "REVOLVED_VESSEL"
+
+    return "ORGANIC_VOLUMETRIC"
+
+
+def build_faithful_3d_mesh(img_rgb, mask, back_img_rgb=None, depth_scale=1.0, resolution=130, artifact_name=""):
     """
     Dựng khối 3D thực tế theo đúng hình dáng nguyên bản của hiện vật:
-    - Nếu là đồ gốm sứ tròn xoay (bát, đĩa, bình, chậu): Tự động dựng mô hình BÁT CÓ LÒNG RỖNG (Lobed Cavity Bowl)
-      thấy rõ lòng bát sâu vào trong, vành miệng lượn 8 múi tròn trịa, không bị bít kín như cái bánh bao!
-    - Nếu là tượng thờ / phù điêu: Dựng thể tích Organic Watertight.
+    - Nếu là tháp / tượng đứng (aspect_ratio >= 1.35): Dựng Architectural Monument 3D giữ nguyên 100% tầng tháp.
+    - Nếu là đồ gốm sứ tròn xoay (bát, đĩa): Dựng mô hình BÁT CÓ LÒNG RỖNG (Lobed Cavity Bowl) 8 múi sen.
+    - Nếu là đỉnh đồng / lư hương / linh thú: Dựng thể tích Organic Watertight.
     """
     ys, xs = np.where(mask > 0)
     pad = 8
@@ -440,19 +647,21 @@ def build_faithful_3d_mesh(img_rgb, mask, back_img_rgb=None, depth_scale=1.0, re
     crop_mask = mask[y_min:y_max + 1, x_min:x_max + 1].copy()
     crop_rgb = img_rgb[y_min:y_max + 1, x_min:x_max + 1].copy()
 
-    # Kiểm tra tính đối xứng trục (Axial Symmetry) của hiện vật
-    # Nếu đối xứng cao (> 70%) -> Đây là đồ gốm tròn xoay (bát, đĩa, bình, thạp) -> Dựng Lobed Cavity Bowl
-    mid_x = crop_mask.shape[1] // 2
-    left_half = crop_mask[:, :mid_x]
-    right_half = cv2.flip(crop_mask[:, mid_x:], 1)
-    min_w = min(left_half.shape[1], right_half.shape[1])
-    overlap = np.sum((left_half[:, :min_w] > 50) & (right_half[:, :min_w] > 50))
-    union = np.sum((left_half[:, :min_w] > 50) | (right_half[:, :min_w] > 50))
-    symmetry_score = float(overlap) / float(max(1, union))
+    h_crop, w_crop = crop_mask.shape
+    aspect_ratio = float(h_crop) / float(max(1, w_crop))
 
-    log(f"Độ đối xứng trục của hiện vật: {symmetry_score:.2%}")
-    if symmetry_score > 0.65:
-        log("Nhận diện hiện vật thuộc loại hình Cổ vật tròn xoay (Bát/Đĩa/Bình gốm sứ)! Áp dụng bộ dựng Lobed Cavity Bowl Engine...")
+    archetype = classify_artifact_archetype(artifact_name, crop_rgb, crop_mask)
+    log(f"Phân loại hình thái hiện vật: [{archetype}] (Tỷ lệ H/W: {aspect_ratio:.2f}, Tên: '{artifact_name}')")
+
+    if archetype == "TOWER_SCULPTURE":
+        log("Áp dụng bộ dựng Architectural Monument & Tower 3D Engine (Lăng trụ 4 mặt bảo tồn 100% tầng tháp)...")
+        try:
+            return build_architectural_tower_mesh(crop_rgb, crop_mask, depth_scale=depth_scale, resolution=resolution)
+        except Exception as e:
+            log(f"Lỗi dựng Architectural Tower ({e}), chuyển sang phương án Volumetric...")
+
+    elif archetype == "LOBED_CAVITY_BOWL":
+        log("Áp dụng bộ dựng Lobed Cavity Bowl Engine (Miệng bát chia múi sen & lòng bát rỗng thực sự)...")
         try:
             vessel_mesh = build_lobed_cavity_bowl_mesh(
                 crop_rgb, crop_mask, depth_scale=depth_scale, n_theta=96
@@ -584,10 +793,11 @@ def build_faithful_3d_mesh(img_rgb, mask, back_img_rgb=None, depth_scale=1.0, re
 # 4. PIPELINE ĐIỀU PHỐI CHÍNH (MAIN ENTRYPOINT)
 # ============================================================================
 
-def generate_3d_artifact(image_path, output_glb_path, back_image_path=None, depth_scale=1.0, resolution=130):
+def generate_3d_artifact(image_path, output_glb_path, back_image_path=None, depth_scale=1.0, resolution=130, artifact_name=""):
     """
     Tạo mô hình 3D nguyên bản từ ảnh chụp hiện vật:
     - Bóc tách nền giữ trọn vẹn tượng, hoa văn, chân đế.
+    - Phân loại hình thái cổ vật (Tháp / Bát có lòng rỗng / Bình tròn xoay / Đỉnh đồng).
     - Dựng khối 3D đặc khép kín theo đúng hình dáng nguyên mẫu.
     - Xuất file .GLB hoàn hảo cho Three.js WebGL.
     """
@@ -595,7 +805,7 @@ def generate_3d_artifact(image_path, output_glb_path, back_image_path=None, dept
     if not os.path.exists(image_path):
         raise FileNotFoundError(f"Không tìm thấy file ảnh gốc: {image_path}")
 
-    log(f"Nạp ảnh hiện vật: {image_path}...")
+    log(f"Nạp ảnh hiện vật: {image_path} (Tên hiện vật: '{artifact_name}')...")
     img_rgb, mask = load_and_clean_artifact_image(image_path, max_dim=1400)
 
     back_img_rgb = None
@@ -608,7 +818,8 @@ def generate_3d_artifact(image_path, output_glb_path, back_image_path=None, dept
         mask,
         back_img_rgb=back_img_rgb,
         depth_scale=depth_scale,
-        resolution=resolution
+        resolution=resolution,
+        artifact_name=artifact_name
     )
 
     os.makedirs(os.path.dirname(os.path.abspath(output_glb_path)), exist_ok=True)
@@ -646,6 +857,7 @@ def main():
     parser.add_argument("--output", required=True, help="Đường dẫn lưu file 3D đầu ra (.glb)")
     parser.add_argument("--depth-scale", type=float, default=1.0, help="Độ dày thể tích (0.70 - 1.40)")
     parser.add_argument("--resolution", type=int, default=130, help="Độ phân giải lưới 3D (100 - 160)")
+    parser.add_argument("--artifact-name", default="", help="Tên hoặc thể loại hiện vật để phân loại hình thái")
 
     args = parser.parse_args()
 
@@ -655,7 +867,8 @@ def main():
             args.output,
             back_image_path=args.back_image,
             depth_scale=args.depth_scale,
-            resolution=args.resolution
+            resolution=args.resolution,
+            artifact_name=args.artifact_name
         )
         print(json.dumps(res, ensure_ascii=False, indent=2))
         sys.exit(0)
