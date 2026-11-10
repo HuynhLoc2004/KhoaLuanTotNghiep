@@ -300,12 +300,13 @@ async function getAllActiveImageReferences(): Promise<Set<string>> {
   };
 
   try {
-    // 1. Quét CSDL PostgreSQL (Primary Relational Database: rooms, artifacts, floor_plans)
+    // 1. Quét CSDL PostgreSQL (Primary Relational Database: rooms, artifacts, floor_plans, system_branding)
     try {
-      const [pgRooms, pgArtifacts, pgFloorPlans] = await Promise.all([
+      const [pgRooms, pgArtifacts, pgFloorPlans, pgBranding] = await Promise.all([
         pgPool.query('SELECT panorama_url, thumbnail_url, audio_url FROM rooms;').catch(() => ({ rows: [] })),
         pgPool.query('SELECT images, thumbnail_url, model_3d_url, audio_narration_url, qr_code_url FROM artifacts;').catch(() => ({ rows: [] })),
-        pgPool.query('SELECT image_url FROM floor_plans;').catch(() => ({ rows: [] }))
+        pgPool.query('SELECT image_url FROM floor_plans;').catch(() => ({ rows: [] })),
+        pgPool.query('SELECT logo_url, hero_banner_url, intro_image_url, data FROM system_branding;').catch(() => ({ rows: [] }))
       ]);
 
       for (const row of pgRooms.rows) {
@@ -331,6 +332,19 @@ async function getAllActiveImageReferences(): Promise<Set<string>> {
       }
       for (const row of pgFloorPlans.rows) {
         addIfStr(row.image_url);
+      }
+      for (const row of pgBranding.rows) {
+        addIfStr(row.logo_url);
+        addIfStr(row.hero_banner_url);
+        addIfStr(row.intro_image_url);
+        if (row.data) {
+          try {
+            const parsed = typeof row.data === 'string' ? JSON.parse(row.data) : row.data;
+            if (typeof parsed === 'object') {
+              Object.values(parsed).forEach(addIfStr);
+            }
+          } catch {}
+        }
       }
     } catch (pgErr: any) {
       console.warn('[Scheduled Cleanup] Lỗi quét PostgreSQL:', pgErr?.message);
@@ -400,7 +414,14 @@ async function getAllActiveImageReferences(): Promise<Set<string>> {
     (brandings as any[]).forEach((b: any) => {
       addIfStr(b.logoUrl);
       addIfStr(b.heroBannerUrl);
+      addIfStr(b.introImageUrl);
+      addIfStr(b.roomsShowcaseImageUrl);
+      addIfStr(b.artifactsShowcaseImageUrl);
+      addIfStr(b.guideMapUrl);
+      addIfStr(b.virtualTourBackgroundUrl);
       addIfStr(b.brandingAssets);
+      addIfStr(b.qrCodeUrl);
+      addIfStr(b.faviconUrl);
     });
 
     (users as any[]).forEach((u: any) => {
@@ -454,6 +475,16 @@ export async function scanOrphanedCloudinaryImages(maxInspect = 500): Promise<{
 
       // Nếu ảnh mới tải lên dưới 24h -> luôn bảo lưu an toàn
       if (now - createdAtMs < GRACE_PERIOD_MS) {
+        continue;
+      }
+
+      // Tuyệt đối không bao giờ xóa bất kỳ tài nguyên nhận diện thương hiệu / branding / logo / banner
+      const lowerPubId = publicId.toLowerCase();
+      if (
+        lowerPubId.includes('branding') ||
+        lowerPubId.includes('logo') ||
+        lowerPubId.includes('banner')
+      ) {
         continue;
       }
 
