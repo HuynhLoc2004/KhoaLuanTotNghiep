@@ -103,7 +103,7 @@ export const AdminArtifactsPage: React.FC = () => {
   // 3D Generation Modal
   const [isGenerateModalOpen, setIsGenerateModalOpen] = useState(false);
   const [generatingArtifact, setGeneratingArtifact] = useState<Artifact | null>(null);
-  const [depthScale, setDepthScale] = useState(0.35);
+  const [depthScale, setDepthScale] = useState(1.0);
   const [isProcessing3D, setIsProcessing3D] = useState(false);
   const [autoGenerate3D, setAutoGenerate3D] = useState(true);
   const [reconstructionMode, setReconstructionMode] = useState<'single' | 'front_back' | 'multiview'>('multiview');
@@ -541,7 +541,7 @@ export const AdminArtifactsPage: React.FC = () => {
       if (autoGenerate3D && targetId && hasImage && !hasModel) {
         try {
           const genRes = await api.generate3DArtifact(targetId, {
-            depthScale: 0.35,
+            depthScale: 1.0,
             resolution: 160,
             reconstructionMode,
             aiEngine,
@@ -901,7 +901,7 @@ export const AdminArtifactsPage: React.FC = () => {
   const handleOpenGenerate3D = (artifact: Artifact) => {
     const targetId = artifact.id || (artifact as any)._id;
     setGeneratingArtifact({ ...artifact, id: targetId });
-    setDepthScale(0.35);
+    setDepthScale(1.0);
     const hasMultiple = (artifact.images && artifact.images.length > 1) || (artifact.anglePhotos && artifact.anglePhotos.length > 0);
     setReconstructionMode(hasMultiple ? 'multiview' : 'single');
     setIsGenerateModalOpen(true);
