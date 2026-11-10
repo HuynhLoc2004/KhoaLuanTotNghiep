@@ -163,76 +163,191 @@ def load_and_clean_artifact_image(image_path, max_dim=1400):
 
 
 # ============================================================================
-# 2. TÁI TẠO KHỐI THỂ TÍCH 3D CHÂN THỰC (RADIAL-AXIAL PROFILE & ORGANIC VOLUMETRIC)
+# 2. TÁI TẠO KHỐI THỂ TÍCH 3D CỔ VẬT CHUẨN XÁC (HOLLOW VESSEL & VOLUMETRIC RECONSTRUCTION)
 # ============================================================================
 
-def compute_radial_axial_field(scaled_mask, target_Rz, depth_scale=1.0):
+def build_hollow_revolved_vessel(crop_rgb, crop_mask, depth_scale=1.0, wall_thickness_ratio=0.065, n_theta=96):
     """
-    Tính trường độ sâu theo hình học đối xứng trục tròn xoay tự nhiên (Radial-Axial Profiling):
-    1. Quét từng lát cắt ngang y để xác định tâm đối xứng Xc(y) và bán kính ngang Rx(y).
-    2. Áp dụng làm mịn đường biên 1D để loại bỏ răng cưa viền ảnh.
-    3. Tạo bề mặt cong tròn xoay hoàn hảo 1:1 (Rz = Rx):
-       Miệng bát nở tròn đều 360 độ (không bị bẹp dí thành hình elip),
-       thân thon khum tự nhiên, đáy bát phẳng gọn gàng.
-    4. Kết hợp hài hòa với trường khoảng cách biên (Distance Transform) cho các chi tiết nhô ra.
+    Tái tạo mô hình 3D cổ vật gốm sứ có LÒNG BÁT RỖNG (Hollow Vessel) chuẩn xác 100%:
+    1. Bóc tách đường cong thân bát (Profile curve) từ ảnh 2D thực tế.
+    2. Dựng hình học mặt tròn xoay rỗng 3D:
+       - Thành ngoài (Outer Wall): Khum cong theo đúng tỷ lệ thực tế của hiện vật.
+       - Vành miệng bát (Smooth Rim): Bo cong mềm mại kết nối thành ngoài và thành trong.
+       - Lòng bát rỗng (Inner Cavity): Lõm sâu vào bên trong để đựng nước/cơm thực sự (không bị bít kín như cái bánh bao).
+       - Đáy chân đế (Footring): Vững chãi, phẳng phiu.
+    3. Triệt tiêu 100% đường rãnh nứt / vết khâu: Lưới tham số tròn xoay 360° liên tục khép kín.
+    4. Watertight 100% chuẩn Three.js WebGL.
     """
-    H_grid, W_grid = scaled_mask.shape
-    z_radial = np.zeros((H_grid, W_grid), dtype=np.float32)
+    H_crop, W_crop = crop_mask.shape
 
-    x_left = np.full(H_grid, -1.0, dtype=np.float32)
-    x_right = np.full(H_grid, -1.0, dtype=np.float32)
+    # Trích xuất bán kính R(y) và tâm Xc(y) theo từng hàng cao độ từ đáy lên đỉnh
+    N_slices = 70
+    y_indices = np.linspace(0, H_crop - 1, N_slices).astype(int)
 
-    for y in range(H_grid):
-        xs_row = np.where(scaled_mask[y] > 50)[0]
-        if len(xs_row) > 0:
-            x_left[y] = float(xs_row.min())
-            x_right[y] = float(xs_row.max())
+    r_profile = []
+    y_profile = []
 
-    valid_rows = np.where(x_left >= 0)[0]
-    if len(valid_rows) > 0:
-        xc_raw = (x_left[valid_rows] + x_right[valid_rows]) / 2.0
-        rx_raw = np.maximum(2.0, (x_right[valid_rows] - x_left[valid_rows]) / 2.0)
+    for y in y_indices:
+        xs_row = np.where(crop_mask[y] > 50)[0]
+        if len(xs_row) > 2:
+            r = (xs_row.max() - xs_row.min()) / 2.0
+            r_profile.append(r)
+            y_profile.append(float(H_crop - 1 - y)) # y đi từ đáy (0) lên đỉnh (H)
+        else:
+            if len(r_profile) > 0:
+                r_profile.append(r_profile[-1])
+                y_profile.append(float(H_crop - 1 - y))
 
-        # Làm mịn tâm đối xứng và bán kính theo trục dọc để đường cong thân hiện vật mượt mà
-        xc_smooth = scipy.ndimage.gaussian_filter1d(xc_raw, sigma=2.0)
-        rx_smooth = scipy.ndimage.gaussian_filter1d(rx_raw, sigma=2.0)
+    if len(r_profile) < 10:
+        return None
 
-        # Đối với vật thể tròn xoay (bát, đĩa, bình, thạp, đỉnh đồng):
-        # Chiều sâu chuẩn hóa theo tỷ lệ 1:1 (hình tròn đều khi nhìn từ trên xuống)
-        effective_depth_scale = 1.0 if (depth_scale is None or depth_scale < 0.55) else float(np.clip(depth_scale, 0.70, 1.30))
+    r_profile = np.array(r_profile, dtype=np.float32)
+    y_profile = np.array(y_profile, dtype=np.float32)
 
-        for idx, y in enumerate(valid_rows):
-            xc = xc_smooth[idx]
-            rx = rx_smooth[idx]
-            # Bán kính chiều sâu Rz = Rx để đảm bảo nhìn từ trên xuống là hình tròn hoàn hảo 100%
-            rz = rx * effective_depth_scale
+    # Đảo ngược để y đi từ đáy lên miệng bát
+    sort_idx = np.argsort(y_profile)
+    y_profile = y_profile[sort_idx]
+    r_profile = r_profile[sort_idx]
 
-            xs_row = np.where(scaled_mask[y] > 50)[0]
-            dx = np.abs(xs_row - xc)
-            ratio = np.clip(dx / (rx + 1e-5), 0.0, 1.0)
-            z_radial[y, xs_row] = rz * np.sqrt(np.maximum(0.0, 1.0 - ratio**2))
+    # Làm mịn profile bằng Gaussian 1D
+    r_smooth = scipy.ndimage.gaussian_filter1d(r_profile, sigma=2.0)
+    r_max = np.max(r_smooth)
 
-    # Bổ trợ nhẹ bằng Distance Transform ở các chi tiết viền mép
-    dist = cv2.distanceTransform((scaled_mask > 50).astype(np.uint8) * 255, cv2.DIST_L2, 5)
-    d_max = max(1.0, float(dist.max()))
-    d_norm = np.clip(dist / d_max, 0.0, 1.0)
-    z_dist = target_Rz * np.sqrt(np.maximum(0.0, 2.0 * d_norm - d_norm**2))
+    # Chiều sâu tỷ lệ tròn xoay chuẩn 1:1
+    effective_scale = 1.0 if (depth_scale is None or depth_scale < 0.55) else float(np.clip(depth_scale, 0.75, 1.25))
+    r_smooth = r_smooth * effective_scale
 
-    # 88% Radial Profile (giữ hình tròn xoay chuẩn mực 360°) + 12% Distance Transform
-    z_combined = 0.88 * z_radial + 0.12 * z_dist
-    z_combined = scipy.ndimage.gaussian_filter(z_combined, sigma=0.6)
-    return z_combined
+    # Độ dày thành bát (khoảng 6.5% bán kính miệng bát)
+    wall_thickness = max(3.0, r_max * wall_thickness_ratio)
+    # Đáy lòng trong cao hơn đáy ngoài một khoảng đáy bát thực tế
+    floor_y = y_profile[0] + (y_profile[-1] - y_profile[0]) * 0.12
+
+    # Đường sinh các vòng xuyến (không chứa các điểm cực r=0)
+    rings = []
+
+    # 1. Thành ngoài từ đáy lên miệng
+    for y, r in zip(y_profile, r_smooth):
+        rings.append((r, y, False))
+
+    # 2. Vành miệng bát (Rim bo tròn mềm mại)
+    y_top = y_profile[-1]
+    r_top_out = r_smooth[-1]
+    r_top_in = max(4.0, r_top_out - wall_thickness)
+    rings.append(((r_top_out + r_top_in) / 2.0, y_top + wall_thickness * 0.25, False))
+    rings.append((r_top_in, y_top, True))
+
+    # 3. Lòng trong từ miệng xuống đáy lòng
+    for y, r in reversed(list(zip(y_profile, r_smooth))):
+        if y >= floor_y:
+            r_in = max(2.0, r - wall_thickness)
+            rings.append((r_in, y, True))
+
+    thetas = np.linspace(0, 2 * np.pi, n_theta, endpoint=False)
+    cos_t = np.cos(thetas)
+    sin_t = np.sin(thetas)
+
+    vertices = []
+    uvs = []
+
+    h_total = max(1e-5, y_profile[-1] - y_profile[0])
+    world_scale = 1.8 / h_total
+
+    # Đỉnh cực đáy ngoài (Index 0)
+    bottom_pole_idx = 0
+    vertices.append([0.0, 0.08, 0.0])
+    uvs.append([0.5, 0.0])
+
+    # Các vòng xuyến
+    for ci, (r, y, is_inner) in enumerate(rings):
+        y_world = (y - y_profile[0]) * world_scale + 0.08
+        v = np.clip((y - y_profile[0]) / h_total, 0.0, 1.0)
+        for tj, (ct, st) in enumerate(zip(cos_t, sin_t)):
+            vertices.append([r * ct * world_scale, y_world, r * st * world_scale])
+            u = float(tj) / float(n_theta)
+            if is_inner:
+                # Thành trong nhận hoa văn men sứ sạch bóng
+                uvs.append([u, v * 0.8 + 0.2])
+            else:
+                uvs.append([u, v])
+
+    # Đỉnh cực đáy lòng trong (Index cuối)
+    inner_floor_world_y = (floor_y - y_profile[0]) * world_scale + 0.08
+    inner_pole_idx = len(vertices)
+    vertices.append([0.0, inner_floor_world_y, 0.0])
+    uvs.append([0.5, 0.15])
+
+    vertices = np.array(vertices, dtype=np.float32)
+    uvs = np.array(uvs, dtype=np.float32)
+
+    faces = []
+
+    # 1. Quạt đáy ngoài: Nối bottom_pole_idx với vòng đầu tiên (ci = 0)
+    for tj in range(n_theta):
+        next_tj = (tj + 1) % n_theta
+        v1 = 1 + tj
+        v2 = 1 + next_tj
+        faces.append([bottom_pole_idx, v2, v1])
+
+    # 2. Thân giữa các vòng
+    num_rings = len(rings)
+    for ci in range(num_rings - 1):
+        ring_start = 1 + ci * n_theta
+        next_ring_start = 1 + (ci + 1) * n_theta
+        for tj in range(n_theta):
+            next_tj = (tj + 1) % n_theta
+            v0 = ring_start + tj
+            v1 = ring_start + next_tj
+            v2 = next_ring_start + next_tj
+            v3 = next_ring_start + tj
+            faces.append([v0, v1, v2])
+            faces.append([v0, v2, v3])
+
+    # 3. Quạt đáy lòng trong: Nối vòng cuối cùng với inner_pole_idx
+    last_ring_start = 1 + (num_rings - 1) * n_theta
+    for tj in range(n_theta):
+        next_tj = (tj + 1) % n_theta
+        v1 = last_ring_start + tj
+        v2 = last_ring_start + next_tj
+        faces.append([inner_pole_idx, v1, v2])
+
+    faces = np.array(faces, dtype=np.int32)
+    mesh = trimesh.Trimesh(vertices=vertices, faces=faces, process=False)
+    mesh.fix_normals()
+
+    # Chuẩn bị texture men ngà chân thực từ ảnh (1024x1024)
+    tex_clean = cv2.resize(crop_rgb, (1024, 1024), interpolation=cv2.INTER_LANCZOS4)
+    pil_tex = Image.fromarray(tex_clean)
+
+    # Normal map dịu nhẹ
+    gray = cv2.cvtColor(tex_clean, cv2.COLOR_RGB2GRAY).astype(np.float32) / 255.0
+    gx = cv2.Sobel(gray, cv2.CV_32F, 1, 0, ksize=3)
+    gy = cv2.Sobel(gray, cv2.CV_32F, 0, 1, ksize=3)
+    nx, ny, nz = -gx * 0.35, -gy * 0.35, np.ones_like(gx)
+    norm = np.sqrt(nx**2 + ny**2 + nz**2) + 1e-6
+    norm_map = cv2.merge([
+        np.clip((nx / norm * 0.5 + 0.5) * 255, 0, 255).astype(np.uint8),
+        np.clip((ny / norm * 0.5 + 0.5) * 255, 0, 255).astype(np.uint8),
+        np.clip((nz / norm * 0.5 + 0.5) * 255, 0, 255).astype(np.uint8)
+    ])
+    pil_norm = Image.fromarray(norm_map)
+
+    pbr_mat = trimesh.visual.material.PBRMaterial(
+        baseColorTexture=pil_tex,
+        normalTexture=pil_norm,
+        metallicFactor=0.12,
+        roughnessFactor=0.35
+    )
+    mesh.visual = trimesh.visual.TextureVisuals(uv=uvs, material=pbr_mat)
+    log(f"Đã tạo thành công mô hình Bát Gốm Có Lòng Rỗng 3D (Hollow Vessel): {len(mesh.vertices):,} đỉnh, {len(mesh.faces):,} mặt, Watertight={mesh.is_watertight}")
+    return mesh
 
 
 def build_faithful_3d_mesh(img_rgb, mask, back_img_rgb=None, depth_scale=1.0, resolution=130):
     """
     Dựng khối 3D thực tế theo đúng hình dáng nguyên bản của hiện vật:
-    1. Giữ nguyên 100% đường nét và hoa văn thực tế của hiện vật từ góc nhìn chính.
-    2. Chiều sâu (Depth) theo hình học đối xứng trục thực tế (Radial-Axial Symmetry 1:1),
-       giúp bát gốm, bình, đỉnh đồng nhìn từ trên xuống là HÌNH TRÒN ĐỀU ĐẶN 100% (không bị dẹp lép thành elip).
-    3. TRIỆT TIÊU 100% ĐƯỜNG RÃNH NỨT / VẾT KHÂU BẦM ĐEN TRÊN ĐỈNH ĐẦU VÀ SỐNG LƯNG:
-       Sử dụng cấu trúc UV đồng nhất không phân chia ranh giới, khoảng nhảy UV = 0.
-    4. Trích xuất lưới kín hoàn toàn (Watertight Solid Mesh) bằng Marching Cubes.
+    - Nếu là đồ gốm sứ tròn xoay (bát, đĩa, bình, chậu): Tự động dựng mô hình BÁT CÓ LÒNG RỖNG (Hollow Vessel)
+      thấy rõ lòng bát sâu vào trong, vành miệng tròn trịa, không bị bít kín như cái bánh bao!
+    - Nếu là tượng thờ / phù điêu: Dựng thể tích Organic Watertight.
     """
     ys, xs = np.where(mask > 0)
     pad = 8
@@ -243,6 +358,28 @@ def build_faithful_3d_mesh(img_rgb, mask, back_img_rgb=None, depth_scale=1.0, re
 
     crop_mask = mask[y_min:y_max + 1, x_min:x_max + 1].copy()
     crop_rgb = img_rgb[y_min:y_max + 1, x_min:x_max + 1].copy()
+
+    # Kiểm tra tính đối xứng trục (Axial Symmetry) của hiện vật
+    # Nếu đối xứng cao (> 75%) -> Đây là đồ gốm tròn xoay (bát, đĩa, bình, thạp) -> Dựng Hollow Vessel
+    mid_x = crop_mask.shape[1] // 2
+    left_half = crop_mask[:, :mid_x]
+    right_half = cv2.flip(crop_mask[:, mid_x:], 1)
+    min_w = min(left_half.shape[1], right_half.shape[1])
+    overlap = np.sum((left_half[:, :min_w] > 50) & (right_half[:, :min_w] > 50))
+    union = np.sum((left_half[:, :min_w] > 50) | (right_half[:, :min_w] > 50))
+    symmetry_score = float(overlap) / float(max(1, union))
+
+    log(f"Độ đối xứng trục của hiện vật: {symmetry_score:.2%}")
+    if symmetry_score > 0.70:
+        log("Nhận diện hiện vật thuộc loại hình Cổ vật tròn xoay (Bát/Đĩa/Bình gốm sứ)! Áp dụng bộ dựng Hollow Vessel...")
+        try:
+            vessel_mesh = build_hollow_revolved_vessel(
+                crop_rgb, crop_mask, depth_scale=depth_scale, wall_thickness_ratio=0.065, n_theta=96
+            )
+            if vessel_mesh is not None:
+                return vessel_mesh
+        except Exception as e:
+            log(f"Lỗi dựng Hollow Vessel ({e}), chuyển sang phương án Volumetric...")
 
     h_crop, w_crop = crop_mask.shape
 
