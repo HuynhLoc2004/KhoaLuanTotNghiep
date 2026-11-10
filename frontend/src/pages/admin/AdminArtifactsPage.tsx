@@ -3147,7 +3147,7 @@ export const AdminArtifactsPage: React.FC = () => {
                       flexDirection: 'column',
                       gap: 8
                     }}>
-                                            {/* Lựa chọn Động cơ Tái tạo 3D (Dual-Engine) */}
+                                            {/* Lựa chọn Động cơ Tái tạo 3D */}
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 4 }}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                           <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--heading-color)', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
@@ -3155,18 +3155,18 @@ export const AdminArtifactsPage: React.FC = () => {
                             Động cơ tái tạo 3D:
                           </span>
                         </div>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: 8 }}>
+                        <div className="artifact-3d-radios-grid">
                           {/* Động cơ 1: Local VPS CPU */}
                           <label
                             style={{
                               display: 'flex',
                               alignItems: 'flex-start',
                               gap: 8,
-                              padding: '8px 10px',
+                              padding: '9px 12px',
                               borderRadius: 6,
                               cursor: 'pointer',
-                              border: aiEngine === 'local' ? '1px solid #10b981' : '1px solid var(--border-color)',
-                              background: aiEngine === 'local' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(0,0,0,0.2)',
+                              border: aiEngine === 'local' ? '1px solid var(--accent-gold)' : '1px solid var(--border-color)',
+                              background: aiEngine === 'local' ? 'rgba(212, 175, 55, 0.08)' : 'rgba(0,0,0,0.2)',
                               transition: 'all 0.15s ease'
                             }}
                           >
@@ -3175,15 +3175,19 @@ export const AdminArtifactsPage: React.FC = () => {
                               name="artifactAiEngine"
                               checked={aiEngine === 'local'}
                               onChange={() => setAiEngine('local')}
-                              style={{ marginTop: 2, accentColor: '#10b981' }}
+                              style={{ marginTop: 2, accentColor: 'var(--accent-gold)' }}
                             />
-                            <div>
-                              <div style={{ fontSize: '11.5px', fontWeight: 600, color: aiEngine === 'local' ? '#10b981' : 'var(--heading-color)', display: 'flex', alignItems: 'center', gap: 5 }}>
-                                🖥️ Máy chủ VPS (Cục bộ)
-                                <span style={{ fontSize: '9px', background: 'rgba(16, 185, 129, 0.2)', color: '#10b981', padding: '1px 4px', borderRadius: 3 }}>Không tốn Token</span>
+                            <div style={{ flex: 1 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
+                                <span style={{ fontSize: '12px', fontWeight: 600, color: aiEngine === 'local' ? 'var(--accent-gold)' : 'var(--heading-color)' }}>
+                                  Máy chủ nội bộ (Cục bộ)
+                                </span>
+                                <span style={{ fontSize: '9.5px', color: 'var(--accent-gold)', background: 'rgba(212, 175, 55, 0.12)', border: '1px solid rgba(212, 175, 55, 0.25)', padding: '1px 6px', borderRadius: 4, whiteSpace: 'nowrap' }}>
+                                  CPU Server
+                                </span>
                               </div>
-                              <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: 2 }}>
-                                Tự dựng trực tiếp trên CPU VPS bằng thuật toán Volumetric, xử lý ~20s, không lo hết quota.
+                              <div style={{ fontSize: '10.5px', color: 'var(--text-muted)', marginTop: 3, lineHeight: '1.4' }}>
+                                Dựng hình học 3D trực tiếp trên máy chủ, vận hành độc lập, không phụ thuộc dịch vụ ngoài.
                               </div>
                             </div>
                           </label>
@@ -3194,7 +3198,7 @@ export const AdminArtifactsPage: React.FC = () => {
                               display: 'flex',
                               alignItems: 'flex-start',
                               gap: 8,
-                              padding: '8px 10px',
+                              padding: '9px 12px',
                               borderRadius: 6,
                               cursor: 'pointer',
                               border: aiEngine === 'trellis' ? '1px solid var(--accent-gold)' : '1px solid var(--border-color)',
@@ -3209,13 +3213,17 @@ export const AdminArtifactsPage: React.FC = () => {
                               onChange={() => setAiEngine('trellis')}
                               style={{ marginTop: 2, accentColor: 'var(--accent-gold)' }}
                             />
-                            <div>
-                              <div style={{ fontSize: '11.5px', fontWeight: 600, color: aiEngine === 'trellis' ? 'var(--accent-gold)' : 'var(--heading-color)', display: 'flex', alignItems: 'center', gap: 5 }}>
-                                ⚡ Cloud AI (TRELLIS A100)
-                                <span style={{ fontSize: '9px', background: 'rgba(212, 175, 55, 0.2)', color: 'var(--accent-gold)', padding: '1px 4px', borderRadius: 3 }}>GPU Cloud</span>
+                            <div style={{ flex: 1 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
+                                <span style={{ fontSize: '12px', fontWeight: 600, color: aiEngine === 'trellis' ? 'var(--accent-gold)' : 'var(--heading-color)' }}>
+                                  Đám mây AI (TRELLIS)
+                                </span>
+                                <span style={{ fontSize: '9.5px', color: 'var(--text-muted)', background: 'rgba(255, 255, 255, 0.06)', border: '1px solid var(--border-color)', padding: '1px 6px', borderRadius: 4, whiteSpace: 'nowrap' }}>
+                                  ZeroGPU A100
+                                </span>
                               </div>
-                              <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: 2 }}>
-                                Deep Learning khuếch tán 3D trên HuggingFace ZeroGPU (dễ hết quota hàng ngày).
+                              <div style={{ fontSize: '10.5px', color: 'var(--text-muted)', marginTop: 3, lineHeight: '1.4' }}>
+                                Tái tạo đa chiều qua cụm điện toán đám mây, tối ưu độ chi tiết quang học của bề mặt.
                               </div>
                             </div>
                           </label>
@@ -3428,14 +3436,14 @@ export const AdminArtifactsPage: React.FC = () => {
                     {activeViewerArtifact.modelMetadata?.aiEngine && (
                       <span style={{
                         fontSize: '11px',
-                        background: activeViewerArtifact.modelMetadata.aiEngine === 'local_vps' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(212, 175, 55, 0.15)',
-                        border: activeViewerArtifact.modelMetadata.aiEngine === 'local_vps' ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid rgba(212, 175, 55, 0.4)',
-                        color: activeViewerArtifact.modelMetadata.aiEngine === 'local_vps' ? '#10b981' : 'var(--accent-gold)',
+                        background: 'rgba(212, 175, 55, 0.15)',
+                        border: '1px solid rgba(212, 175, 55, 0.35)',
+                        color: 'var(--accent-gold)',
                         padding: '2px 8px',
                         borderRadius: 12,
                         fontWeight: 600
                       }}>
-                        {activeViewerArtifact.modelMetadata.aiEngine === 'local_vps' ? '🖥️ Local VPS CPU' : '⚡ Cloud TRELLIS'}
+                        {activeViewerArtifact.modelMetadata.aiEngine === 'local_vps' ? 'Máy chủ nội bộ (CPU)' : 'Đám mây AI (TRELLIS)'}
                       </span>
                     )}
                   </div>
@@ -3610,7 +3618,7 @@ export const AdminArtifactsPage: React.FC = () => {
                 </div>
               </div>
 
-                            {/* Lựa chọn Động cơ Tái tạo 3D (Dual-Engine) */}
+                            {/* Lựa chọn Động cơ Tái tạo 3D */}
               <div
                 style={{
                   padding: '12px',
@@ -3628,7 +3636,7 @@ export const AdminArtifactsPage: React.FC = () => {
                     Chọn động cơ xử lý mô hình 3D:
                   </label>
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: 8 }}>
+                <div className="artifact-3d-radios-grid">
                   {/* Động cơ 1: Local VPS CPU */}
                   <label
                     style={{
@@ -3638,8 +3646,8 @@ export const AdminArtifactsPage: React.FC = () => {
                       padding: '9px 12px',
                       borderRadius: 6,
                       cursor: 'pointer',
-                      border: aiEngine === 'local' ? '1px solid #10b981' : '1px solid var(--border-color)',
-                      background: aiEngine === 'local' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(0,0,0,0.2)',
+                      border: aiEngine === 'local' ? '1px solid var(--accent-gold)' : '1px solid var(--border-color)',
+                      background: aiEngine === 'local' ? 'rgba(212, 175, 55, 0.08)' : 'rgba(0,0,0,0.2)',
                       transition: 'all 0.15s ease'
                     }}
                   >
@@ -3648,15 +3656,19 @@ export const AdminArtifactsPage: React.FC = () => {
                       name="modalAiEngine"
                       checked={aiEngine === 'local'}
                       onChange={() => setAiEngine('local')}
-                      style={{ marginTop: 2, accentColor: '#10b981' }}
+                      style={{ marginTop: 2, accentColor: 'var(--accent-gold)' }}
                     />
-                    <div>
-                      <div style={{ fontSize: '12px', fontWeight: 600, color: aiEngine === 'local' ? '#10b981' : 'var(--heading-color)', display: 'flex', alignItems: 'center', gap: 5 }}>
-                        🖥️ Máy chủ VPS (Cục bộ)
-                        <span style={{ fontSize: '9px', background: 'rgba(16, 185, 129, 0.2)', color: '#10b981', padding: '1px 5px', borderRadius: 4 }}>Không tốn Token</span>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
+                        <span style={{ fontSize: '12px', fontWeight: 600, color: aiEngine === 'local' ? 'var(--accent-gold)' : 'var(--heading-color)' }}>
+                          Máy chủ nội bộ (Cục bộ)
+                        </span>
+                        <span style={{ fontSize: '9.5px', color: 'var(--accent-gold)', background: 'rgba(212, 175, 55, 0.12)', border: '1px solid rgba(212, 175, 55, 0.25)', padding: '1px 6px', borderRadius: 4, whiteSpace: 'nowrap' }}>
+                          CPU Server
+                        </span>
                       </div>
-                      <div style={{ fontSize: '10.5px', color: 'var(--text-muted)', marginTop: 2 }}>
-                        Tự dựng trực tiếp trên CPU VPS bằng thuật toán Volumetric, xử lý ~20s, luôn khả dụng 100%.
+                      <div style={{ fontSize: '10.5px', color: 'var(--text-muted)', marginTop: 3, lineHeight: '1.4' }}>
+                        Dựng hình học 3D trực tiếp trên máy chủ, vận hành độc lập, không phụ thuộc dịch vụ ngoài.
                       </div>
                     </div>
                   </label>
@@ -3682,13 +3694,17 @@ export const AdminArtifactsPage: React.FC = () => {
                       onChange={() => setAiEngine('trellis')}
                       style={{ marginTop: 2, accentColor: 'var(--accent-gold)' }}
                     />
-                    <div>
-                      <div style={{ fontSize: '12px', fontWeight: 600, color: aiEngine === 'trellis' ? 'var(--accent-gold)' : 'var(--heading-color)', display: 'flex', alignItems: 'center', gap: 5 }}>
-                        ⚡ Cloud AI (TRELLIS A100)
-                        <span style={{ fontSize: '9px', background: 'rgba(212, 175, 55, 0.2)', color: 'var(--accent-gold)', padding: '1px 5px', borderRadius: 4 }}>GPU Cloud</span>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
+                        <span style={{ fontSize: '12px', fontWeight: 600, color: aiEngine === 'trellis' ? 'var(--accent-gold)' : 'var(--heading-color)' }}>
+                          Đám mây AI (TRELLIS)
+                        </span>
+                        <span style={{ fontSize: '9.5px', color: 'var(--text-muted)', background: 'rgba(255, 255, 255, 0.06)', border: '1px solid var(--border-color)', padding: '1px 6px', borderRadius: 4, whiteSpace: 'nowrap' }}>
+                          ZeroGPU A100
+                        </span>
                       </div>
-                      <div style={{ fontSize: '10.5px', color: 'var(--text-muted)', marginTop: 2 }}>
-                        Tái tạo sâu bằng AI khuếch tán 3 chiều trên cụm ZeroGPU HuggingFace (có giới hạn quota ngày).
+                      <div style={{ fontSize: '10.5px', color: 'var(--text-muted)', marginTop: 3, lineHeight: '1.4' }}>
+                        Tái tạo đa chiều qua cụm điện toán đám mây, tối ưu độ chi tiết quang học của bề mặt.
                       </div>
                     </div>
                   </label>
