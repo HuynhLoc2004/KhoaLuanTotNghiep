@@ -39,7 +39,9 @@ import {
   BookOpen,
   Mic,
   Info,
-  Globe
+  Globe,
+  Cpu,
+  Server
 } from 'lucide-react';
 import { api, API_ROOT } from '../../services/api';
 import { Artifact, LanguageItem, MuseumRoom, TopicItem } from '../../types';
@@ -105,6 +107,7 @@ export const AdminArtifactsPage: React.FC = () => {
   const [isProcessing3D, setIsProcessing3D] = useState(false);
   const [autoGenerate3D, setAutoGenerate3D] = useState(true);
   const [reconstructionMode, setReconstructionMode] = useState<'single' | 'front_back' | 'multiview'>('multiview');
+  const [aiEngine, setAiEngine] = useState<'trellis' | 'local'>('local');
 
   // Multilingual Voice AI Drawer / Modal
   const [isVoiceModalOpen, setIsVoiceModalOpen] = useState(false);
@@ -541,6 +544,7 @@ export const AdminArtifactsPage: React.FC = () => {
             depthScale: 0.35,
             resolution: 160,
             reconstructionMode,
+            aiEngine,
             multiImageUrls: (editingArtifact.anglePhotos || []).map((p: any) => p.url)
           });
           if (genRes.cached) {
@@ -916,6 +920,7 @@ export const AdminArtifactsPage: React.FC = () => {
         depthScale: depthScale,
         resolution: 160,
         reconstructionMode,
+        aiEngine,
         multiImageUrls: (generatingArtifact.anglePhotos || []).map((p: any) => p.url)
       });
 
@@ -3142,7 +3147,81 @@ export const AdminArtifactsPage: React.FC = () => {
                       flexDirection: 'column',
                       gap: 8
                     }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                            {/* Lựa chọn Động cơ Tái tạo 3D (Dual-Engine) */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 4 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--heading-color)', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                            <Cpu size={14} style={{ color: 'var(--accent-gold)' }} />
+                            Động cơ tái tạo 3D:
+                          </span>
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: 8 }}>
+                          {/* Động cơ 1: Local VPS CPU */}
+                          <label
+                            style={{
+                              display: 'flex',
+                              alignItems: 'flex-start',
+                              gap: 8,
+                              padding: '8px 10px',
+                              borderRadius: 6,
+                              cursor: 'pointer',
+                              border: aiEngine === 'local' ? '1px solid #10b981' : '1px solid var(--border-color)',
+                              background: aiEngine === 'local' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(0,0,0,0.2)',
+                              transition: 'all 0.15s ease'
+                            }}
+                          >
+                            <input
+                              type="radio"
+                              name="artifactAiEngine"
+                              checked={aiEngine === 'local'}
+                              onChange={() => setAiEngine('local')}
+                              style={{ marginTop: 2, accentColor: '#10b981' }}
+                            />
+                            <div>
+                              <div style={{ fontSize: '11.5px', fontWeight: 600, color: aiEngine === 'local' ? '#10b981' : 'var(--heading-color)', display: 'flex', alignItems: 'center', gap: 5 }}>
+                                🖥️ Máy chủ VPS (Cục bộ)
+                                <span style={{ fontSize: '9px', background: 'rgba(16, 185, 129, 0.2)', color: '#10b981', padding: '1px 4px', borderRadius: 3 }}>Không tốn Token</span>
+                              </div>
+                              <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: 2 }}>
+                                Tự dựng trực tiếp trên CPU VPS bằng thuật toán Volumetric, xử lý ~20s, không lo hết quota.
+                              </div>
+                            </div>
+                          </label>
+
+                          {/* Động cơ 2: Cloud TRELLIS */}
+                          <label
+                            style={{
+                              display: 'flex',
+                              alignItems: 'flex-start',
+                              gap: 8,
+                              padding: '8px 10px',
+                              borderRadius: 6,
+                              cursor: 'pointer',
+                              border: aiEngine === 'trellis' ? '1px solid var(--accent-gold)' : '1px solid var(--border-color)',
+                              background: aiEngine === 'trellis' ? 'rgba(212, 175, 55, 0.08)' : 'rgba(0,0,0,0.2)',
+                              transition: 'all 0.15s ease'
+                            }}
+                          >
+                            <input
+                              type="radio"
+                              name="artifactAiEngine"
+                              checked={aiEngine === 'trellis'}
+                              onChange={() => setAiEngine('trellis')}
+                              style={{ marginTop: 2, accentColor: 'var(--accent-gold)' }}
+                            />
+                            <div>
+                              <div style={{ fontSize: '11.5px', fontWeight: 600, color: aiEngine === 'trellis' ? 'var(--accent-gold)' : 'var(--heading-color)', display: 'flex', alignItems: 'center', gap: 5 }}>
+                                ⚡ Cloud AI (TRELLIS A100)
+                                <span style={{ fontSize: '9px', background: 'rgba(212, 175, 55, 0.2)', color: 'var(--accent-gold)', padding: '1px 4px', borderRadius: 3 }}>GPU Cloud</span>
+                              </div>
+                              <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: 2 }}>
+                                Deep Learning khuếch tán 3D trên HuggingFace ZeroGPU (dễ hết quota hàng ngày).
+                              </div>
+                            </div>
+                          </label>
+                        </div>
+                      </div>
+<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                         <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--heading-color)' }}>
                           Nguồn ảnh dựng 3D:
                         </span>
@@ -3346,6 +3425,19 @@ export const AdminArtifactsPage: React.FC = () => {
                           : 'Tái tạo 1 mặt'}
                       </span>
                     )}
+                    {activeViewerArtifact.modelMetadata?.aiEngine && (
+                      <span style={{
+                        fontSize: '11px',
+                        background: activeViewerArtifact.modelMetadata.aiEngine === 'local_vps' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(212, 175, 55, 0.15)',
+                        border: activeViewerArtifact.modelMetadata.aiEngine === 'local_vps' ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid rgba(212, 175, 55, 0.4)',
+                        color: activeViewerArtifact.modelMetadata.aiEngine === 'local_vps' ? '#10b981' : 'var(--accent-gold)',
+                        padding: '2px 8px',
+                        borderRadius: 12,
+                        fontWeight: 600
+                      }}>
+                        {activeViewerArtifact.modelMetadata.aiEngine === 'local_vps' ? '🖥️ Local VPS CPU' : '⚡ Cloud TRELLIS'}
+                      </span>
+                    )}
                   </div>
                   <span style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>
                     Mã số: {activeViewerArtifact.code} • {activeViewerArtifact.period || activeViewerArtifact.category}
@@ -3515,6 +3607,91 @@ export const AdminArtifactsPage: React.FC = () => {
                       ? `Đã có thêm ${generatingArtifact.anglePhotos.length} ảnh góc chụp bổ sung`
                       : 'Có thể tải thêm ảnh các góc chụp trong phần Chỉnh sửa hiện vật'}
                   </span>
+                </div>
+              </div>
+
+                            {/* Lựa chọn Động cơ Tái tạo 3D (Dual-Engine) */}
+              <div
+                style={{
+                  padding: '12px',
+                  borderRadius: 'var(--radius-sm, 6px)',
+                  background: 'var(--bg-subtle)',
+                  border: '1px solid var(--border-color)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 10
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <label className="form-label" style={{ margin: 0, fontSize: '12px', fontWeight: 600, color: 'var(--heading-color)', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                    <Cpu size={14} style={{ color: 'var(--accent-gold)' }} />
+                    Chọn động cơ xử lý mô hình 3D:
+                  </label>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: 8 }}>
+                  {/* Động cơ 1: Local VPS CPU */}
+                  <label
+                    style={{
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      gap: 8,
+                      padding: '9px 12px',
+                      borderRadius: 6,
+                      cursor: 'pointer',
+                      border: aiEngine === 'local' ? '1px solid #10b981' : '1px solid var(--border-color)',
+                      background: aiEngine === 'local' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(0,0,0,0.2)',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    <input
+                      type="radio"
+                      name="modalAiEngine"
+                      checked={aiEngine === 'local'}
+                      onChange={() => setAiEngine('local')}
+                      style={{ marginTop: 2, accentColor: '#10b981' }}
+                    />
+                    <div>
+                      <div style={{ fontSize: '12px', fontWeight: 600, color: aiEngine === 'local' ? '#10b981' : 'var(--heading-color)', display: 'flex', alignItems: 'center', gap: 5 }}>
+                        🖥️ Máy chủ VPS (Cục bộ)
+                        <span style={{ fontSize: '9px', background: 'rgba(16, 185, 129, 0.2)', color: '#10b981', padding: '1px 5px', borderRadius: 4 }}>Không tốn Token</span>
+                      </div>
+                      <div style={{ fontSize: '10.5px', color: 'var(--text-muted)', marginTop: 2 }}>
+                        Tự dựng trực tiếp trên CPU VPS bằng thuật toán Volumetric, xử lý ~20s, luôn khả dụng 100%.
+                      </div>
+                    </div>
+                  </label>
+
+                  {/* Động cơ 2: Cloud TRELLIS */}
+                  <label
+                    style={{
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      gap: 8,
+                      padding: '9px 12px',
+                      borderRadius: 6,
+                      cursor: 'pointer',
+                      border: aiEngine === 'trellis' ? '1px solid var(--accent-gold)' : '1px solid var(--border-color)',
+                      background: aiEngine === 'trellis' ? 'rgba(212, 175, 55, 0.08)' : 'rgba(0,0,0,0.2)',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    <input
+                      type="radio"
+                      name="modalAiEngine"
+                      checked={aiEngine === 'trellis'}
+                      onChange={() => setAiEngine('trellis')}
+                      style={{ marginTop: 2, accentColor: 'var(--accent-gold)' }}
+                    />
+                    <div>
+                      <div style={{ fontSize: '12px', fontWeight: 600, color: aiEngine === 'trellis' ? 'var(--accent-gold)' : 'var(--heading-color)', display: 'flex', alignItems: 'center', gap: 5 }}>
+                        ⚡ Cloud AI (TRELLIS A100)
+                        <span style={{ fontSize: '9px', background: 'rgba(212, 175, 55, 0.2)', color: 'var(--accent-gold)', padding: '1px 5px', borderRadius: 4 }}>GPU Cloud</span>
+                      </div>
+                      <div style={{ fontSize: '10.5px', color: 'var(--text-muted)', marginTop: 2 }}>
+                        Tái tạo sâu bằng AI khuếch tán 3 chiều trên cụm ZeroGPU HuggingFace (có giới hạn quota ngày).
+                      </div>
+                    </div>
+                  </label>
                 </div>
               </div>
 

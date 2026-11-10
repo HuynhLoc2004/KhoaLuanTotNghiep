@@ -615,6 +615,7 @@ export const api = {
       multiImageUrls?: string[];
       depthScale?: number;
       resolution?: number;
+      aiEngine?: 'trellis' | 'local';
     }
   ): Promise<{
     jobId: string;

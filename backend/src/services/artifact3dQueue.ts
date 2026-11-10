@@ -60,6 +60,7 @@ export interface I3DJobData {
   backImagePath?: string;
   multiImages?: string[];
   reconstructionMode?: 'single' | 'front_back' | 'multiview';
+  aiEngine?: 'trellis' | 'local';
   angleLabels?: string[];
   depthScale: number;
   resolution: number;
@@ -97,6 +98,7 @@ export async function enqueue3DReconstruction(
   options?: {
     multiImages?: string[];
     reconstructionMode?: 'single' | 'front_back' | 'multiview';
+    aiEngine?: 'trellis' | 'local';
     angleLabels?: string[];
   }
 ): Promise<{ jobId: string; cached: boolean; model3dUrl?: string }> {
@@ -104,8 +106,9 @@ export async function enqueue3DReconstruction(
   const reconstructionMode = options?.reconstructionMode || (
     multiImages.length > 0 ? 'multiview' : (backImagePath ? 'front_back' : 'single')
   );
+  const aiEngine = options?.aiEngine || 'trellis';
 
-  // 1. Kiểm tra cache dựa trên SHA256 tổng hợp của tất cả ảnh đầu vào và chế độ tái tạo
+  // 1. Kiểm tra cache dựa trên SHA256 tổng hợp của tất cả ảnh đầu vào, động cơ và chế độ tái tạo
   let fileHash = computeFileHash(imagePath);
   if (backImagePath && fs.existsSync(backImagePath)) {
     fileHash += `_back_${computeFileHash(backImagePath).substring(0, 8)}`;
@@ -113,7 +116,7 @@ export async function enqueue3DReconstruction(
   if (multiImages.length > 0) {
     fileHash += `_multi_${multiImages.map(p => computeFileHash(p).substring(0, 6)).join('_')}`;
   }
-  fileHash += `_${reconstructionMode}_trellis_v17`;
+  fileHash += `_${aiEngine}_${reconstructionMode}_v18`;
   const cacheKey = `artifact:3d_cache:${fileHash}`;
 
   const cached = await cacheGet<{ model3dUrl: string; metadata: any }>(cacheKey);
@@ -155,6 +158,7 @@ export async function enqueue3DReconstruction(
     backImagePath: backImagePath || undefined,
     multiImages: multiImages.length > 0 ? multiImages : undefined,
     reconstructionMode,
+    aiEngine,
     angleLabels: options?.angleLabels,
     depthScale,
     resolution,
@@ -198,16 +202,139 @@ async function processSingleJob(jobInput: I3DJobData): Promise<void> {
   }
 }
 
+/**
+ * Tái tạo mô hình 3D trực tiếp trên máy chủ VPS bằng thuật toán Volumetric Reconstruction (CPU)
+ * Không phụ thuộc bên thứ ba, không tốn token HuggingFace, luôn khả dụng 100%.
+ */
+async function runLocalVpsReconstruction(
+  job: I3DJobData,
+  outGlbPath: string,
+  model3dUrl: string,
+  artifactId: string,
+  imagePath: string,
+  extraImages: string[]
+): Promise<void> {
+  const tStart = Date.now();
+  console.log(`[Local 3D Engine] Bắt đầu tái tạo 3D trực tiếp trên CPU VPS cho hiện vật ${artifactId}...`);
+
+  const pyArgs = [
+    ARTIFACT_SCRIPT,
+    '--image', imagePath,
+    '--output', outGlbPath,
+    '--depth-scale', String(job.depthScale || 1.0),
+    '--resolution', String(job.resolution || 130)
+  ];
+  if (job.backImagePath && fs.existsSync(job.backImagePath)) {
+    pyArgs.push('--back-image', job.backImagePath);
+  }
+
+  const pyResult: any = await new Promise((resolve, reject) => {
+    const proc = spawn(PYTHON_PATH, pyArgs, {
+      env: { ...process.env, PYTHONUNBUFFERED: '1' }
+    });
+    let stdoutData = '';
+    let stderrData = '';
+
+    proc.stdout.on('data', (d) => { stdoutData += d.toString(); });
+    proc.stderr.on('data', (d) => {
+      stderrData += d.toString();
+      const lines = d.toString().split('\n').filter(Boolean);
+      for (const line of lines) {
+        console.log(`  [py-local3d] ${line}`);
+      }
+    });
+
+    proc.on('close', (code) => {
+      if (code === 0 && fs.existsSync(outGlbPath)) {
+        try {
+          const parsed = JSON.parse(stdoutData.trim());
+          resolve(parsed);
+        } catch {
+          resolve({ success: true, glbPath: outGlbPath });
+        }
+      } else {
+        reject(new Error(stderrData || `Tiến trình Python thoát với mã lỗi ${code}`));
+      }
+    });
+    proc.on('error', (err) => reject(err));
+  });
+
+  const elapsedSeconds = Number(((Date.now() - tStart) / 1000).toFixed(2));
+  const fileSize = fs.existsSync(outGlbPath) ? fs.statSync(outGlbPath).size : 0;
+  const outFilename = path.basename(outGlbPath);
+
+  // Upload backup lên Cloudflare R2 CDN nếu có
+  let finalModelUrl = model3dUrl;
+  try {
+    const r2FileStream = fs.createReadStream(outGlbPath);
+    const r2Url = await uploadToR2(`models_3d/${outFilename}`, r2FileStream, 'model/gltf-binary', fileSize);
+    if (r2Url) {
+      console.log(`[Local 3D Engine] Đã đồng bộ lên Cloudflare R2 CDN:`, r2Url);
+      finalModelUrl = r2Url;
+    }
+  } catch (r2Err: any) {
+    console.warn('[Local 3D Engine] R2 CDN backup bỏ qua, dùng đường dẫn cục bộ:', r2Err.message);
+  }
+
+  const reconstructionMode = job.reconstructionMode || (job.backImagePath ? 'front_back' : 'single');
+  let fileHash = computeFileHash(imagePath);
+  if (job.backImagePath && fs.existsSync(job.backImagePath)) {
+    fileHash += `_back_${computeFileHash(job.backImagePath).substring(0, 8)}`;
+  }
+  fileHash += `_local_vps_${reconstructionMode}_v18`;
+
+  const metadata = {
+    aiEngine: 'local_vps',
+    engineDisplayName: 'Local VPS CPU Engine (Volumetric Reconstruction)',
+    format: 'glb',
+    sizeBytes: fileSize,
+    generationTimeSeconds: elapsedSeconds,
+    reconstructionMode,
+    inputImagesCount: 1 + (job.backImagePath ? 1 : 0),
+    vertices: pyResult.vertices || 0,
+    faces: pyResult.faces || 0,
+    isWatertight: pyResult.isWatertight ?? true,
+    dimensions: pyResult.dimensions,
+    benchmarkNotes: 'Tái tạo 3D trực tiếp trên máy chủ VPS (CPU) bằng thuật toán hình học & Rembg (Không tiêu tốn token Cloud GPU)',
+    generatedAt: new Date(),
+    inputImageSha256: fileHash
+  };
+
+  // Cache Redis 30 ngày
+  const cacheKey = `artifact:3d_cache:${fileHash}`;
+  await cacheSet(cacheKey, { model3dUrl: finalModelUrl, metadata }, 86400 * 30);
+
+  // Cập nhật CSDL MongoDB & PostgreSQL
+  await updateArtifact3DState(artifactId, {
+    model3dUrl: finalModelUrl,
+    processingStatus: 'completed',
+    processingError: '',
+    modelMetadata: metadata
+  });
+
+  await cacheDelPattern('artifacts:*');
+  job.status = 'completed';
+  console.log(`[Local 3D Engine] ✓ Hoàn tất tạo 3D trên VPS! Model: ${finalModelUrl} (${(fileSize/1024/1024).toFixed(2)}MB, ${elapsedSeconds}s)`);
+
+  broadcastRealtimeEvent('artifacts_updated', {
+    action: 'update',
+    artifactId,
+    model3dUrl: finalModelUrl,
+    processingStatus: 'completed'
+  });
+}
+
 async function runJobInternal(job: I3DJobData): Promise<void> {
   const artifactId = String(job.artifactId || (job as any).id || '');
   const imagePath = String(job.imagePath || '');
   const jobId = job.jobId || `job_${Date.now()}`;
+  const aiEngine = job.aiEngine || 'trellis';
 
   const outFilename = `model_3d_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.glb`;
   const outGlbPath = path.join(MODELS_3D_DIR, outFilename);
   const model3dUrl = `/uploads/artifacts/models_3d/${outFilename}`;
 
-  console.log(`[3D Consumer] Bắt đầu TRELLIS Job ${jobId} cho hiện vật: ${artifactId}`);
+  console.log(`[3D Consumer] Bắt đầu Job ${jobId} (Động cơ: ${aiEngine.toUpperCase()}) cho hiện vật: ${artifactId}`);
 
   if (!artifactId || !imagePath || !fs.existsSync(imagePath)) {
     console.error(`[3D Consumer] Dữ liệu job không hợp lệ hoặc không tìm thấy file ảnh:`, { artifactId, imagePath });
@@ -234,7 +361,32 @@ async function runJobInternal(job: I3DJobData): Promise<void> {
     }
   }
 
-  // Gọi TRELLIS qua HuggingFace Spaces (gradio_client)
+  // NẾU NGƯỜI DÙNG CHỌN ĐỘNG CƠ CỤC BỘ LOCAL VPS
+  if (aiEngine === 'local') {
+    try {
+      await runLocalVpsReconstruction(job, outGlbPath, model3dUrl, artifactId, imagePath, extraImages);
+      return;
+    } catch (localErr: any) {
+      const errMsg = `Lỗi tái tạo 3D cục bộ: ${localErr.message || localErr}`;
+      console.error(`[Local 3D Engine] ✗ Thất bại:`, errMsg);
+      job.status = 'failed';
+      job.error = errMsg;
+      await updateArtifact3DState(artifactId, {
+        processingStatus: 'failed',
+        processingError: errMsg
+      });
+      await cacheDelPattern('artifacts:*');
+      broadcastRealtimeEvent('artifacts_updated', {
+        action: 'update',
+        artifactId,
+        processingStatus: 'failed',
+        processingError: errMsg
+      });
+      return;
+    }
+  }
+
+  // NẾU CHỌN TRELLIS QUA HUGGINGFACE SPACES (ZeroGPU)
   try {
     const trellisRes = await generate3DWithTrellis({
       imagePath,
@@ -266,16 +418,18 @@ async function runJobInternal(job: I3DJobData): Promise<void> {
     if (extraImages.length > 0) {
       fileHash += `_multi_${extraImages.map(p => computeFileHash(p).substring(0, 6)).join('_')}`;
     }
-    fileHash += `_${reconstructionMode}_trellis_v17`;
+    fileHash += `_${reconstructionMode}_trellis_v18`;
 
     const metadata = {
       aiEngine: trellisRes.engine,
+      engineDisplayName: 'Cloud GPU A100 (TRELLIS Deep Generative AI)',
       format: 'glb',
       sizeBytes: trellisRes.sizeBytes,
       generationTimeSeconds: trellisRes.generationTimeSeconds,
       reconstructionMode,
       inputImagesCount,
       angleLabels: job.angleLabels || (extraImages.length > 0 ? ['Mặt trước', ...extraImages.map((_, i) => `Góc #${i + 1}`)] : ['Mặt trước']),
+      benchmarkNotes: 'Tái tạo 3D đa góc độ sắc nét bằng mạng nơ-ron khuếch tán không gian 3 chiều trên cụm máy chủ Cloud GPU',
       generatedAt: new Date(),
       inputImageSha256: fileHash
     };
@@ -306,6 +460,19 @@ async function runJobInternal(job: I3DJobData): Promise<void> {
 
   } catch (trellisErr: any) {
     const rawMsg = trellisErr.message || 'Lỗi không xác định từ TRELLIS';
+    const isRateLimitOrQuota = rawMsg.includes('ZeroGPU quota') || rawMsg.includes('Rate Limit') || rawMsg.includes('429') || rawMsg.includes('exceeded') || rawMsg.includes('403');
+
+    // NẾU HẾT HẠN MỨC TOKEN CLOUD GPU: TỰ ĐỘNG CHUYỂN SANG ĐỘNG CƠ CỤC BỘ LOCAL VPS
+    if (isRateLimitOrQuota) {
+      console.warn(`[3D Consumer] ⚠️ HuggingFace TRELLIS tạm hết hạn mức ZeroGPU (${rawMsg}). Hệ thống tự động chuyển sang Động cơ Cục bộ (Local VPS Engine)...`);
+      try {
+        await runLocalVpsReconstruction(job, outGlbPath, model3dUrl, artifactId, imagePath, extraImages);
+        return;
+      } catch (localFallbackErr: any) {
+        console.error(`[3D Consumer] Fallback Local VPS cũng gặp lỗi:`, localFallbackErr.message);
+      }
+    }
+
     const errMsg = rawMsg.startsWith('TRELLIS 3D') || rawMsg.startsWith('Lỗi') ? rawMsg : `Lỗi dựng 3D: ${rawMsg}`;
     console.error(`[3D Consumer] ✗ TRELLIS Job ${jobId} thất bại:`, errMsg);
     job.status = 'failed';

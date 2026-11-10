@@ -881,7 +881,8 @@ artifactsRouter.post('/:id/generate-3d', async (req: Request, res: Response) => 
     const {
       backImageUrl,
       reconstructionMode = 'multiview',
-      multiImageUrls
+      multiImageUrls,
+      aiEngine = 'trellis'
     } = req.body;
 
     let localBackImagePath = '';
@@ -958,6 +959,7 @@ artifactsRouter.post('/:id/generate-3d', async (req: Request, res: Response) => 
       {
         multiImages: extraImagePaths,
         reconstructionMode: reconstructionMode as any,
+        aiEngine: aiEngine as any,
         angleLabels
       }
     );
