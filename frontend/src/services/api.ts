@@ -1158,6 +1158,15 @@ export const api = {
     return json;
   },
 
+  async checkTicketStatus(code: string): Promise<{ success: boolean; data: { ticketCode: string; status: string; updatedAt?: string } }> {
+    const res = await fetch(`${API_BASE}/tickets/status/${encodeURIComponent(code)}?_t=${Date.now()}`, {
+      headers: {
+        'Cache-Control': 'no-cache'
+      }
+    });
+    return await safeJson(res, 'Không thể kiểm tra trạng thái vé');
+  },
+
   async cancelTicket(code: string): Promise<{ success: boolean; message: string; data: any }> {
     const res = await fetch(`${API_BASE}/profile/tickets/${code}/cancel`, {
       method: 'PUT',

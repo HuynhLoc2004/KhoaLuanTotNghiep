@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import {
   ArrowLeft,
   X,
-  RefreshCw
+  RefreshCw,
+  CheckCircle2
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useClientTranslation } from '../../context/ClientTranslationContext';
@@ -133,6 +134,84 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({
     } catch {}
   }, []);
 
+  // 1. Đồng bộ Realtime tức thì qua Server-Sent Events (SSE): Quét cái là chuyển trạng thái ngay <1ms
+  useEffect(() => {
+    const handleRealtimeTicketUpdate = (e: any) => {
+      const detail = e.detail;
+      if (!detail) return;
+
+      const updatedCode = detail.ticketCode ? String(detail.ticketCode).trim().toUpperCase() : null;
+      const newStatus = (detail.status || 'used') as UserTicket['status'];
+
+      // Cập nhật vé đang xem trong modal nếu khớp mã vé
+      setSelectedTicket((prev) => {
+        if (prev && (!updatedCode || prev.ticketCode.trim().toUpperCase() === updatedCode)) {
+          return { ...prev, status: newStatus };
+        }
+        return prev;
+      });
+
+      // Cập nhật vé trong danh sách
+      setTickets((prevList) =>
+        prevList.map((t) => {
+          if (!updatedCode || t.ticketCode.trim().toUpperCase() === updatedCode) {
+            return { ...t, status: newStatus };
+          }
+          return t;
+        })
+      );
+
+      // Thông báo cho khách biết đã vào cổng thành công
+      if (detail.action === 'checkin' || newStatus === 'used') {
+        showToast(detail.message || `Vé [${detail.ticketCode || ''}] đã được soát vé vào cổng thành công!`, 'success');
+        try {
+          if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+        } catch {}
+      }
+    };
+
+    window.addEventListener('museum:tickets_updated', handleRealtimeTicketUpdate);
+    return () => {
+      window.removeEventListener('museum:tickets_updated', handleRealtimeTicketUpdate);
+    };
+  }, []);
+
+  // 2. Polling chốt chặn: Khi khách mở modal QR đưa cho nhân viên soát vé, tự động kiểm tra mỗi 2s để đổi trạng thái tức thì không cần refresh
+  useEffect(() => {
+    if (!selectedTicket || selectedTicket.status === 'used' || selectedTicket.status === 'cancelled') {
+      return;
+    }
+
+    const currentTicketCode = selectedTicket.ticketCode;
+
+    const intervalId = setInterval(async () => {
+      try {
+        const res = await api.checkTicketStatus(currentTicketCode);
+        if (res && res.success && res.data) {
+          const remoteStatus = (res.data.status || 'used') as UserTicket['status'];
+          if (remoteStatus && remoteStatus !== selectedTicket.status) {
+            setSelectedTicket((prev) => (prev && prev.ticketCode === currentTicketCode ? { ...prev, status: remoteStatus } : prev));
+            setTickets((prevList) =>
+              prevList.map((t) =>
+                t.ticketCode.toUpperCase() === currentTicketCode.toUpperCase()
+                  ? { ...t, status: remoteStatus }
+                  : t
+              )
+            );
+            if (remoteStatus === 'used') {
+              showToast(`Vé [${currentTicketCode}] đã được xác nhận vào cổng thành công!`, 'success');
+              try {
+                if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+              } catch {}
+            }
+          }
+        }
+      } catch {}
+    }, 2000);
+
+    return () => clearInterval(intervalId);
+  }, [selectedTicket?.ticketCode, selectedTicket?.status]);
+
   // Cập nhật thông tin cơ bản
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -197,15 +276,15 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({
     const isPast = ticketDate < todayTimestamp;
 
     if (t.status === 'cancelled') {
-      return { label: 'Đã hủy', isDimmed: true, state: 'cancelled' };
+      return { label: 'Đã hủy', isDimmed: true, state: 'cancelled', color: '#EF4444' };
     }
     if (t.status === 'used') {
-      return { label: 'Đã sử dụng', isDimmed: true, state: 'used' };
+      return { label: 'Đã qua sử dụng', isDimmed: true, state: 'used', color: '#10B981' };
     }
     if (isPast) {
-      return { label: 'Hết hạn', isDimmed: true, state: 'expired' };
+      return { label: 'Hết hạn', isDimmed: true, state: 'expired', color: '#94A3B8' };
     }
-    return { label: 'Còn hiệu lực', isDimmed: false, state: 'active' };
+    return { label: 'Còn hiệu lực', isDimmed: false, state: 'active', color: 'var(--c-gold, #D4AF37)' };
   };
 
   const activeTicketsCount = tickets.filter((t) => {
@@ -755,7 +834,17 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, paddingBottom: 4 }}>
                   <span style={{ color: '#94A3B8', flexShrink: 0 }}>Trạng thái:</span>
-                  <span style={{ color: getTicketStatusInfo(selectedTicket).isDimmed ? '#94A3B8' : 'var(--c-gold, #D4AF37)', fontWeight: 600, textAlign: 'right' }}>
+                  <span
+                    style={{
+                      color: getTicketStatusInfo(selectedTicket).color,
+                      fontWeight: 600,
+                      textAlign: 'right',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 5
+                    }}
+                  >
+                    {selectedTicket.status === 'used' && <CheckCircle2 size={15} style={{ color: '#10B981' }} />}
                     {getTicketStatusInfo(selectedTicket).label}
                   </span>
                 </div>
@@ -763,7 +852,7 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({
 
               {/* Mã QR soát vé */}
               <div style={{ textAlign: 'center', background: '#0D111A', padding: '16px', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.05)', marginBottom: 18 }}>
-                <div style={{ background: '#FFF', padding: '10px', borderRadius: '10px', display: 'inline-block', boxShadow: '0 4px 12px rgba(0, 0, 0, 0.25)' }}>
+                <div style={{ position: 'relative', background: '#FFF', padding: '10px', borderRadius: '10px', display: 'inline-block', boxShadow: '0 4px 12px rgba(0, 0, 0, 0.25)', overflow: 'hidden' }}>
                   <img
                     src={
                       selectedTicket.qrCodeData && selectedTicket.qrCodeData.startsWith('data:image/')
@@ -779,11 +868,31 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({
                       }
                     }}
                     alt={`Mã QR ${selectedTicket.ticketCode}`}
-                    style={{ width: '100%', maxWidth: 160, aspectRatio: '1 / 1', display: 'block', objectFit: 'contain' }}
+                    style={{ width: '100%', maxWidth: 160, aspectRatio: '1 / 1', display: 'block', objectFit: 'contain', opacity: selectedTicket.status === 'used' ? 0.35 : 1 }}
                   />
+                  {selectedTicket.status === 'used' && (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        inset: 0,
+                        background: 'rgba(6, 78, 59, 0.88)',
+                        backdropFilter: 'blur(2px)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: 8,
+                        animation: 'ticketModalPop 0.25s ease-out'
+                      }}
+                    >
+                      <CheckCircle2 size={40} style={{ color: '#34D399', marginBottom: 4 }} />
+                      <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#FFFFFF', letterSpacing: '0.5px' }}>ĐÃ VÀO CỔNG</span>
+                      <span style={{ fontSize: '0.68rem', color: '#A7F3D0', marginTop: 2 }}>Vé đã qua sử dụng</span>
+                    </div>
+                  )}
                 </div>
-                <div style={{ fontSize: '0.78rem', color: '#94A3B8', marginTop: 10 }}>
-                  Quét mã này tại cổng soát vé bảo tàng
+                <div style={{ fontSize: '0.78rem', color: selectedTicket.status === 'used' ? '#34D399' : '#94A3B8', marginTop: 10, fontWeight: selectedTicket.status === 'used' ? 600 : 400 }}>
+                  {selectedTicket.status === 'used' ? '✓ Vé đã được soát vào cổng bảo tàng thành công' : 'Quét mã này tại cổng soát vé bảo tàng'}
                 </div>
               </div>
 

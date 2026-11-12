@@ -946,3 +946,68 @@ ticketsRouter.get('/qr/:ticketCode', async (req: Request, res: Response) => {
     res.status(500).send('Error generating QR image');
   }
 });
+
+/**
+ * GET /api/tickets/status/:ticketCode
+ * Lấy trạng thái thời gian thực của một vé tham quan (phục vụ đồng bộ tự động tức thì khi quét QR)
+ */
+ticketsRouter.get('/status/:ticketCode', async (req: Request, res: Response) => {
+  try {
+    const ticketCode = String(req.params.ticketCode || '').trim();
+    if (!ticketCode) {
+      return res.status(400).json({ success: false, message: 'Thiếu mã vé' });
+    }
+
+    let status = 'active';
+    let updatedAt: any = null;
+
+    // 1. Kiểm tra PostgreSQL Primary
+    try {
+      const pgRes = await pgPool.query(
+        'SELECT status, updated_at FROM museum_tickets WHERE UPPER(ticket_code) = UPPER($1) OR id = $1 LIMIT 1;',
+        [ticketCode]
+      );
+      if (pgRes.rows.length > 0) {
+        status = pgRes.rows[0].status;
+        updatedAt = pgRes.rows[0].updated_at;
+        return res.json({
+          success: true,
+          data: {
+            ticketCode,
+            status,
+            updatedAt
+          }
+        });
+      }
+    } catch (pgErr: any) {
+      console.warn('[Ticket Status PG Warning]:', pgErr.message);
+    }
+
+    // 2. Fallback sang MongoDB Mirror
+    const mongoDoc = await Ticket.findOne({
+      $or: [
+        { ticketCode },
+        { ticketCode: { $regex: new RegExp(`^${ticketCode}$`, 'i') } },
+        { _id: ticketCode },
+        { id: ticketCode }
+      ]
+    }).lean();
+
+    if (mongoDoc) {
+      status = mongoDoc.status;
+      updatedAt = mongoDoc.updatedAt;
+      return res.json({
+        success: true,
+        data: {
+          ticketCode,
+          status,
+          updatedAt
+        }
+      });
+    }
+
+    return res.status(404).json({ success: false, message: 'Không tìm thấy vé tham quan' });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});

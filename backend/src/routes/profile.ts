@@ -9,6 +9,7 @@ import { pgUpsertTicket, pgUpsertUser } from '../db/syncEngine.js';
 import { cacheDel, cacheDelPattern } from '../services/redis.js';
 import { getPayOSPaymentInfo } from '../services/payos.js';
 import { processOrderPaymentSuccess } from './tickets.js';
+import { broadcastRealtimeEvent } from '../services/realtimeSync.js';
 
 export const profileRouter = Router();
 
@@ -642,6 +643,14 @@ profileRouter.put('/tickets/:code/cancel', async (req: AuthRequest, res: Respons
       username: req.user?.username,
       details: { ticketCode: code }
     });
+
+    try {
+      broadcastRealtimeEvent('tickets_updated', {
+        action: 'cancel',
+        ticketCode: code,
+        status: 'cancelled'
+      });
+    } catch {}
 
     return res.json({
       success: true,

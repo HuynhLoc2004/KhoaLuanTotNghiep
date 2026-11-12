@@ -6,6 +6,7 @@ import { pgUpsertTicket, pgDeleteTicket } from '../db/syncEngine.js';
 import { esSearchTickets, esIndexTicket, esDeleteTicket } from '../services/elasticsearch.js';
 import { getPayOSPaymentInfo } from '../services/payos.js';
 import { processOrderPaymentSuccess } from './tickets.js';
+import { broadcastRealtimeEvent } from '../services/realtimeSync.js';
 
 export const adminTicketsRouter = Router();
 
@@ -712,6 +713,19 @@ adminTicketsRouter.post('/verify-qr', async (req: AuthRequest, res: Response) =>
         });
       } catch {}
 
+      // Phát sóng sự kiện thời gian thực (SSE + Redis Pub/Sub) để màn hình khách tham quan và admin đổi trạng thái tức thì <1ms
+      try {
+        broadcastRealtimeEvent('tickets_updated', {
+          action: 'checkin',
+          ticketCode: targetCode,
+          status: 'used',
+          userName: ticketInfo.userName,
+          checkedInAt: ticketInfo.checkedInAt
+        });
+      } catch (broadcastErr) {
+        console.warn('[AdminTickets] Lỗi broadcast tickets_updated:', broadcastErr);
+      }
+
       return res.json({
         success: true,
         valid: true,
@@ -798,6 +812,18 @@ adminTicketsRouter.put('/:code/checkin', async (req: AuthRequest, res: Response)
       details: { ticketCode: code, action: 'checkin' }
     });
 
+    // Phát sóng sự kiện thời gian thực tới điện thoại khách và dashboard admin
+    try {
+      broadcastRealtimeEvent('tickets_updated', {
+        action: 'checkin',
+        ticketCode: targetCode,
+        status: 'used',
+        checkedInAt: new Date().toISOString()
+      });
+    } catch (broadcastErr) {
+      console.warn('[AdminTickets] Lỗi broadcast tickets_updated:', broadcastErr);
+    }
+
     return res.json({
       success: true,
       message: `Đã soát vé thành công cho mã vé ${code}. Khách được phép vào cổng!`,
@@ -847,6 +873,14 @@ adminTicketsRouter.put('/:code/cancel', async (req: AuthRequest, res: Response) 
       username: req.user?.username,
       details: { ticketCode: code }
     });
+
+    try {
+      broadcastRealtimeEvent('tickets_updated', {
+        action: 'cancel',
+        ticketCode: code,
+        status: 'cancelled'
+      });
+    } catch {}
 
     return res.json({
       success: true,

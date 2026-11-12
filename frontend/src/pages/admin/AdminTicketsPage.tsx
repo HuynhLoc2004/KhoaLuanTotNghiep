@@ -113,6 +113,44 @@ export const AdminTicketsPage: React.FC = () => {
     return () => clearTimeout(timer);
   }, [searchTerm, statusFilter, typeFilter, dateFilter, subTab]);
 
+  // Lắng nghe sự kiện đồng bộ thời gian thực cho bảng vé Quản trị (SSE Realtime)
+  useEffect(() => {
+    const handleRealtimeTicketUpdate = (e: any) => {
+      const detail = e.detail;
+      if (!detail) return;
+
+      const code = detail.ticketCode ? String(detail.ticketCode).trim().toUpperCase() : null;
+      const newStatus = (detail.status || 'used') as AdminTicketItem['status'];
+
+      // 1. Cập nhật vé trong modal chi tiết nếu đang mở
+      setDetailTicket((prev) => {
+        if (prev && (!code || prev.ticketCode.toUpperCase() === code)) {
+          return { ...prev, status: newStatus, usedAt: detail.checkedInAt || new Date().toISOString() };
+        }
+        return prev;
+      });
+
+      // 2. Cập nhật ngay lập tức dòng tương ứng trong bảng tickets
+      if (code) {
+        setTickets((prevList) =>
+          prevList.map((t) =>
+            t.ticketCode.toUpperCase() === code
+              ? { ...t, status: newStatus, usedAt: detail.checkedInAt || new Date().toISOString() }
+              : t
+          )
+        );
+      }
+
+      // 3. Tải lại danh sách ngầm để cập nhật stats và pagination chính xác
+      fetchTickets(pagination.page, pagination.limit);
+    };
+
+    window.addEventListener('museum:tickets_updated', handleRealtimeTicketUpdate);
+    return () => {
+      window.removeEventListener('museum:tickets_updated', handleRealtimeTicketUpdate);
+    };
+  }, [pagination.page, pagination.limit]);
+
   // Soát vé
   const handleConfirmCheckin = async () => {
     if (!checkinTarget) return;
