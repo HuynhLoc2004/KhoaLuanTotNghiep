@@ -1,19 +1,65 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
   <defs>
-    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#8C2D19" />
-      <stop offset="100%" stop-color="#5A1A0C" />
+    <linearGradient id="redBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#962A15" />
+      <stop offset="50%" stop-color="#6E1C0D" />
+      <stop offset="100%" stop-color="#460F06" />
     </linearGradient>
     <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#F3E5AB" />
-      <stop offset="50%" stop-color="#D4A86A" />
-      <stop offset="100%" stop-color="#AA7C39" />
+      <stop offset="0%" stop-color="#FFF0B8" />
+      <stop offset="30%" stop-color="#E5B869" />
+      <stop offset="70%" stop-color="#BA8733" />
+      <stop offset="100%" stop-color="#8A5E18" />
     </linearGradient>
+    <linearGradient id="goldText" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="40%" stop-color="#FFF2CC" />
+      <stop offset="100%" stop-color="#E2B766" />
+    </linearGradient>
+    <filter id="dropShadow" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#000000" flood-opacity="0.6" />
+    </filter>
   </defs>
-  <!-- Nền đỏ sơn son di sản với góc bo mềm mại đồng bộ biểu trưng bảo tàng -->
-  <rect width="64" height="64" rx="14" fill="url(#bgGrad)" />
-  <rect x="2" y="2" width="60" height="60" rx="12" fill="none" stroke="url(#goldGrad)" stroke-width="2.5" stroke-opacity="0.85" />
+
+  <!-- Nền khiên di sản bát giác bo tròn mềm mại -->
+  <rect x="24" y="24" width="464" height="464" rx="112" fill="url(#redBg)" filter="url(#dropShadow)" />
   
-  <!-- Biểu trưng chữ BT hoàng gia sắc nét đồng bộ 100% với logo website -->
-  <text x="32" y="44" font-family="'Be Vietnam Pro', system-ui, -apple-system, sans-serif, Arial" font-size="28" font-weight="800" text-anchor="middle" fill="#FFFFFF" letter-spacing="1">BT</text>
+  <!-- Viền hoàng kim đôi với góc lượn truyền thống -->
+  <rect x="36" y="36" width="440" height="440" rx="100" fill="none" stroke="url(#goldGrad)" stroke-width="4" stroke-opacity="0.9" />
+  <rect x="48" y="48" width="416" height="416" rx="90" fill="none" stroke="url(#goldGrad)" stroke-width="1.5" stroke-opacity="0.6" stroke-dasharray="6 4" />
+
+  <!-- Họa tiết kiến trúc tháp bát giác đặc trưng Bảo tàng Lịch sử (1929) -->
+  <g transform="translate(256, 120)" stroke="url(#goldGrad)" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Chóp tháp cổ -->
+    <path d="M0 -42 L0 -24" stroke-width="4" />
+    <circle cx="0" cy="-44" r="4" fill="url(#goldGrad)" />
+    
+    <!-- Mái trên vòm cong Đông Dương -->
+    <path d="M-28 -18 Q-14 -24 0 -24 Q14 -24 28 -18 Q20 -10 0 -12 Q-20 -10 -28 -18 Z" fill="url(#goldGrad)" fill-opacity="0.35" />
+    <path d="M-42 6 Q-20 -2 0 -2 Q20 -2 42 6 Q30 16 0 14 Q-30 16 -42 6 Z" fill="url(#goldGrad)" fill-opacity="0.4" />
+    <path d="M-64 34 Q-30 22 0 22 Q30 22 64 34 Q46 46 0 44 Q-46 46 -64 34 Z" fill="url(#goldGrad)" fill-opacity="0.45" />
+    
+    <!-- Các cột trụ cổ kính -->
+    <line x1="-32" y1="34" x2="-32" y2="44" />
+    <line x1="-16" y1="34" x2="-16" y2="44" />
+    <line x1="16" y1="34" x2="16" y2="44" />
+    <line x1="32" y1="34" x2="32" y2="44" />
+  </g>
+
+  <!-- Biểu trưng chữ lồng BT hoàng gia sắc sảo -->
+  <text x="256" y="285" font-family="'Cinzel', 'Playfair Display', 'Times New Roman', serif" font-size="118" font-weight="800" text-anchor="middle" fill="url(#goldText)" letter-spacing="4" filter="url(#dropShadow)">BT</text>
+
+  <!-- Đường gân trang trí hoa văn di sản đối xứng -->
+  <path d="M120 318 L210 318 M302 318 L392 318" stroke="url(#goldGrad)" stroke-width="2" stroke-linecap="round" />
+  <circle cx="256" cy="318" r="4" fill="url(#goldGrad)" />
+
+  <!-- Tên bảo tàng chính thức chuẩn nhận diện -->
+  <text x="256" y="358" font-family="'Be Vietnam Pro', 'Montserrat', Arial, sans-serif" font-size="24" font-weight="800" text-anchor="middle" fill="url(#goldText)" letter-spacing="3.5">BẢO TÀNG LỊCH SỬ</text>
+  <text x="256" y="390" font-family="'Be Vietnam Pro', 'Montserrat', Arial, sans-serif" font-size="18" font-weight="600" text-anchor="middle" fill="#E5B869" letter-spacing="5">TP. HỒ CHÍ MINH</text>
+
+  <!-- Dòng niên đại thành lập 1929 -->
+  <g transform="translate(256, 422)">
+    <rect x="-65" y="-14" width="130" height="22" rx="11" fill="rgba(0,0,0,0.35)" stroke="url(#goldGrad)" stroke-width="1" />
+    <text x="0" y="2" font-family="'Be Vietnam Pro', sans-serif" font-size="12" font-weight="700" text-anchor="middle" fill="#FFF0B8" letter-spacing="2">EST. 1929</text>
+  </g>
 </svg>

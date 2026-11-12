@@ -52,11 +52,44 @@ export const DEFAULT_HEADER_MENU = [
   }
 ];
 
+export const AUTHENTIC_BRANDING_ASSETS = {
+  logoUrl: 'https://res.cloudinary.com/djkif9ubs/image/upload/v1794446737/museum/branding/museum_logo_official.svg',
+  heroBannerUrl: 'https://res.cloudinary.com/djkif9ubs/image/upload/v1794446663/museum/branding_assets/hero_banner_museum_hcm.jpg',
+  introImageUrl: 'https://res.cloudinary.com/djkif9ubs/image/upload/v1794446664/museum/branding_assets/architecture_museum_hcm.jpg',
+  roomsShowcaseImageUrl: 'https://res.cloudinary.com/djkif9ubs/image/upload/v1794446663/museum/branding_assets/hero_banner_museum_hcm.jpg',
+  localFallback: {
+    logoUrl: '/images/museum_logo.svg',
+    heroBannerUrl: '/images/default_banner.jpg',
+    introImageUrl: '/images/default_architecture.jpg'
+  }
+};
+
+export const sanitizeBranding = (data: SystemBranding): SystemBranding => {
+  const isDead = (url?: string) => {
+    if (!url) return false;
+    return ['gunmbt', 'dsy1um', 'kvfot5', 'hbc4hq', 'Acnos-bao-tang-lich-su-03'].some((s) => url.includes(s));
+  };
+  const result = { ...data };
+  if (!result.logoUrl || isDead(result.logoUrl)) {
+    result.logoUrl = AUTHENTIC_BRANDING_ASSETS.logoUrl;
+  }
+  if (!result.heroBannerUrl || isDead(result.heroBannerUrl)) {
+    result.heroBannerUrl = AUTHENTIC_BRANDING_ASSETS.heroBannerUrl;
+  }
+  if (!result.introImageUrl || isDead(result.introImageUrl)) {
+    result.introImageUrl = AUTHENTIC_BRANDING_ASSETS.introImageUrl;
+  }
+  if (!result.roomsShowcaseImageUrl || isDead(result.roomsShowcaseImageUrl)) {
+    result.roomsShowcaseImageUrl = AUTHENTIC_BRANDING_ASSETS.roomsShowcaseImageUrl;
+  }
+  return result;
+};
+
 export const DEFAULT_BRANDING_STATE: SystemBranding = {
   museumName: 'Bảo tàng Lịch sử Thành phố Hồ Chí Minh',
   shortName: 'Bảo tàng Lịch sử',
   emblemText: 'BT',
-  logoUrl: '',
+  logoUrl: AUTHENTIC_BRANDING_ASSETS.logoUrl,
   tagline: 'Hệ thống Tour 360 Không gian Di sản',
   city: 'TP. Hồ Chí Minh',
   address: 'Số 2 Nguyễn Bỉnh Khiêm, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh',
@@ -66,7 +99,7 @@ export const DEFAULT_BRANDING_STATE: SystemBranding = {
   headerMenuItems: DEFAULT_HEADER_MENU,
   heroTitle: 'Bảo tàng Lịch sử TP. Hồ Chí Minh',
   heroTagline: 'Khám phá dòng chảy lịch sử qua công nghệ thực tế ảo Tour 360° toàn cảnh và không gian chiêm ngưỡng bảo vật 3D sống động.',
-  heroBannerUrl: '',
+  heroBannerUrl: AUTHENTIC_BRANDING_ASSETS.heroBannerUrl,
   heroVideoUrl: '',
   heroCta1Text: 'Bắt Đầu Tour 360°',
   heroCta2Text: 'Chiêm Ngưỡng Cổ Vật 3D',
@@ -74,14 +107,14 @@ export const DEFAULT_BRANDING_STATE: SystemBranding = {
   introTitle: 'Bảo Tàng Lịch Sử TP. Hồ Chí Minh',
   introDesc: 'Công trình kiến trúc Đông Dương đặc sắc giữa lòng thành phố, lưu giữ và số hóa các bộ sưu tập di sản phục vụ trải nghiệm tham quan trực quan đa chiều.',
   introBadgeText: 'Di tích Kiến trúc Nghệ thuật Cấp Quốc gia',
-  introImageUrl: '',
+  introImageUrl: AUTHENTIC_BRANDING_ASSETS.introImageUrl,
   introCtaText: 'Khám phá gian trưng bày',
   roomsTag: 'Không Gian Thực Tế Ảo',
   roomsTitle: 'Hệ Thống Gian Phòng Tour 360°',
   roomsDesc: 'Khám phá toàn cảnh các không gian trưng bày qua ảnh toàn cảnh 360° sắc nét. Khách tham quan có thể di chuyển xuyên suốt giữa các phòng, tương tác với các điểm chú thích hiện vật và nghe thuyết minh lịch sử.',
   roomsCtaText: 'Khám phá tất cả gian phòng 360°',
   roomsFeaturedId: '',
-  roomsShowcaseImageUrl: '',
+  roomsShowcaseImageUrl: AUTHENTIC_BRANDING_ASSETS.roomsShowcaseImageUrl,
   artifactsTag: 'Bảo Vật Di Sản & Mô Hình 3D',
   artifactsTitle: 'Kho Tàng Cổ Vật & Bảo Vật Di Sản',
   artifactsDesc: 'Chiêm ngưỡng các bảo vật quốc gia và hiện vật lịch sử quý giá được phục dựng 3D sắc nét, hỗ trợ xoay đĩa 360° tương tác và hệ thống thuyết minh âm thanh đa ngôn ngữ.',
@@ -141,7 +174,7 @@ export const SystemBrandingProvider: React.FC<{ children: React.ReactNode }> = (
         if (cached) {
           const parsed = JSON.parse(cached);
           if (parsed && parsed.museumName) {
-            return { ...DEFAULT_BRANDING_STATE, ...parsed };
+            return sanitizeBranding({ ...DEFAULT_BRANDING_STATE, ...parsed });
           }
         }
       } catch {
@@ -157,10 +190,11 @@ export const SystemBrandingProvider: React.FC<{ children: React.ReactNode }> = (
     try {
       const data = await api.getBranding();
       if (data && data.museumName) {
-        setBranding(data);
+        const sanitized = sanitizeBranding({ ...DEFAULT_BRANDING_STATE, ...data });
+        setBranding(sanitized);
         if (typeof window !== 'undefined') {
           try {
-            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(data));
+            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(sanitized));
           } catch {}
         }
       }

@@ -123,15 +123,13 @@ uploadRouter.post('/branding-logo', upload.single('file'), async (req: Request, 
     console.log('[Cloudinary] Đang tải logo bảo tàng lên Cloudinary folder: museum/branding...');
     const result = await uploadToCloudinary(localFilePath, 'museum/branding');
     console.log('[Cloudinary] Tải logo thành công! URL:', result.secure_url);
-
-    try {
-      fs.unlinkSync(localFilePath);
-    } catch {}
+    console.log('[Local Backup] Bảo lưu bản sao cục bộ trên SSD:', localFilePath);
 
     res.json({
       success: true,
       data: {
         url: result.secure_url,
+        localUrl: `/uploads/${req.file.filename}`,
         public_id: result.public_id,
         filename: req.file.filename,
         storage: 'cloudinary'
@@ -163,15 +161,13 @@ uploadRouter.post('/branding-image', upload.single('file'), async (req: Request,
     console.log('[Cloudinary] Đang tải ảnh giao diện bảo tàng lên Cloudinary folder: museum/branding_assets...');
     const result = await uploadToCloudinary(localFilePath, 'museum/branding_assets');
     console.log('[Cloudinary] Tải ảnh thành công! URL:', result.secure_url);
-
-    try {
-      fs.unlinkSync(localFilePath);
-    } catch {}
+    console.log('[Local Backup] Bảo lưu bản sao cục bộ trên SSD:', localFilePath);
 
     res.json({
       success: true,
       data: {
         url: result.secure_url,
+        localUrl: `/uploads/${req.file.filename}`,
         public_id: result.public_id,
         filename: req.file.filename,
         storage: 'cloudinary'

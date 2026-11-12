@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { api, API_ROOT } from '../../services/api';
 import { useToast } from '../../components/Toast';
 import { SystemBranding, HeaderMenuItem, HeaderSubMenuItem, MuseumRoom, Artifact } from '../../types';
-import { useSystemBranding, DEFAULT_HEADER_MENU } from '../../context/SystemBrandingContext';
+import { useSystemBranding, DEFAULT_HEADER_MENU, AUTHENTIC_BRANDING_ASSETS } from '../../context/SystemBrandingContext';
 import { useClientTranslation } from '../../context/ClientTranslationContext';
 import {
   LayoutTemplate,
@@ -69,8 +69,8 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
     if (parent && !parent.querySelector('.img-error-fallback')) {
       const fallback = document.createElement('div');
       fallback.className = 'img-error-fallback';
-      fallback.style.cssText = 'padding: 18px 12px; text-align: center; color: var(--text-muted); font-size: 12px; background: rgba(0,0,0,0.25); border-radius: 6px; border: 1px dashed var(--border-color); display: flex; align-items: center; justify-content: center; gap: 6px;';
-      fallback.innerHTML = '<span>⚠️ Không thể tải ảnh / Liên kết không khả dụng</span>';
+      fallback.style.cssText = 'padding: 16px 12px; text-align: center; font-size: 12px; background: rgba(0,0,0,0.35); border-radius: 6px; border: 1px dashed #F87171; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;';
+      fallback.innerHTML = '<span style="color: #F87171; font-weight: 600;">⚠️ Liên kết ảnh này bị lỗi hoặc không còn khả dụng trên đám mây</span><span style="font-size: 11.5px; color: #D1D5DB;">Vui lòng tải ảnh mới lên hoặc bấm nút màu vàng \"Dùng ảnh chuẩn\" ở trên để khôi phục tức thì</span>';
       parent.appendChild(fallback);
     }
   };
@@ -976,7 +976,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
                   onChange={handleUploadLogo}
                   style={{ display: 'none' }}
                 />
-                <div style={{ display: 'flex', gap: 8 }}>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                   <button
                     type="button"
                     className="btn btn-secondary btn-sm"
@@ -986,6 +986,20 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
                   >
                     <Upload size={14} />
                     <span>{uploadingLogo ? 'Đang tải lên...' : 'Tải ảnh logo lên'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => {
+                      handleChange('logoUrl', AUTHENTIC_BRANDING_ASSETS.logoUrl);
+                      showToast('Đã nạp logo nhận diện chuẩn của Bảo tàng Lịch sử TP.HCM', 'info');
+                    }}
+                    style={{ color: '#D4A86A', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                    title="Khôi phục logo nhận diện chính thức của Bảo tàng Lịch sử TP.HCM"
+                  >
+                    <RotateCcw size={14} />
+                    <span>Dùng logo di sản chuẩn</span>
                   </button>
 
                   {form.logoUrl && (
@@ -1706,6 +1720,20 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
                   <Upload size={14} />
                   <span>{uploadingHeroBanner ? 'Đang tải lên...' : 'Tải ảnh banner lên'}</span>
                 </button>
+
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => {
+                    handleChange('heroBannerUrl', AUTHENTIC_BRANDING_ASSETS.heroBannerUrl);
+                    showToast('Đã khôi phục ảnh nền toàn cảnh chuẩn của Bảo tàng', 'info');
+                  }}
+                  style={{ color: '#D4A86A', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                  title="Khôi phục ảnh nền toàn cảnh mặc định sắc nét của Bảo tàng"
+                >
+                  <RotateCcw size={14} />
+                  <span>Dùng ảnh toàn cảnh chuẩn</span>
+                </button>
               </div>
 
               {form.heroBannerUrl && (
@@ -1862,6 +1890,19 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
                 >
                   <Upload size={14} />
                   <span>{uploadingIntroImage ? 'Đang tải lên...' : 'Tải ảnh kiến trúc lên'}</span>
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => {
+                    handleChange('introImageUrl', AUTHENTIC_BRANDING_ASSETS.introImageUrl);
+                    showToast('Đã khôi phục ảnh kiến trúc chuẩn của Bảo tàng!', 'info');
+                  }}
+                  style={{ color: '#D4A86A', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                  title="Khôi phục ảnh chụp kiến trúc mặc định sắc nét của Bảo tàng"
+                >
+                  <RotateCcw size={14} />
+                  <span>Dùng ảnh kiến trúc chuẩn</span>
                 </button>
                 {form.introImageUrl && (
                   <button

@@ -557,11 +557,23 @@ export const DEFAULT_HEADER_MENU: IHeaderMenuItem[] = [
   }
 ];
 
+export const AUTHENTIC_BRANDING_ASSETS = {
+  logoUrl: 'https://res.cloudinary.com/djkif9ubs/image/upload/v1794446737/museum/branding/museum_logo_official.svg',
+  heroBannerUrl: 'https://res.cloudinary.com/djkif9ubs/image/upload/v1794446663/museum/branding_assets/hero_banner_museum_hcm.jpg',
+  introImageUrl: 'https://res.cloudinary.com/djkif9ubs/image/upload/v1794446664/museum/branding_assets/architecture_museum_hcm.jpg',
+  roomsShowcaseImageUrl: 'https://res.cloudinary.com/djkif9ubs/image/upload/v1794446663/museum/branding_assets/hero_banner_museum_hcm.jpg',
+  localFallback: {
+    logoUrl: '/images/museum_logo.svg',
+    heroBannerUrl: '/images/default_banner.jpg',
+    introImageUrl: '/images/default_architecture.jpg'
+  }
+};
+
 export const DEFAULT_BRANDING = {
   museumName: 'Bảo tàng Lịch sử Thành phố Hồ Chí Minh',
   shortName: 'Bảo tàng Lịch sử',
   emblemText: 'BT',
-  logoUrl: '',
+  logoUrl: AUTHENTIC_BRANDING_ASSETS.logoUrl,
   tagline: 'Hệ thống Tour 360 Không gian Di sản',
   city: 'TP. Hồ Chí Minh',
   address: 'Số 2 Nguyễn Bỉnh Khiêm, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh',
@@ -571,7 +583,7 @@ export const DEFAULT_BRANDING = {
   headerMenuItems: DEFAULT_HEADER_MENU,
   heroTitle: 'Bảo tàng Lịch sử TP. Hồ Chí Minh',
   heroTagline: 'Khám phá dòng chảy lịch sử qua công nghệ thực tế ảo Tour 360° toàn cảnh và không gian chiêm ngưỡng bảo vật 3D sống động.',
-  heroBannerUrl: '',
+  heroBannerUrl: AUTHENTIC_BRANDING_ASSETS.heroBannerUrl,
   heroVideoUrl: '',
   heroCta1Text: 'Bắt Đầu Tour 360°',
   heroCta2Text: 'Chiêm Ngưỡng Cổ Vật 3D',
@@ -579,14 +591,14 @@ export const DEFAULT_BRANDING = {
   introTitle: 'Bảo Tàng Lịch Sử TP. Hồ Chí Minh',
   introDesc: 'Công trình kiến trúc Đông Dương đặc sắc giữa lòng thành phố, lưu giữ và số hóa các bộ sưu tập di sản phục vụ trải nghiệm tham quan trực quan đa chiều.',
   introBadgeText: 'Di tích Kiến trúc Nghệ thuật Cấp Quốc gia',
-  introImageUrl: '',
+  introImageUrl: AUTHENTIC_BRANDING_ASSETS.introImageUrl,
   introCtaText: 'Khám phá gian trưng bày',
   roomsTag: 'Không Gian Thực Tế Ảo',
   roomsTitle: 'Hệ Thống Gian Phòng Tour 360°',
   roomsDesc: 'Khám phá toàn cảnh các không gian trưng bày qua ảnh toàn cảnh 360° sắc nét. Khách tham quan có thể di chuyển xuyên suốt giữa các phòng, tương tác với các điểm chú thích hiện vật và nghe thuyết minh lịch sử.',
   roomsCtaText: 'Khám phá tất cả gian phòng 360°',
   roomsFeaturedId: '',
-  roomsShowcaseImageUrl: '',
+  roomsShowcaseImageUrl: AUTHENTIC_BRANDING_ASSETS.roomsShowcaseImageUrl,
   artifactsTag: 'Bảo Vật Di Sản & Mô Hình 3D',
   artifactsTitle: 'Kho Tàng Cổ Vật & Bảo Vật Di Sản',
   artifactsDesc: 'Chiêm ngưỡng các bảo vật quốc gia và hiện vật lịch sử quý giá được phục dựng 3D sắc nét, hỗ trợ xoay đĩa 360° tương tác và hệ thống thuyết minh âm thanh đa ngôn ngữ.',
@@ -754,15 +766,56 @@ export async function getSystemBrandingConfig(): Promise<any> {
       branding.headerMenuItems = DEFAULT_HEADER_MENU;
     }
 
-    // Tu dong don dep link anh 404 da bi xoa tren Cloudinary de trang chu luon hien thi dep mat
-    const DEAD_INTRO_URL = 'https://res.cloudinary.com/djkif9ubs/image/upload/v1790989776/museum/branding_assets/pano_1790989770164_anh_1_dsy1um.jpg';
-    if (branding.introImageUrl === DEAD_INTRO_URL) {
-      branding.introImageUrl = branding.heroBannerUrl || '';
+    // Tự động dọn dẹp các liên kết Cloudinary 404 đã chết / hết hạn để trang chủ và trang quản trị luôn hiển thị hoàn hảo 100%
+    const DEAD_SIGNATURES = [
+      'gunmbt', 'dsy1um', 'kvfot5', 'hbc4hq', 'Acnos-bao-tang-lich-su-03'
+    ];
+    const isDeadUrl = (url?: string) => {
+      if (!url) return false;
+      return DEAD_SIGNATURES.some(sig => url.includes(sig));
+    };
+
+    let needsHeal = false;
+    const healUpdates: Record<string, any> = {};
+
+    if (!branding.logoUrl || isDeadUrl(branding.logoUrl)) {
+      branding.logoUrl = AUTHENTIC_BRANDING_ASSETS.logoUrl;
+      healUpdates.logoUrl = branding.logoUrl;
+      needsHeal = true;
+    }
+    if (!branding.heroBannerUrl || isDeadUrl(branding.heroBannerUrl)) {
+      branding.heroBannerUrl = AUTHENTIC_BRANDING_ASSETS.heroBannerUrl;
+      healUpdates.heroBannerUrl = branding.heroBannerUrl;
+      needsHeal = true;
+    }
+    if (!branding.introImageUrl || isDeadUrl(branding.introImageUrl)) {
+      branding.introImageUrl = AUTHENTIC_BRANDING_ASSETS.introImageUrl;
+      healUpdates.introImageUrl = branding.introImageUrl;
+      needsHeal = true;
+    }
+    if (!branding.roomsShowcaseImageUrl || isDeadUrl(branding.roomsShowcaseImageUrl)) {
+      branding.roomsShowcaseImageUrl = AUTHENTIC_BRANDING_ASSETS.roomsShowcaseImageUrl;
+      healUpdates.roomsShowcaseImageUrl = branding.roomsShowcaseImageUrl;
+      needsHeal = true;
+    }
+
+    if (needsHeal) {
+      console.log('[SystemBranding] Tự động phục hồi tài nguyên thương hiệu bị lỗi/mất sang link hoạt động chuẩn...');
       try {
-        await SystemBranding.updateOne({}, { $set: { introImageUrl: branding.introImageUrl } });
+        await SystemBranding.updateOne({}, { $set: healUpdates });
         const { pgPool } = await import('../db/postgres.js');
-        await pgPool.query('UPDATE system_branding SET intro_image_url = $1;', [branding.introImageUrl]);
-      } catch {}
+        await pgPool.query(
+          `UPDATE system_branding SET 
+            logo_url = COALESCE($1, logo_url),
+            hero_banner_url = COALESCE($2, hero_banner_url),
+            intro_image_url = COALESCE($3, intro_image_url),
+            rooms_showcase_image_url = COALESCE($4, rooms_showcase_image_url),
+            updated_at = CURRENT_TIMESTAMP;`,
+          [branding.logoUrl, branding.heroBannerUrl, branding.introImageUrl, branding.roomsShowcaseImageUrl]
+        );
+      } catch (err: any) {
+        console.warn('[SystemBranding Heal Warning]:', err.message);
+      }
     }
 
     try {
