@@ -583,7 +583,7 @@ export const DEFAULT_BRANDING = {
   headerMenuItems: DEFAULT_HEADER_MENU,
   heroTitle: 'Bảo tàng Lịch sử TP. Hồ Chí Minh',
   heroTagline: 'Khám phá dòng chảy lịch sử qua công nghệ thực tế ảo Tour 360° toàn cảnh và không gian chiêm ngưỡng bảo vật 3D sống động.',
-  heroBannerUrl: AUTHENTIC_BRANDING_ASSETS.heroBannerUrl,
+  heroBannerUrl: '',
   heroVideoUrl: '',
   heroCta1Text: 'Bắt Đầu Tour 360°',
   heroCta2Text: 'Chiêm Ngưỡng Cổ Vật 3D',
@@ -783,9 +783,10 @@ export async function getSystemBrandingConfig(): Promise<any> {
       healUpdates.logoUrl = branding.logoUrl;
       needsHeal = true;
     }
-    if (!branding.heroBannerUrl || isDeadUrl(branding.heroBannerUrl)) {
-      branding.heroBannerUrl = AUTHENTIC_BRANDING_ASSETS.heroBannerUrl;
-      healUpdates.heroBannerUrl = branding.heroBannerUrl;
+    // Gỡ bỏ ảnh mẫu bảo tàng nước ngoài hoặc link hỏng khỏi Banner Hero để trả về giao diện gốc của người dùng
+    if (isDeadUrl(branding.heroBannerUrl) || (branding.heroBannerUrl && branding.heroBannerUrl.includes('hero_banner_museum_hcm'))) {
+      branding.heroBannerUrl = '';
+      healUpdates.heroBannerUrl = '';
       needsHeal = true;
     }
     if (!branding.introImageUrl || isDeadUrl(branding.introImageUrl)) {
@@ -793,9 +794,9 @@ export async function getSystemBrandingConfig(): Promise<any> {
       healUpdates.introImageUrl = branding.introImageUrl;
       needsHeal = true;
     }
-    if (!branding.roomsShowcaseImageUrl || isDeadUrl(branding.roomsShowcaseImageUrl)) {
-      branding.roomsShowcaseImageUrl = AUTHENTIC_BRANDING_ASSETS.roomsShowcaseImageUrl;
-      healUpdates.roomsShowcaseImageUrl = branding.roomsShowcaseImageUrl;
+    if (isDeadUrl(branding.roomsShowcaseImageUrl) || (branding.roomsShowcaseImageUrl && branding.roomsShowcaseImageUrl.includes('hero_banner_museum_hcm'))) {
+      branding.roomsShowcaseImageUrl = '';
+      healUpdates.roomsShowcaseImageUrl = '';
       needsHeal = true;
     }
 

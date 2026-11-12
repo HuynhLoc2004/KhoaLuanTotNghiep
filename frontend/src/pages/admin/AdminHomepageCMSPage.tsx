@@ -37,7 +37,9 @@ import {
   FolderPlus,
   ListPlus,
   CornerDownRight,
-  GraduationCap
+  GraduationCap,
+  X,
+  Check
 } from 'lucide-react';
 import { HOMEPAGE_SECTIONS } from '../../constants/homepageSections';
 import { ConfirmModal } from '../../components/ConfirmModal';
@@ -1721,19 +1723,25 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
                   <span>{uploadingHeroBanner ? 'Đang tải lên...' : 'Tải ảnh banner lên'}</span>
                 </button>
 
-                <button
-                  type="button"
-                  className="btn btn-secondary btn-sm"
-                  onClick={() => {
-                    handleChange('heroBannerUrl', AUTHENTIC_BRANDING_ASSETS.heroBannerUrl);
-                    showToast('Đã khôi phục ảnh nền toàn cảnh chuẩn của Bảo tàng', 'info');
-                  }}
-                  style={{ color: '#D4A86A', display: 'inline-flex', alignItems: 'center', gap: 6 }}
-                  title="Khôi phục ảnh nền toàn cảnh mặc định sắc nét của Bảo tàng"
-                >
-                  <RotateCcw size={14} />
-                  <span>Dùng ảnh toàn cảnh chuẩn</span>
-                </button>
+                {form.heroBannerUrl ? (
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => {
+                      handleChange('heroBannerUrl', '');
+                      showToast('Đã gỡ ảnh banner, sử dụng giao diện nền mặc định của Bảo tàng', 'info');
+                    }}
+                    style={{ color: '#EF4444', borderColor: 'rgba(239, 68, 68, 0.4)', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                    title="Gỡ ảnh banner và dùng màu nền mặc định ban đầu của Bảo tàng"
+                  >
+                    <X size={14} />
+                    <span>Gỡ ảnh banner (Dùng nền mặc định)</span>
+                  </button>
+                ) : (
+                  <span style={{ fontSize: 12, color: '#10B981', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                    <Check size={14} /> Đang dùng nền tối nhung vàng mặc định
+                  </span>
+                )}
               </div>
 
               {form.heroBannerUrl && (

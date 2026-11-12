@@ -43,14 +43,13 @@ export const ClientHeroBanner: React.FC<ClientHeroBannerProps> = ({
 
   const candidates = React.useMemo(() => {
     const list: string[] = [];
-    const primary = resolveMediaUrl(featuredImageUrl || branding.heroBannerUrl);
-    if (primary) list.push(primary);
-    const fallback = resolveMediaUrl(fallbackImageUrl);
-    if (fallback && !list.includes(fallback)) list.push(fallback);
-    const defaultLocal = '/images/default_banner.jpg';
-    if (!list.includes(defaultLocal)) list.push(defaultLocal);
+    const banner = (featuredImageUrl || branding.heroBannerUrl || '').trim();
+    if (banner) {
+      const primary = resolveMediaUrl(banner);
+      if (primary) list.push(primary);
+    }
     return list;
-  }, [featuredImageUrl, branding.heroBannerUrl, fallbackImageUrl]);
+  }, [featuredImageUrl, branding.heroBannerUrl]);
 
   const activeImageUrl = candidates.find((url) => !failedUrls[url]) || '';
 

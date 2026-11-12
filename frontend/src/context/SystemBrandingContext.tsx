@@ -73,14 +73,15 @@ export const sanitizeBranding = (data: SystemBranding): SystemBranding => {
   if (!result.logoUrl || isDead(result.logoUrl)) {
     result.logoUrl = AUTHENTIC_BRANDING_ASSETS.logoUrl;
   }
-  if (!result.heroBannerUrl || isDead(result.heroBannerUrl)) {
-    result.heroBannerUrl = AUTHENTIC_BRANDING_ASSETS.heroBannerUrl;
+  // Gỡ bỏ hoàn toàn ảnh bảo tàng nước ngoài hoặc link hỏng khỏi hero banner
+  if (isDead(result.heroBannerUrl) || (result.heroBannerUrl && result.heroBannerUrl.includes('hero_banner_museum_hcm'))) {
+    result.heroBannerUrl = '';
   }
   if (!result.introImageUrl || isDead(result.introImageUrl)) {
     result.introImageUrl = AUTHENTIC_BRANDING_ASSETS.introImageUrl;
   }
-  if (!result.roomsShowcaseImageUrl || isDead(result.roomsShowcaseImageUrl)) {
-    result.roomsShowcaseImageUrl = AUTHENTIC_BRANDING_ASSETS.roomsShowcaseImageUrl;
+  if (isDead(result.roomsShowcaseImageUrl) || (result.roomsShowcaseImageUrl && result.roomsShowcaseImageUrl.includes('hero_banner_museum_hcm'))) {
+    result.roomsShowcaseImageUrl = '';
   }
   return result;
 };
@@ -99,7 +100,7 @@ export const DEFAULT_BRANDING_STATE: SystemBranding = {
   headerMenuItems: DEFAULT_HEADER_MENU,
   heroTitle: 'Bảo tàng Lịch sử TP. Hồ Chí Minh',
   heroTagline: 'Khám phá dòng chảy lịch sử qua công nghệ thực tế ảo Tour 360° toàn cảnh và không gian chiêm ngưỡng bảo vật 3D sống động.',
-  heroBannerUrl: AUTHENTIC_BRANDING_ASSETS.heroBannerUrl,
+  heroBannerUrl: '',
   heroVideoUrl: '',
   heroCta1Text: 'Bắt Đầu Tour 360°',
   heroCta2Text: 'Chiêm Ngưỡng Cổ Vật 3D',
