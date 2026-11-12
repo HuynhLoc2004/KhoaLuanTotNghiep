@@ -80,6 +80,9 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
   const [form, setForm] = useState<SystemBranding>(branding);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [isSaving, setIsSaving] = useState(false);
+  const [savingSection, setSavingSection] = useState<string | null>(null);
+  const [savedSection, setSavedSection] = useState<string | null>(null);
+  const savedTimerRef = useRef<any>(null);
   const [isDirty, setIsDirty] = useState(false);
   const isInitialLoadRef = useRef(true);
   const [activeSectionId, setActiveSectionId] = useState<string>(activeSection || 'panel-brand');
@@ -554,8 +557,26 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
     }
   };
 
-  // Lưu toàn bộ hoặc từng phần
+  const matchSection = (current: string | null, target: string) => {
+    if (!current) return false;
+    if (current === target) return true;
+    if (current === 'all' || target === 'all') return true;
+    const c = current.toLowerCase();
+    const t = target.toLowerCase();
+    if (c.includes('nhận diện') && t.includes('nhận diện')) return true;
+    if (c.includes('menu') && t.includes('menu')) return true;
+    if (c.includes('hero') && t.includes('hero')) return true;
+    if (c.includes('giới thiệu') && t.includes('giới thiệu')) return true;
+    if (c.includes('gian phòng') && t.includes('gian phòng')) return true;
+    if (c.includes('cổ vật') && t.includes('cổ vật')) return true;
+    if (c.includes('cẩm nang') && t.includes('cẩm nang')) return true;
+    if (c.includes('chân trang') && t.includes('chân trang')) return true;
+    return false;
+  };
+
+  // Lưu toàn bộ hoặc từng phần với phản hồi trực quan tức thì
   const handleSave = async (sectionName?: string) => {
+    const targetKey = sectionName || 'all';
     const { isValid, errors: validationErrors, targetSection } = validateForm(sectionName);
     if (!isValid) {
       setFormErrors(validationErrors);
@@ -570,8 +591,18 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
 
     try {
       setIsSaving(true);
-      await updateBranding(form);
+      setSavingSection(targetKey);
+      const updated = await updateBranding(form);
+      if (updated) {
+        setForm(updated);
+      }
       setIsDirty(false);
+      setSavedSection(targetKey);
+      if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
+      savedTimerRef.current = setTimeout(() => {
+        setSavedSection(null);
+      }, 2500);
+
       const msg = sectionName
         ? `Đã lưu thành công ${sectionName}! Dữ liệu trang chủ đã đồng bộ ngay lập tức.`
         : 'Cập nhật thành công toàn bộ giao diện & nội dung Trang chủ! Hệ thống đã đồng bộ dữ liệu thật 100%.';
@@ -580,7 +611,78 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
       showToast(err.message || 'Lỗi khi lưu cấu hình trang chủ', 'error');
     } finally {
       setIsSaving(false);
+      setSavingSection(null);
     }
+  };
+
+  /**
+   * Helper kết xuất nút bấm lưu có trạng thái loading xoay tròn, khóa nút và badge thành công trực quan
+   */
+  const renderSaveButton = (
+    sectionKey: string,
+    defaultLabel: string,
+    options?: {
+      size?: 'sm' | 'md';
+      fontSize?: number;
+      padding?: string;
+      fontWeight?: number;
+      className?: string;
+      style?: React.CSSProperties;
+    }
+  ) => {
+    const isThisSaving = isSaving && matchSection(savingSection, sectionKey);
+    const isThisSaved = !isSaving && matchSection(savedSection, sectionKey);
+
+    const btnClass = options?.className || 'btn btn-primary btn-sm admin-cms-save-btn';
+    const customStyle: React.CSSProperties = {
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: 6,
+      padding: options?.padding || (options?.size === 'md' ? '8px 18px' : '6px 14px'),
+      fontSize: options?.fontSize || (options?.size === 'md' ? 13 : 12.5),
+      fontWeight: options?.fontWeight || 600,
+      cursor: isSaving ? 'not-allowed' : 'pointer',
+      transition: 'all 0.25s ease',
+      ...(isThisSaved
+        ? {
+            backgroundColor: '#059669',
+            borderColor: '#10B981',
+            color: '#FFFFFF',
+            boxShadow: '0 0 12px rgba(16, 185, 129, 0.45)'
+          }
+        : isSaving && !isThisSaving
+        ? { opacity: 0.6 }
+        : {}),
+      ...options?.style
+    };
+
+    return (
+      <button
+        type="button"
+        className={btnClass}
+        onClick={() => handleSave(sectionKey === 'all' ? undefined : sectionKey)}
+        disabled={isSaving}
+        title={isThisSaved ? 'Đã đồng bộ thành công!' : isThisSaving ? 'Đang lưu dữ liệu...' : defaultLabel}
+        style={customStyle}
+      >
+        {isThisSaving ? (
+          <>
+            <RefreshCw size={options?.size === 'md' ? 15 : 14} className="spin" style={{ animation: 'spin 0.85s linear infinite' }} />
+            <span>Đang lưu...</span>
+          </>
+        ) : isThisSaved ? (
+          <>
+            <Check size={options?.size === 'md' ? 15 : 14} style={{ strokeWidth: 2.5 }} />
+            <span>Đã lưu thành công!</span>
+          </>
+        ) : (
+          <>
+            <Save size={options?.size === 'md' ? 15 : 14} />
+            <span>{defaultLabel}</span>
+          </>
+        )}
+      </button>
+    );
   };
 
   // Khôi phục dữ liệu mẫu chuẩn của bảo tàng
@@ -697,16 +799,11 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
           </button>
         ) : <div />}
 
-        <button
-          type="button"
-          className="btn btn-primary btn-sm admin-cms-save-btn"
-          onClick={() => handleSave(sectionName)}
-          disabled={isSaving}
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 18px', fontWeight: 600 }}
-        >
-          <Save size={15} />
-          <span>{isSaving ? t('common.saving', 'Đang lưu...') : `${t('cms.saveChanges', 'Lưu thay đổi')} ${t(sectionName, sectionName)}`}</span>
-        </button>
+        {renderSaveButton(
+          sectionName,
+          `${t('cms.saveChanges', 'Lưu thay đổi')} ${t(sectionName, sectionName)}`,
+          { size: 'md' }
+        )}
 
         {nextSec ? (
           <button
@@ -768,16 +865,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
           </a>
 
 
-          <button
-            type="button"
-            className="btn btn-primary btn-sm"
-            onClick={() => handleSave()}
-            disabled={isSaving}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 18px', fontWeight: 600 }}
-          >
-            <Save size={15} />
-            <span>{isSaving ? 'Đang lưu...' : 'Lưu tất cả thay đổi'}</span>
-          </button>
+          {renderSaveButton('all', t('cms.saveAllChanges', 'Lưu tất cả thay đổi'), { size: 'md' })}
         </div>
       </div>
 
@@ -857,16 +945,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
               </div>
             </div>
 
-            <button
-              type="button"
-              className="btn btn-primary btn-sm admin-cms-save-btn"
-              onClick={() => handleSave('Nhận diện & Logo')}
-              disabled={isSaving}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
-            >
-              <Save size={14} />
-              <span>Lưu phần 1: Nhận diện</span>
-            </button>
+            {renderSaveButton('Nhận diện & Logo', 'Lưu phần 1: Nhận diện')}
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 18 }}>
@@ -1059,16 +1138,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
                 <span>Thêm mục Menu mới</span>
               </button>
 
-              <button
-                type="button"
-                className="btn btn-primary btn-sm admin-cms-save-btn"
-                onClick={() => handleSave('Menu Header')}
-                disabled={isSaving}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
-              >
-                <Save size={14} />
-                <span>Lưu phần 2: Menu Header</span>
-              </button>
+              {renderSaveButton('Menu Header', 'Lưu phần 2: Menu Header')}
             </div>
           </div>
 
@@ -1565,16 +1635,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
               </button>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <button
-                  type="button"
-                  className="btn btn-primary btn-sm admin-cms-save-btn"
-                  onClick={() => handleSave('Menu Header')}
-                  disabled={isSaving}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}
-                >
-                  <Save size={13} />
-                  <span>{isSaving ? 'Đang lưu...' : 'Lưu Menu Header'}</span>
-                </button>
+                {renderSaveButton('Menu Header', 'Lưu Menu Header', { fontSize: 12 })}
               </div>
             </div>
           </div>
@@ -1604,16 +1665,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
               </div>
             </div>
 
-            <button
-              type="button"
-              className="btn btn-primary btn-sm admin-cms-save-btn"
-              onClick={() => handleSave('Banner Hero')}
-              disabled={isSaving}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
-            >
-              <Save size={14} />
-              <span>Lưu Banner Hero</span>
-            </button>
+            {renderSaveButton('Banner Hero', 'Lưu Banner Hero')}
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 18 }}>
@@ -1784,16 +1836,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
               </div>
             </div>
 
-            <button
-              type="button"
-              className="btn btn-primary btn-sm admin-cms-save-btn"
-              onClick={() => handleSave('Giới thiệu Không gian')}
-              disabled={isSaving}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
-            >
-              <Save size={14} />
-              <span>Lưu phần Giới thiệu</span>
-            </button>
+            {renderSaveButton('Giới thiệu Không gian', 'Lưu phần Giới thiệu')}
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 18 }}>
@@ -1967,16 +2010,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
               </div>
             </div>
 
-            <button
-              type="button"
-              className="btn btn-primary btn-sm admin-cms-save-btn"
-              onClick={() => handleSave('Gian phòng 360°')}
-              disabled={isSaving}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
-            >
-              <Save size={14} />
-              <span>Lưu Gian phòng 360°</span>
-            </button>
+            {renderSaveButton('Gian phòng 360°', 'Lưu Gian phòng 360°')}
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 18 }}>
@@ -2195,16 +2229,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
               </div>
             </div>
 
-            <button
-              type="button"
-              className="btn btn-primary btn-sm admin-cms-save-btn"
-              onClick={() => handleSave('Cổ vật 3D')}
-              disabled={isSaving}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
-            >
-              <Save size={14} />
-              <span>Lưu Cổ vật 3D</span>
-            </button>
+            {renderSaveButton('Cổ vật 3D', 'Lưu Cổ vật 3D')}
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 18 }}>
@@ -2424,16 +2449,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
               </div>
             </div>
 
-            <button
-              type="button"
-              className="btn btn-primary btn-sm admin-cms-save-btn"
-              onClick={() => handleSave('Khối Cẩm nang tham quan')}
-              disabled={isSaving}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
-            >
-              <Save size={14} />
-              <span>Lưu Khối Cẩm nang</span>
-            </button>
+            {renderSaveButton('Khối Cẩm nang tham quan', 'Lưu Khối Cẩm nang')}
           </div>
 
           {/* Banner thông báo điều hướng chuyên nghiệp */}
@@ -2552,16 +2568,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
               </div>
             </div>
 
-            <button
-              type="button"
-              className="btn btn-primary btn-sm admin-cms-save-btn"
-              onClick={() => handleSave('Chân trang & Liên hệ')}
-              disabled={isSaving}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
-            >
-              <Save size={14} />
-              <span>Lưu Chân trang</span>
-            </button>
+            {renderSaveButton('Chân trang & Liên hệ', 'Lưu Chân trang')}
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 18 }}>
@@ -2842,16 +2849,11 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
               {t('cms.cancelChanges', 'Hủy thay đổi')}
             </button>
           )}
-          <button
-            type="button"
-            className="btn btn-primary btn-sm"
-            onClick={() => handleSave()}
-            disabled={isSaving}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 18px', fontWeight: 600 }}
-          >
-            <Save size={15} />
-            <span>{isSaving ? t('common.saving', 'Đang lưu...') : (isDirty ? t('cms.saveAllChangesNow', 'Lưu tất cả thay đổi ngay') : t('cms.saveAllChanges', 'Lưu tất cả thay đổi'))}</span>
-          </button>
+          {renderSaveButton(
+            'all',
+            isDirty ? t('cms.saveAllChangesNow', 'Lưu tất cả thay đổi ngay') : t('cms.saveAllChanges', 'Lưu tất cả thay đổi'),
+            { size: 'md' }
+          )}
         </div>
       </div>
 
