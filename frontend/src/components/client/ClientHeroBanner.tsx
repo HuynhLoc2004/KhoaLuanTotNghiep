@@ -44,7 +44,7 @@ export const ClientHeroBanner: React.FC<ClientHeroBannerProps> = ({
   const candidates = React.useMemo(() => {
     const list: string[] = [];
     const banner = (featuredImageUrl || branding.heroBannerUrl || '').trim();
-    if (banner) {
+    if (banner && banner !== 'none' && banner !== 'empty') {
       const primary = resolveMediaUrl(banner);
       if (primary) list.push(primary);
     }

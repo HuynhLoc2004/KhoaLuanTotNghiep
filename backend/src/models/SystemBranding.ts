@@ -559,9 +559,9 @@ export const DEFAULT_HEADER_MENU: IHeaderMenuItem[] = [
 
 export const AUTHENTIC_BRANDING_ASSETS = {
   logoUrl: 'https://res.cloudinary.com/djkif9ubs/image/upload/v1794446737/museum/branding/museum_logo_official.svg',
-  heroBannerUrl: 'https://res.cloudinary.com/djkif9ubs/image/upload/v1794446663/museum/branding_assets/hero_banner_museum_hcm.jpg',
+  heroBannerUrl: 'https://res.cloudinary.com/djkif9ubs/image/upload/v1794451506/museum/branding_assets/pano_1794451487609_Acnos-bao-tang-lich-su-03_t3pijv.jpg',
   introImageUrl: 'https://res.cloudinary.com/djkif9ubs/image/upload/v1794446664/museum/branding_assets/architecture_museum_hcm.jpg',
-  roomsShowcaseImageUrl: 'https://res.cloudinary.com/djkif9ubs/image/upload/v1794446663/museum/branding_assets/hero_banner_museum_hcm.jpg',
+  roomsShowcaseImageUrl: '',
   localFallback: {
     logoUrl: '/images/museum_logo.svg',
     heroBannerUrl: '/images/default_banner.jpg',
@@ -583,7 +583,7 @@ export const DEFAULT_BRANDING = {
   headerMenuItems: DEFAULT_HEADER_MENU,
   heroTitle: 'Bảo tàng Lịch sử TP. Hồ Chí Minh',
   heroTagline: 'Khám phá dòng chảy lịch sử qua công nghệ thực tế ảo Tour 360° toàn cảnh và không gian chiêm ngưỡng bảo vật 3D sống động.',
-  heroBannerUrl: '',
+  heroBannerUrl: AUTHENTIC_BRANDING_ASSETS.heroBannerUrl,
   heroVideoUrl: '',
   heroCta1Text: 'Bắt Đầu Tour 360°',
   heroCta2Text: 'Chiêm Ngưỡng Cổ Vật 3D',
@@ -768,7 +768,7 @@ export async function getSystemBrandingConfig(): Promise<any> {
 
     // Tự động dọn dẹp các liên kết Cloudinary 404 đã chết / hết hạn để trang chủ và trang quản trị luôn hiển thị hoàn hảo 100%
     const DEAD_SIGNATURES = [
-      'gunmbt', 'dsy1um', 'kvfot5', 'hbc4hq', 'Acnos-bao-tang-lich-su-03'
+      'gunmbt', 'dsy1um', 'kvfot5', 'hbc4hq'
     ];
     const isDeadUrl = (url?: string) => {
       if (!url) return false;
@@ -783,10 +783,14 @@ export async function getSystemBrandingConfig(): Promise<any> {
       healUpdates.logoUrl = branding.logoUrl;
       needsHeal = true;
     }
-    // Gỡ bỏ ảnh mẫu bảo tàng nước ngoài hoặc link hỏng khỏi Banner Hero để trả về giao diện gốc của người dùng
-    if (isDeadUrl(branding.heroBannerUrl) || (branding.heroBannerUrl && branding.heroBannerUrl.includes('hero_banner_museum_hcm'))) {
-      branding.heroBannerUrl = '';
-      healUpdates.heroBannerUrl = '';
+    // Nếu banner bị dính link hỏng hoặc ảnh mẫu ngoại quốc cũ hoặc chưa có, tự động nạp ảnh toàn cảnh bảo tàng chuẩn
+    if (
+      !branding.heroBannerUrl ||
+      isDeadUrl(branding.heroBannerUrl) ||
+      (branding.heroBannerUrl && branding.heroBannerUrl.includes('hero_banner_museum_hcm'))
+    ) {
+      branding.heroBannerUrl = AUTHENTIC_BRANDING_ASSETS.heroBannerUrl;
+      healUpdates.heroBannerUrl = branding.heroBannerUrl;
       needsHeal = true;
     }
     if (!branding.introImageUrl || isDeadUrl(branding.introImageUrl)) {

@@ -54,9 +54,9 @@ export const DEFAULT_HEADER_MENU = [
 
 export const AUTHENTIC_BRANDING_ASSETS = {
   logoUrl: 'https://res.cloudinary.com/djkif9ubs/image/upload/v1794446737/museum/branding/museum_logo_official.svg',
-  heroBannerUrl: 'https://res.cloudinary.com/djkif9ubs/image/upload/v1794446663/museum/branding_assets/hero_banner_museum_hcm.jpg',
+  heroBannerUrl: 'https://res.cloudinary.com/djkif9ubs/image/upload/v1794451506/museum/branding_assets/pano_1794451487609_Acnos-bao-tang-lich-su-03_t3pijv.jpg',
   introImageUrl: 'https://res.cloudinary.com/djkif9ubs/image/upload/v1794446664/museum/branding_assets/architecture_museum_hcm.jpg',
-  roomsShowcaseImageUrl: 'https://res.cloudinary.com/djkif9ubs/image/upload/v1794446663/museum/branding_assets/hero_banner_museum_hcm.jpg',
+  roomsShowcaseImageUrl: '',
   localFallback: {
     logoUrl: '/images/museum_logo.svg',
     heroBannerUrl: '/images/default_banner.jpg',
@@ -67,15 +67,19 @@ export const AUTHENTIC_BRANDING_ASSETS = {
 export const sanitizeBranding = (data: SystemBranding): SystemBranding => {
   const isDead = (url?: string) => {
     if (!url) return false;
-    return ['gunmbt', 'dsy1um', 'kvfot5', 'hbc4hq', 'Acnos-bao-tang-lich-su-03'].some((s) => url.includes(s));
+    return ['gunmbt', 'dsy1um', 'kvfot5', 'hbc4hq'].some((s) => url.includes(s));
   };
   const result = { ...data };
   if (!result.logoUrl || isDead(result.logoUrl)) {
     result.logoUrl = AUTHENTIC_BRANDING_ASSETS.logoUrl;
   }
-  // Gỡ bỏ hoàn toàn ảnh bảo tàng nước ngoài hoặc link hỏng khỏi hero banner
-  if (isDead(result.heroBannerUrl) || (result.heroBannerUrl && result.heroBannerUrl.includes('hero_banner_museum_hcm'))) {
-    result.heroBannerUrl = '';
+  // Nếu banner bị dính link hỏng hoặc ảnh mẫu ngoại quốc cũ hoặc chưa có, tự động nạp ảnh toàn cảnh bảo tàng chuẩn
+  if (
+    !result.heroBannerUrl ||
+    isDead(result.heroBannerUrl) ||
+    (result.heroBannerUrl && result.heroBannerUrl.includes('hero_banner_museum_hcm'))
+  ) {
+    result.heroBannerUrl = AUTHENTIC_BRANDING_ASSETS.heroBannerUrl;
   }
   if (!result.introImageUrl || isDead(result.introImageUrl)) {
     result.introImageUrl = AUTHENTIC_BRANDING_ASSETS.introImageUrl;
@@ -100,7 +104,7 @@ export const DEFAULT_BRANDING_STATE: SystemBranding = {
   headerMenuItems: DEFAULT_HEADER_MENU,
   heroTitle: 'Bảo tàng Lịch sử TP. Hồ Chí Minh',
   heroTagline: 'Khám phá dòng chảy lịch sử qua công nghệ thực tế ảo Tour 360° toàn cảnh và không gian chiêm ngưỡng bảo vật 3D sống động.',
-  heroBannerUrl: '',
+  heroBannerUrl: AUTHENTIC_BRANDING_ASSETS.heroBannerUrl,
   heroVideoUrl: '',
   heroCta1Text: 'Bắt Đầu Tour 360°',
   heroCta2Text: 'Chiêm Ngưỡng Cổ Vật 3D',
