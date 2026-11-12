@@ -53,8 +53,30 @@ export const ClientTourView: React.FC<ClientTourViewProps> = ({
 
   // State cho danh sách hiện vật trong gian phòng & Sidebar bên phải
   const [roomArtifactsList, setRoomArtifactsList] = useState<Artifact[]>(artifacts);
-  const [isArtifactsSidebarOpen, setIsArtifactsSidebarOpen] = useState<boolean>(true);
+  // Trên Desktop (>=1024px) mở sẵn thanh hiện vật; Trên Mobile/Tablet (<1024px) mặc định ĐÓNG để hiện trọn vẹn không gian 360°
+  const [isArtifactsSidebarOpen, setIsArtifactsSidebarOpen] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      return window.innerWidth >= 1024;
+    }
+    return false;
+  });
+  const [isMobileScreen, setIsMobileScreen] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      return window.innerWidth < 1024;
+    }
+    return false;
+  });
   const [active3DArtifact, setActive3DArtifact] = useState<Artifact | null>(null);
+
+  // Theo dõi thay đổi kích thước màn hình để responsive tối ưu
+  useEffect(() => {
+    const handleResize = () => {
+      const isMobile = window.innerWidth < 1024;
+      setIsMobileScreen(isMobile);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // State cho Voice AI thuyết minh
   const [isPlayingVoice, setIsPlayingVoice] = useState(false);
@@ -311,7 +333,8 @@ export const ClientTourView: React.FC<ClientTourViewProps> = ({
       style={{
         position: 'relative',
         width: '100vw',
-        height: '100vh',
+        height: '100dvh',
+        minHeight: '100vh',
         overflow: 'hidden',
         background: '#0a0d14',
         fontFamily: 'inherit',
@@ -472,25 +495,40 @@ export const ClientTourView: React.FC<ClientTourViewProps> = ({
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: 6,
+                gap: 5,
                 padding: '6px 12px',
                 borderRadius: 24,
-                background: isArtifactsSidebarOpen ? 'rgba(212, 168, 106, 0.22)' : 'rgba(13, 17, 23, 0.85)',
+                background: isArtifactsSidebarOpen ? 'rgba(212, 168, 106, 0.25)' : 'rgba(13, 17, 23, 0.85)',
                 backdropFilter: 'blur(16px)',
                 WebkitBackdropFilter: 'blur(16px)',
                 color: isArtifactsSidebarOpen ? '#FDE68A' : '#E5E7EB',
                 border: '1px solid',
-                borderColor: isArtifactsSidebarOpen ? 'rgba(212, 168, 106, 0.6)' : 'rgba(212, 168, 106, 0.25)',
+                borderColor: isArtifactsSidebarOpen ? 'rgba(212, 168, 106, 0.65)' : 'rgba(212, 168, 106, 0.25)',
                 fontSize: '11.5px',
                 fontWeight: 600,
                 cursor: 'pointer',
                 boxShadow: '0 4px 16px rgba(0, 0, 0, 0.35)',
                 transition: 'all 0.2s ease',
-                whiteSpace: 'nowrap'
+                whiteSpace: 'nowrap',
+                flexShrink: 0
               }}
             >
               <Box size={13} style={{ color: '#D4A86A', flexShrink: 0 }} />
               <span className="artifacts-btn-label">Cổ vật ({matchingArtifacts.length})</span>
+              <span
+                className="artifacts-btn-mobile-badge"
+                style={{
+                  fontSize: '10px',
+                  fontWeight: 800,
+                  padding: '1px 5px',
+                  borderRadius: 10,
+                  background: isArtifactsSidebarOpen ? '#D4A86A' : 'rgba(212, 168, 106, 0.25)',
+                  color: isArtifactsSidebarOpen ? '#000' : '#FDE68A',
+                  marginLeft: 1
+                }}
+              >
+                {matchingArtifacts.length}
+              </span>
             </button>
 
             {/* NÚT NGHE GIỚI THIỆU VOICE AI & CHUYỂN ĐỔI NGÔN NGỮ ĐỒNG BỘ */}
@@ -959,7 +997,24 @@ export const ClientTourView: React.FC<ClientTourViewProps> = ({
         )}
       </div>
 
-      {/* SECTION BÊN PHẢI: KHUNG TRƯNG BÀY HIỆN VẬT CỦA GIAN PHÒNG (GÓC PHẢI NHƯ HÌNH 1 & HÌNH 2) */}
+      {/* LỚP PHỦ MỜ NỀN CHO MOBILE KHI MỞ DANH SÁCH CỔ VẬT (CHẠM VÀO ĐỂ ĐÓNG NGAY) */}
+      {isArtifactsSidebarOpen && isMobileScreen && (
+        <div
+          className="client-tour-sidebar-backdrop"
+          onClick={() => setIsArtifactsSidebarOpen(false)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 118,
+            background: 'rgba(0, 0, 0, 0.65)',
+            backdropFilter: 'blur(3px)',
+            WebkitBackdropFilter: 'blur(3px)',
+            animation: 'clientFadeIn 0.2s ease-out'
+          }}
+        />
+      )}
+
+      {/* SECTION BÊN PHẢI: KHUNG TRƯNG BÀY HIỆN VẬT CỦA GIAN PHÒNG (GÓC PHẢI TRÊN DESKTOP, BOTTOM SHEET TRÊN MOBILE) */}
       {isArtifactsSidebarOpen && (
         <aside
           className="client-tour-artifacts-sidebar"
@@ -979,6 +1034,15 @@ export const ClientTourView: React.FC<ClientTourViewProps> = ({
             flexShrink: 0
           }}
         >
+          {/* Thanh vuốt kéo cho thiết bị di động */}
+          <div
+            className="client-tour-mobile-drag-handle"
+            onClick={() => setIsArtifactsSidebarOpen(false)}
+            title="Chạm hoặc vuốt để đóng"
+          >
+            <div className="client-tour-drag-indicator" />
+          </div>
+
           {/* Header Khung Trưng Bày */}
           <div
             style={{
@@ -1092,22 +1156,61 @@ export const ClientTourView: React.FC<ClientTourViewProps> = ({
             {matchingArtifacts.length === 0 ? (
               <div
                 style={{
-                  padding: '50px 20px',
+                  padding: '36px 20px',
                   textAlign: 'center',
                   color: '#94A3B8',
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
-                  gap: 10
+                  gap: 12
                 }}
               >
-                <Box size={36} style={{ opacity: 0.35, color: '#D4A86A' }} />
-                <div style={{ fontSize: '13px', fontWeight: 600, color: '#E2E8F0' }}>
-                  Đang cập nhật hồ sơ cổ vật
+                <div
+                  style={{
+                    width: 52,
+                    height: 52,
+                    borderRadius: '50%',
+                    background: 'rgba(212, 168, 106, 0.12)',
+                    border: '1px solid rgba(212, 168, 106, 0.3)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#D4A86A'
+                  }}
+                >
+                  <Box size={26} />
                 </div>
-                <div style={{ fontSize: '11.5px', lineHeight: 1.5, maxWidth: 260 }}>
-                  Hiện vật trưng bày thực tế trong gian phòng này đang được đồng bộ dữ liệu mô phỏng 3D.
+                <div>
+                  <div style={{ fontSize: '13.5px', fontWeight: 600, color: '#F3F4F6' }}>
+                    Chưa có cổ vật quét 3D riêng
+                  </div>
+                  <div style={{ fontSize: '11.5px', lineHeight: 1.5, color: '#94A3B8', marginTop: 4, maxWidth: 280 }}>
+                    Hiện vật và kiến trúc trong phòng này được tương tác trực tiếp qua các điểm chú thích trên toàn cảnh 360°.
+                  </div>
                 </div>
+                <button
+                  type="button"
+                  onClick={() => setIsArtifactsSidebarOpen(false)}
+                  style={{
+                    marginTop: 4,
+                    padding: '8px 18px',
+                    borderRadius: 20,
+                    background: 'linear-gradient(135deg, rgba(212, 168, 106, 0.22) 0%, rgba(180, 83, 9, 0.25) 100%)',
+                    border: '1px solid rgba(212, 168, 106, 0.5)',
+                    color: '#FDE68A',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    transition: 'all 0.2s ease',
+                    boxShadow: '0 4px 14px rgba(0, 0, 0, 0.4)'
+                  }}
+                >
+                  <Eye size={13} style={{ color: '#D4A86A' }} />
+                  <span>Khám phá không gian 360°</span>
+                </button>
               </div>
             ) : (
               matchingArtifacts.map((art) => {
@@ -1416,7 +1519,7 @@ export const ClientTourView: React.FC<ClientTourViewProps> = ({
             </div>
 
             {/* 3D Viewer Body */}
-            <div style={{ minHeight: 460, position: 'relative' }}>
+            <div style={{ minHeight: isMobileScreen ? 300 : 460, position: 'relative' }}>
               {active3DArtifact.model3dUrl ? (
                 <Turntable360Viewer
                   modelUrl={active3DArtifact.model3dUrl}
@@ -1425,7 +1528,7 @@ export const ClientTourView: React.FC<ClientTourViewProps> = ({
                   artifactPeriod={active3DArtifact.period || active3DArtifact.category}
                   audioNarrationUrl={active3DArtifact.audioNarrationUrl}
                   translations={active3DArtifact.translations}
-                  height={480}
+                  height={isMobileScreen ? 320 : 480}
                 />
               ) : (
                 <div style={{ padding: 40, textAlign: 'center', color: '#94A3B8' }}>
@@ -1487,23 +1590,80 @@ export const ClientTourView: React.FC<ClientTourViewProps> = ({
           from { transform: translateX(100%); }
           to { transform: translateX(0); }
         }
-        @media (max-width: 960px) {
-          .client-tour-artifacts-sidebar {
+        @keyframes slideUpMobile {
+          from { transform: translateY(100%); }
+          to { transform: translateY(0); }
+        }
+        @keyframes clientFadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+
+        .client-tour-mobile-drag-handle {
+          display: none;
+        }
+        .artifacts-btn-mobile-badge {
+          display: none;
+        }
+
+        /* Responsive Tablet & Mobile: Chuyển Sidebar thành Bottom Sheet cao cấp */
+        @media (max-width: 1024px) {
+          .client-tour-root-layout {
+            flex-direction: column !important;
+          }
+          .client-tour-main-viewport {
             position: absolute !important;
-            top: 0 !important;
-            right: 0 !important;
-            bottom: 0 !important;
+            inset: 0 !important;
             width: 100% !important;
-            max-width: 340px !important;
+            height: 100% !important;
+          }
+          .client-tour-artifacts-sidebar {
+            position: fixed !important;
+            bottom: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            top: auto !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            max-height: 72vh !important;
+            height: auto !important;
+            border-radius: 20px 20px 0 0 !important;
+            border-top: 1px solid rgba(212, 168, 106, 0.45) !important;
+            border-left: none !important;
+            box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.85) !important;
             z-index: 120 !important;
+            animation: slideUpMobile 0.28s cubic-bezier(0.16, 1, 0.3, 1) !important;
+          }
+          .client-tour-mobile-drag-handle {
+            display: flex !important;
+            justify-content: center !important;
+            align-items: center !important;
+            padding: 10px 0 4px 0 !important;
+            cursor: pointer !important;
+          }
+          .client-tour-drag-indicator {
+            width: 44px !important;
+            height: 4px !important;
+            border-radius: 2px !important;
+            background: rgba(212, 168, 106, 0.45) !important;
           }
           .artifacts-btn-label {
             display: none !important;
           }
+          .artifacts-btn-mobile-badge {
+            display: inline-flex !important;
+          }
+          .client-tour-artifacts-reopen-btn {
+            top: auto !important;
+            bottom: 24px !important;
+            right: 14px !important;
+            padding: 8px 14px !important;
+            font-size: 11.5px !important;
+          }
         }
-        @media (max-width: 580px) {
+        @media (max-width: 480px) {
           .client-tour-artifacts-sidebar {
-            max-width: 100% !important;
+            max-height: 75vh !important;
           }
         }
       `}</style>
