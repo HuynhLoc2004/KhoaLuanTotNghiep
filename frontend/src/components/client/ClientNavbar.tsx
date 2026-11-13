@@ -63,11 +63,17 @@ export const ClientNavbar: React.FC<ClientNavbarProps> = ({
   const langDropdownRef = useRef<HTMLDivElement>(null);
   const navDropdownRef = useRef<HTMLDivElement>(null);
 
-  // Hiệu ứng lắng nghe cuộn trang
+  const [scrollProgress, setScrollProgress] = useState(0);
+
+  // Hiệu ứng lắng nghe cuộn trang & đo tiến độ cuộn trang
   useEffect(() => {
     const handleScroll = () => {
       const top = window.scrollY || document.documentElement.scrollTop;
       setIsScrolled(top > 25);
+      const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+      if (docHeight > 0) {
+        setScrollProgress(Math.min(100, Math.max(0, (top / docHeight) * 100)));
+      }
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
@@ -193,6 +199,11 @@ export const ClientNavbar: React.FC<ClientNavbarProps> = ({
       )}
 
       <nav className={`client-navbar ${isScrolled ? 'is-scrolled' : ''}`}>
+        <div
+          className="client-scroll-progress-line"
+          style={{ width: `${scrollProgress}%` }}
+          aria-hidden="true"
+        />
         <div className="client-container client-nav-inner">
         {/* 1. Logo & Tên bảo tàng sang trọng chuẩn di sản */}
         <a

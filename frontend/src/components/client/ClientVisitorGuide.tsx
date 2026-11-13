@@ -83,9 +83,9 @@ export const ClientVisitorGuide: React.FC<ClientVisitorGuideProps> = ({ onViewAl
         </div>
 
         {/* BỐ CỤC 2 CỘT CÂN ĐỐI: THÔNG BÁO THAM QUAN & SƠ ĐỒ MẶT BẰNG */}
-        <div className="client-guide-split-layout reveal-on-scroll">
+        <div className="client-guide-split-layout">
           {/* CỘT TRÁI: BẢNG THÔNG TIN ĐÓN TIẾP KHÁCH THAM QUAN */}
-          <div className="client-guide-notice-card">
+          <div className="client-guide-notice-card reveal-on-scroll reveal-from-left">
             <h3 className="client-guide-notice-heading">
               {t('guide.visitorHeading', 'Thông tin đón tiếp khách tham quan')}
             </h3>
@@ -132,7 +132,7 @@ export const ClientVisitorGuide: React.FC<ClientVisitorGuideProps> = ({ onViewAl
 
           {/* CỘT PHẢI: KHUNG HIỂN THỊ SƠ ĐỒ MẶT BẰNG */}
           <div
-            className="client-guide-map-display"
+            className="client-guide-map-display reveal-on-scroll reveal-from-right"
             onClick={onViewAllGuide}
             role="button"
             tabIndex={0}

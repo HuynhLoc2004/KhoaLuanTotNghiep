@@ -12,7 +12,7 @@ import { ClientVisitorGuide } from '../../components/client/ClientVisitorGuide';
 import { ClientFooter } from '../../components/client/ClientFooter';
 import { ClientLoginOtpModal } from '../../components/client/ClientLoginOtpModal';
 import { Turntable360Viewer } from '../../components/Turntable360Viewer';
-import { X, Box, ExternalLink } from 'lucide-react';
+import { X, Box, ExternalLink, ChevronUp } from 'lucide-react';
 import '../../styles/client.css';
 
 interface ClientHomePageProps {
@@ -123,10 +123,31 @@ export const ClientHomePage: React.FC<ClientHomePageProps> = ({
     };
   }, []);
 
+  // Khóa tính năng tự động trôi cuộn của trình duyệt khi refresh trang
+  useEffect(() => {
+    if ('scrollRestoration' in window.history) {
+      window.history.scrollRestoration = 'manual';
+    }
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' as any });
+  }, []);
+
+  // Nút nổi cuộn nhanh về đầu trang
+  const [showScrollTop, setShowScrollTop] = useState(false);
+  useEffect(() => {
+    const checkScroll = () => {
+      setShowScrollTop(window.scrollY > 400);
+    };
+    window.addEventListener('scroll', checkScroll, { passive: true });
+    checkScroll();
+    return () => window.removeEventListener('scroll', checkScroll);
+  }, []);
+
   // Hiệu ứng cuộn hiển thị nhẹ nhàng tự nhiên từ dưới lên (Subtle Scroll Reveal)
   useEffect(() => {
     const timer = setTimeout(() => {
-      const elements = document.querySelectorAll('.reveal-on-scroll');
+      const elements = document.querySelectorAll(
+        '.reveal-on-scroll, .reveal-from-left, .reveal-from-right, .reveal-scale-in'
+      );
       if (!elements.length) return;
 
       const observer = new IntersectionObserver(
@@ -134,15 +155,16 @@ export const ClientHomePage: React.FC<ClientHomePageProps> = ({
           entries.forEach((entry) => {
             if (entry.isIntersecting) {
               entry.target.classList.add('is-revealed');
+              observer.unobserve(entry.target);
             }
           });
         },
-        { threshold: 0.1, rootMargin: '0px 0px -30px 0px' }
+        { threshold: 0.08, rootMargin: '0px 0px -30px 0px' }
       );
 
       elements.forEach((el) => observer.observe(el));
       return () => observer.disconnect();
-    }, 150);
+    }, 100);
 
     return () => clearTimeout(timer);
   }, [rooms, artifacts, topics]);
@@ -233,6 +255,17 @@ export const ClientHomePage: React.FC<ClientHomePageProps> = ({
 
       {/* 8. Chân trang văn hóa di sản */}
       <ClientFooter onNavigatePage={onNavigatePage} />
+
+      {/* Nút nổi cuộn nhanh về đỉnh trang khi lướt sâu */}
+      <button
+        type="button"
+        className={`client-floating-scroll-top ${showScrollTop ? 'is-visible' : ''}`}
+        onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+        title={t('footer.scrollToTop', 'Về đầu trang')}
+        aria-label={t('footer.scrollToTop', 'Về đầu trang')}
+      >
+        <ChevronUp size={22} />
+      </button>
 
       {/* 9. Modal Đăng nhập thuần Email OTP (Không lộ mật khẩu) */}
       <ClientLoginOtpModal

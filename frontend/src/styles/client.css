@@ -1361,6 +1361,17 @@ html {
   box-sizing: border-box;
 }
 
+@keyframes heroElementFadeInUp {
+  0% {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .client-hero-tag {
   display: inline-block;
   font-size: clamp(0.75rem, 0.9vw, 0.85rem);
@@ -1371,6 +1382,7 @@ html {
   margin: 0 auto clamp(8px, 1.4vh, 14px) auto;
   text-shadow: 0 2px 10px rgba(0, 0, 0, 0.6);
   text-align: center;
+  animation: heroElementFadeInUp 0.75s cubic-bezier(0.16, 1, 0.3, 1) 0.05s backwards;
 }
 
 .client-hero-headline {
@@ -1384,6 +1396,7 @@ html {
   text-wrap: balance;
   max-width: 1100px;
   text-align: center;
+  animation: heroElementFadeInUp 0.85s cubic-bezier(0.16, 1, 0.3, 1) 0.18s backwards;
 }
 
 .client-hero-lead {
@@ -1395,6 +1408,7 @@ html {
   text-shadow: 0 2px 16px rgba(0, 0, 0, 0.85);
   text-wrap: pretty;
   text-align: center;
+  animation: heroElementFadeInUp 0.9s cubic-bezier(0.16, 1, 0.3, 1) 0.3s backwards;
 }
 
 .client-hero-actions {
@@ -1404,6 +1418,7 @@ html {
   gap: clamp(10px, 1.4vw, 16px);
   flex-wrap: wrap;
   margin: 0 auto clamp(18px, 2.8vh, 32px) auto;
+  animation: heroElementFadeInUp 0.95s cubic-bezier(0.16, 1, 0.3, 1) 0.42s backwards;
 }
 
 .client-btn-primary {
@@ -1470,6 +1485,7 @@ html {
   box-shadow: 0 16px 40px -8px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.1);
   transition: all 0.3s ease;
   box-sizing: border-box;
+  animation: heroElementFadeInUp 1s cubic-bezier(0.16, 1, 0.3, 1) 0.55s backwards;
 }
 
 .client-hero-stats:hover {
@@ -4008,17 +4024,131 @@ html {
 }
 
 /* =========================================================================
-   13. HIỆU ỨNG CUỘN HIỂN THỊ TỰ NHIÊN (SUBTLE SCROLL REVEAL - KHÔNG GIẬT CỤC, KHÔNG AI)
+   13. HIỆU ỨNG CUỘN HIỂN THỊ MƯỢT MÀ DI SẢN (HERITAGE SMOOTH SCROLL REVEAL)
    ========================================================================= */
 .reveal-on-scroll {
-  opacity: 1;
-  transform: none;
-  transition: opacity 0.3s ease;
+  opacity: 0;
+  transform: translateY(32px);
+  transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
 }
 
 .reveal-on-scroll.is-revealed {
   opacity: 1;
-  transform: none;
+  transform: translateY(0);
+}
+
+/* Biến thể hiển thị trượt từ trái sang */
+.reveal-from-left {
+  opacity: 0;
+  transform: translateX(-36px);
+  transition: opacity 0.85s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.85s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+
+.reveal-from-left.is-revealed {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* Biến thể hiển thị trượt từ phải sang */
+.reveal-from-right {
+  opacity: 0;
+  transform: translateX(36px);
+  transition: opacity 0.85s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.85s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+
+.reveal-from-right.is-revealed {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* Biến thể phóng to mượt mà (Scale Reveal) */
+.reveal-scale-in {
+  opacity: 0;
+  transform: scale(0.95) translateY(20px);
+  transition: opacity 0.85s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.85s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+
+.reveal-scale-in.is-revealed {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+}
+
+/* Nhịp trễ so le tinh tế (Staggered Delays) */
+.reveal-delay-1 { transition-delay: 0.08s !important; }
+.reveal-delay-2 { transition-delay: 0.16s !important; }
+.reveal-delay-3 { transition-delay: 0.24s !important; }
+.reveal-delay-4 { transition-delay: 0.32s !important; }
+.reveal-delay-5 { transition-delay: 0.40s !important; }
+
+/* Thanh tiến độ cuộn trang mạ vàng tinh xảo chạy dọc chân Navbar */
+.client-scroll-progress-line {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #B23B22 0%, #D4AF37 50%, #F3E0A3 100%);
+  box-shadow: 0 0 8px rgba(212, 175, 55, 0.8), 0 0 16px rgba(178, 59, 34, 0.5);
+  pointer-events: none;
+  z-index: 1000;
+  transition: width 0.08s linear;
+}
+
+/* Nút cuộn nhanh về đỉnh trang (Quick Scroll To Top Floating Button) */
+.client-floating-scroll-top {
+  position: fixed;
+  bottom: 28px;
+  right: 28px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(16, 22, 34, 0.88);
+  border: 1px solid rgba(212, 168, 106, 0.45);
+  color: #F3E0A3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 990;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6), 0 0 16px rgba(212, 168, 106, 0.25);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(16px);
+}
+
+.client-floating-scroll-top.is-visible {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.client-floating-scroll-top:hover {
+  background: rgba(212, 168, 106, 0.25);
+  border-color: #D4AF37;
+  color: #FFFFFF;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.75), 0 0 24px rgba(212, 168, 106, 0.5);
+  transform: translateY(-3px) scale(1.06);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal-on-scroll,
+  .reveal-from-left,
+  .reveal-from-right,
+  .reveal-scale-in {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
 }
 
 /* =========================================================================
@@ -4146,14 +4276,14 @@ html {
 
 /* HIỆU ỨNG TRỒI TỪ DƯỚI LÊN KHI SCROLL: MƯỢT MÀ KHÔNG TRỄ */
 .client-zigzag-card.reveal-on-scroll {
-  opacity: 1;
-  transform: none;
-  transition: opacity 0.3s ease;
+  opacity: 0;
+  transform: translateY(32px);
+  transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .client-zigzag-card.reveal-on-scroll.is-revealed {
   opacity: 1;
-  transform: none;
+  transform: translateY(0);
 }
 
 .client-zigzag-card:hover {
@@ -5147,15 +5277,15 @@ html {
   border-radius: 18px;
   overflow: hidden;
   cursor: pointer;
-  transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.3s ease, box-shadow 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   display: flex;
   flex-direction: column;
 }
 
 .client-room-gallery-card:hover {
-  transform: translateY(-4px);
-  border-color: #D4A86A;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55);
+  transform: translateY(-8px);
+  border-color: #D4AF37;
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.7), 0 0 24px rgba(212, 175, 55, 0.2);
 }
 
 .client-room-gallery-media {
@@ -5432,16 +5562,16 @@ html {
   border-radius: 16px;
   overflow: hidden;
   cursor: pointer;
-  transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.3s ease, box-shadow 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   display: flex;
   flex-direction: column;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
 }
 
 .client-artifact-gallery-card:hover {
-  transform: translateY(-5px);
-  border-color: #D4A86A;
-  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.6), 0 0 20px rgba(212, 168, 106, 0.15);
+  transform: translateY(-8px);
+  border-color: #D4AF37;
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.68), 0 0 28px rgba(212, 168, 106, 0.25);
 }
 
 .client-artifact-gallery-media {

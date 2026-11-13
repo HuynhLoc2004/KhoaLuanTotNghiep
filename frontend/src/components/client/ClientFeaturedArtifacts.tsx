@@ -106,9 +106,9 @@ export const ClientFeaturedArtifacts: React.FC<ClientFeaturedArtifactsProps> = (
               showcaseArtifacts.length === 1 ? 'single-item' : ''
             } ${showcaseArtifacts.length === 2 ? 'two-items' : ''} ${
               showcaseArtifacts.length === 3 ? 'three-items' : ''
-            } reveal-on-scroll`}
+            }`}
           >
-            {showcaseArtifacts.map((art) => {
+            {showcaseArtifacts.map((art, idx) => {
               const thumbUrl = getArtifactThumb(art);
               const artName = localize(art, 'name', art.name);
               const artPeriod = localize(art, 'period', (art as any).period || 'Cổ vật di sản');
@@ -122,7 +122,7 @@ export const ClientFeaturedArtifacts: React.FC<ClientFeaturedArtifactsProps> = (
               return (
                 <div
                   key={art.id}
-                  className="client-artifact-gallery-card"
+                  className={`client-artifact-gallery-card reveal-on-scroll reveal-delay-${(idx % 4) + 1}`}
                   onClick={() => handleArtifactClick(art)}
                   role="button"
                   tabIndex={0}

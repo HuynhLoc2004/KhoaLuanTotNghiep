@@ -137,8 +137,8 @@ export const ClientFeaturedRooms: React.FC<ClientFeaturedRoomsProps> = ({
           </div>
         ) : showcaseRooms.length > 1 ? (
           /* NẾU CÓ NHIỀU PHÒNG: HIỂN THỊ LƯỚI GALLERY CARD TRANG TRỌNG */
-          <div className="client-rooms-gallery-grid reveal-on-scroll">
-            {showcaseRooms.map((room) => {
+          <div className="client-rooms-gallery-grid">
+            {showcaseRooms.map((room, idx) => {
               const thumbUrl = getRoomThumb(room);
               const roomName = localize(room, 'name', room.name);
               const roomPeriod = localize(room, 'period', (room as any).period || 'Gian trưng bày');
@@ -146,7 +146,7 @@ export const ClientFeaturedRooms: React.FC<ClientFeaturedRoomsProps> = ({
               return (
                 <div
                   key={room.id}
-                  className="client-room-gallery-card"
+                  className={`client-room-gallery-card reveal-on-scroll reveal-delay-${(idx % 4) + 1}`}
                   onClick={() => onSelectRoom(room)}
                   role="button"
                   tabIndex={0}

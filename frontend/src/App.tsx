@@ -75,6 +75,22 @@ const AppContent: React.FC = () => {
     } catch { }
   }, []);
 
+  // Khóa tự động trôi vị trí cuộn khi refresh trang (ngăn trình duyệt nhớ vị trí cuộn cũ và trôi xuống)
+  useEffect(() => {
+    if ('scrollRestoration' in window.history) {
+      window.history.scrollRestoration = 'manual';
+    }
+    window.scrollTo(0, 0);
+
+    const handleBeforeUnload = () => {
+      window.scrollTo(0, 0);
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, []);
+
   // Tuyến trang con hiện tại của Client: 'home' | 'rooms' | 'artifacts' | 'guide' | 'profile' | 'booking'
   const [clientActivePage, setClientActivePage] = useState<'home' | 'rooms' | 'artifacts' | 'guide' | 'profile' | 'booking'>(() => {
     try {
