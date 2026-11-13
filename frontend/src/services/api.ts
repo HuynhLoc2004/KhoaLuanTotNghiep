@@ -29,6 +29,11 @@ export const resolveMediaUrl = (path?: string, fallback: string = ''): string =>
     trimmed = trimmed.replace(/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/i, API_ROOT);
   }
 
+  // Tự động thêm fl_sanitize cho file SVG trên Cloudinary để loại bỏ header 'Content-Disposition: attachment' gây lỗi img onError
+  if (trimmed.includes('res.cloudinary.com') && trimmed.toLowerCase().includes('.svg') && !trimmed.includes('fl_sanitize')) {
+    trimmed = trimmed.replace(/\/image\/upload\/(v\d+\/)?/i, (m, v) => `/image/upload/fl_sanitize/${v || ''}`);
+  }
+
   if (trimmed.startsWith('http://') || trimmed.startsWith('https://') || trimmed.startsWith('data:') || trimmed.startsWith('blob:')) {
     return trimmed;
   }

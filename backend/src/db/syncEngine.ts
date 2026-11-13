@@ -2004,13 +2004,11 @@ export async function syncFloorPlanNodesToRooms(analyzedMap: any) {
   }
   await pgUpsertFloorPlan(analyzedMap.toObject ? analyzedMap.toObject() : analyzedMap);
 
-  // 5. Đồng bộ vào SystemBranding
+  // 5. Đồng bộ vào SystemBranding (chỉ đồng bộ thông tin bản đồ cẩm nang, không ghi đè cài đặt gian phòng của quản trị viên)
   await SystemBranding.findOneAndUpdate(
     {},
     {
       $set: {
-        roomsFeaturedId: 'room-p-01',
-        roomsShowcaseImageUrl: 'https://res.cloudinary.com/djkif9ubs/image/upload/v1794446663/museum/branding_assets/hero_banner_museum_hcm.jpg',
         guideMapUrl: analyzedMap.imageUrl,
         guideMapTitle: analyzedMap.title,
         guideMapDesc: analyzedMap.description

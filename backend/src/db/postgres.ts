@@ -468,13 +468,15 @@ export async function initPostgresTables(): Promise<boolean> {
         ALTER TABLE system_branding ADD COLUMN IF NOT EXISTS rooms_title TEXT;
         ALTER TABLE system_branding ADD COLUMN IF NOT EXISTS rooms_desc TEXT;
         ALTER TABLE system_branding ADD COLUMN IF NOT EXISTS rooms_cta_text VARCHAR(256);
-        ALTER TABLE system_branding ADD COLUMN IF NOT EXISTS rooms_featured_id VARCHAR(64);
+        ALTER TABLE system_branding ADD COLUMN IF NOT EXISTS rooms_featured_id TEXT;
+        ALTER TABLE system_branding ALTER COLUMN rooms_featured_id TYPE TEXT;
         ALTER TABLE system_branding ADD COLUMN IF NOT EXISTS rooms_showcase_image_url TEXT;
         ALTER TABLE system_branding ADD COLUMN IF NOT EXISTS artifacts_tag VARCHAR(256);
         ALTER TABLE system_branding ADD COLUMN IF NOT EXISTS artifacts_title TEXT;
         ALTER TABLE system_branding ADD COLUMN IF NOT EXISTS artifacts_desc TEXT;
         ALTER TABLE system_branding ADD COLUMN IF NOT EXISTS artifacts_cta_text VARCHAR(256);
-        ALTER TABLE system_branding ADD COLUMN IF NOT EXISTS artifacts_featured_id VARCHAR(64);
+        ALTER TABLE system_branding ADD COLUMN IF NOT EXISTS artifacts_featured_id TEXT;
+        ALTER TABLE system_branding ALTER COLUMN artifacts_featured_id TYPE TEXT;
         ALTER TABLE system_branding ADD COLUMN IF NOT EXISTS artifacts_showcase_image_url TEXT;
         ALTER TABLE system_branding ADD COLUMN IF NOT EXISTS guide_tag VARCHAR(256);
         ALTER TABLE system_branding ADD COLUMN IF NOT EXISTS guide_title TEXT;

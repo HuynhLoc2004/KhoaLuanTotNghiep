@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { api, API_ROOT } from '../../services/api';
+import { api, API_ROOT, resolveMediaUrl } from '../../services/api';
 import { useToast } from '../../components/Toast';
 import { SystemBranding, MuseumRoom, Artifact } from '../../types';
 import { useSystemBranding } from '../../context/SystemBrandingContext';
@@ -310,7 +310,7 @@ export const AdminShowcasePage: React.FC<AdminShowcasePageProps> = ({ onNavigate
 
   const getMediaUrl = (path?: string) => {
     if (!path) return '';
-    return path.startsWith('http') ? path : `${API_ROOT}${path.startsWith('/') ? '' : '/'}${path}`;
+    return resolveMediaUrl(path);
   };
 
   return (

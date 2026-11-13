@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { api, API_ROOT } from '../../services/api';
+import { api, API_ROOT, resolveMediaUrl } from '../../services/api';
 import { useToast } from '../../components/Toast';
 import { SystemBranding, HeaderMenuItem, HeaderSubMenuItem, MuseumRoom, Artifact } from '../../types';
 import { useSystemBranding, DEFAULT_HEADER_MENU, AUTHENTIC_BRANDING_ASSETS } from '../../context/SystemBrandingContext';
@@ -61,7 +61,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
 
   const getMediaUrl = (path?: string) => {
     if (!path) return '';
-    return path.startsWith('http') ? path : `${API_ROOT}${path.startsWith('/') ? '' : '/'}${path}`;
+    return resolveMediaUrl(path);
   };
 
   const handleImagePreviewError = (e: React.SyntheticEvent<HTMLImageElement>) => {
@@ -78,6 +78,10 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
   };
 
   const [form, setForm] = useState<SystemBranding>(branding);
+  const [logoPreviewError, setLogoPreviewError] = useState(false);
+  useEffect(() => {
+    setLogoPreviewError(false);
+  }, [form.logoUrl]);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [isSaving, setIsSaving] = useState(false);
   const [savingSection, setSavingSection] = useState<string | null>(null);
@@ -1038,15 +1042,15 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
                   overflow: 'hidden'
                 }}
               >
-                {form.logoUrl ? (
+                {form.logoUrl && !logoPreviewError ? (
                   <img
                     src={getMediaUrl(form.logoUrl)}
                     alt="Logo"
                     style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-                    onError={handleImagePreviewError}
+                    onError={() => setLogoPreviewError(true)}
                   />
                 ) : (
-                  <div style={{ fontWeight: 800, fontSize: 18, color: 'var(--text-main)' }}>
+                  <div style={{ fontWeight: 800, fontSize: 18, color: 'var(--gold)', letterSpacing: 1 }}>
                     {form.emblemText || 'BT'}
                   </div>
                 )}

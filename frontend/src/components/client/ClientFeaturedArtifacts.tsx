@@ -45,7 +45,7 @@ export const ClientFeaturedArtifacts: React.FC<ClientFeaturedArtifactsProps> = (
           selected.push(found);
         }
       }
-      return selected;
+      if (selected.length > 0) return selected;
     }
 
     // Mặc định ban đầu nếu chưa từng cấu hình trong Trang chủ: Chỉ lấy tối đa 2 hiện vật tiêu biểu

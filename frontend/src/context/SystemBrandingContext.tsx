@@ -53,7 +53,7 @@ export const DEFAULT_HEADER_MENU = [
 ];
 
 export const AUTHENTIC_BRANDING_ASSETS = {
-  logoUrl: 'https://res.cloudinary.com/djkif9ubs/image/upload/v1794446737/museum/branding/museum_logo_official.svg',
+  logoUrl: 'https://res.cloudinary.com/djkif9ubs/image/upload/fl_sanitize/v1794446737/museum/branding/museum_logo_official.svg',
   heroBannerUrl: 'https://res.cloudinary.com/djkif9ubs/image/upload/v1794451506/museum/branding_assets/pano_1794451487609_Acnos-bao-tang-lich-su-03_t3pijv.jpg',
   introImageUrl: 'https://res.cloudinary.com/djkif9ubs/image/upload/v1794446664/museum/branding_assets/architecture_museum_hcm.jpg',
   roomsShowcaseImageUrl: '',
