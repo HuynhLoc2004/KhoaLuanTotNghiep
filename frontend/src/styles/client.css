@@ -8325,10 +8325,15 @@ html {
 
 @media (max-width: 768px) {
   .client-tour-header {
-    top: 10px;
-    left: 10px;
-    right: 10px;
-    gap: 8px;
+    top: max(14px, env(safe-area-inset-top, 14px)) !important;
+    left: max(10px, env(safe-area-inset-left, 10px)) !important;
+    right: max(10px, env(safe-area-inset-right, 10px)) !important;
+    gap: 6px !important;
+  }
+
+  /* Ẩn nút Cổ vật ở header trên mobile để tránh chật chội và đè nhau (đã tích hợp vào thanh điều khiển dưới đáy) */
+  .client-tour-artifacts-pill-btn {
+    display: none !important;
   }
 
   .client-tour-back-btn span {
@@ -8337,9 +8342,9 @@ html {
   .client-tour-back-btn {
     padding: 6px !important;
     border-radius: 50% !important;
-    width: 32px !important;
-    height: 32px !important;
-    min-width: 32px !important;
+    width: 34px !important;
+    height: 34px !important;
+    min-width: 34px !important;
     justify-content: center !important;
     flex-shrink: 0 !important;
   }
@@ -8351,8 +8356,8 @@ html {
     min-width: 0 !important;
     max-width: none !important;
     padding: 4px 10px !important;
-    height: 32px !important;
-    border-radius: 16px !important;
+    height: 34px !important;
+    border-radius: 17px !important;
   }
 
   .client-tour-title-desktop {
@@ -8374,10 +8379,12 @@ html {
     white-space: nowrap !important;
     flex: 1 !important;
     text-align: left !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
   }
 
   .client-tour-actions {
-    gap: 6px !important;
+    gap: 5px !important;
     flex-shrink: 0 !important;
   }
 
@@ -8403,22 +8410,25 @@ html {
   /* Dropdown danh sách phòng trên mobile */
   .client-tour-room-dropdown-menu {
     position: fixed !important;
-    top: 54px !important;
+    top: max(56px, calc(env(safe-area-inset-top, 14px) + 42px)) !important;
     left: 10px !important;
     right: 10px !important;
     width: auto !important;
     max-width: 420px !important;
     margin: 0 auto !important;
     max-height: 65vh !important;
+    touch-action: pan-y !important;
+    -webkit-overflow-scrolling: touch !important;
+    overscroll-behavior: contain !important;
   }
 }
 
 @media (max-width: 420px) {
   .client-tour-header {
     gap: 4px !important;
-    top: 8px !important;
-    left: 8px !important;
-    right: 8px !important;
+    top: max(12px, env(safe-area-inset-top, 12px)) !important;
+    left: max(8px, env(safe-area-inset-left, 8px)) !important;
+    right: max(8px, env(safe-area-inset-right, 8px)) !important;
   }
 
   /* Trên màn hình siêu nhỏ, ẩn luôn chữ "Nghe" chỉ giữ lại icon âm thanh để tối ưu diện tích */
@@ -8429,6 +8439,31 @@ html {
   .client-tour-voice-btn {
     padding: 6px 8px !important;
   }
+}
+
+/* =========================================================================
+   FIX CUỘN CẢM ỨNG VÀ TRÁNH ĐÈ LÊN NHAU CHO TOÀN BỘ TOUR 360 TRÊN MOBILE
+   ========================================================================= */
+.client-tour-root-layout,
+.client-tour-main-viewport,
+.pnlm-container,
+.pnlm-render-container,
+.pnlm-dragfix,
+.pnlm-grab,
+.pnlm-canvas {
+  touch-action: none !important;
+  -webkit-touch-callout: none !important;
+  -webkit-user-select: none !important;
+  user-select: none !important;
+  overscroll-behavior: none !important;
+}
+
+.client-tour-artifacts-sidebar,
+.client-tour-artifacts-scrollable,
+.client-tour-room-dropdown-menu {
+  touch-action: pan-y !important;
+  -webkit-overflow-scrolling: touch !important;
+  overscroll-behavior: contain !important;
 }
 
 /* ==========================================================================

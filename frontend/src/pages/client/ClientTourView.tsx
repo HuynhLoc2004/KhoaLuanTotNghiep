@@ -892,63 +892,49 @@ export const ClientTourView: React.FC<ClientTourViewProps> = ({
               initialPitch={currentRoom.initialView?.pitch ?? 0}
               initialYaw={currentRoom.initialView?.yaw ?? 0}
               initialHfov={currentRoom.initialView?.fov ? Math.min(currentRoom.initialView.fov, 100) : 100}
+              extraBottomContent={
+                !isArtifactsSidebarOpen && (
+                  <button
+                    type="button"
+                    onClick={() => setIsArtifactsSidebarOpen(true)}
+                    className="client-tour-artifacts-reopen-btn"
+                    title="Mở danh sách cổ vật trưng bày trong gian phòng này"
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      padding: '4px 6px',
+                      color: '#F8FAFC',
+                      fontSize: 12,
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      outline: 'none',
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
+                    <Box size={14} style={{ color: '#D4A86A', flexShrink: 0 }} />
+                    <span className="artifacts-btn-reopen-text">Cổ vật trong phòng</span>
+                    <span
+                      style={{
+                        fontSize: '10.5px',
+                        fontWeight: 800,
+                        padding: '1px 6px',
+                        borderRadius: 10,
+                        background: '#D4A86A',
+                        color: '#000',
+                        flexShrink: 0
+                      }}
+                    >
+                      {matchingArtifacts.length}
+                    </span>
+                  </button>
+                )
+              }
             />
           )}
         </div>
-
-        {/* NÚT MỞ LẠI PANEL HIỆN VẬT GIAN PHÒNG (KHI ĐANG BỊ THU GỌN) */}
-        {!isArtifactsSidebarOpen && (
-          <button
-            type="button"
-            onClick={() => setIsArtifactsSidebarOpen(true)}
-            className="client-tour-artifacts-reopen-btn"
-            title="Mở danh sách cổ vật trưng bày trong gian phòng này"
-            style={{
-              position: 'absolute',
-              top: 76,
-              right: 16,
-              zIndex: 90,
-              background: 'rgba(13, 17, 23, 0.9)',
-              backdropFilter: 'blur(16px)',
-              WebkitBackdropFilter: 'blur(16px)',
-              border: '1px solid rgba(212, 168, 106, 0.4)',
-              borderRadius: 24,
-              padding: '7px 14px',
-              color: '#F8FAFC',
-              fontSize: 12,
-              fontWeight: 600,
-              cursor: 'pointer',
-              boxShadow: '0 8px 24px rgba(0, 0, 0, 0.5)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-              transition: 'all 0.2s ease'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = '#D4A86A';
-              e.currentTarget.style.transform = 'translateY(-1px)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = 'rgba(212, 168, 106, 0.4)';
-              e.currentTarget.style.transform = 'translateY(0)';
-            }}
-          >
-            <Box size={14} style={{ color: '#D4A86A' }} />
-            <span>Cổ vật trong phòng</span>
-            <span
-              style={{
-                fontSize: '10.5px',
-                fontWeight: 800,
-                padding: '1px 6px',
-                borderRadius: 10,
-                background: '#D4A86A',
-                color: '#000'
-              }}
-            >
-              {matchingArtifacts.length}
-            </span>
-          </button>
-        )}
 
         {/* POPUP THÔNG TIN HOTSPOT KHI CLICK */}
         {selectedHotspot && (
@@ -1144,9 +1130,13 @@ export const ClientTourView: React.FC<ClientTourViewProps> = ({
 
           {/* Danh sách thẻ hiện vật di sản thuộc gian phòng */}
           <div
+            className="client-tour-artifacts-scrollable"
             style={{
               flex: 1,
               overflowY: 'auto',
+              WebkitOverflowScrolling: 'touch',
+              touchAction: 'pan-y',
+              overscrollBehavior: 'contain',
               padding: '14px 16px',
               display: 'flex',
               flexDirection: 'column',
@@ -1654,16 +1644,24 @@ export const ClientTourView: React.FC<ClientTourViewProps> = ({
             display: inline-flex !important;
           }
           .client-tour-artifacts-reopen-btn {
-            top: auto !important;
-            bottom: 24px !important;
-            right: 14px !important;
-            padding: 8px 14px !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            gap: 6px !important;
+            padding: 4px 8px !important;
             font-size: 11.5px !important;
           }
         }
         @media (max-width: 480px) {
           .client-tour-artifacts-sidebar {
             max-height: 75vh !important;
+          }
+          .artifacts-btn-reopen-text {
+            font-size: 11px !important;
+          }
+        }
+        @media (max-width: 380px) {
+          .artifacts-btn-reopen-text {
+            display: none !important;
           }
         }
       `}</style>

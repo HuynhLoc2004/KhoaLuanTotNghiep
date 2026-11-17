@@ -48,6 +48,7 @@ interface Pannellum360ViewerProps {
   maxYaw?: number;
   imageWidth?: number;
   imageHeight?: number;
+  extraBottomContent?: React.ReactNode;
 }
 
 export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
@@ -76,6 +77,7 @@ export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
   maxYaw,
   imageWidth,
   imageHeight,
+  extraBottomContent,
 }) => {
   const { branding } = useSystemBranding();
   const hasValidTitle = Boolean(title && title.trim().length > 0);
@@ -319,8 +321,8 @@ export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
       effectiveMinYaw = is360Loop ? -180 : (minYaw !== undefined ? minYaw : -halfH);
       effectiveMaxYaw = is360Loop ? 180 : (maxYaw !== undefined ? maxYaw : halfH);
 
-      // Kỹ thuật giới hạn tầm nhìn: Giữ góc nhìn trong phạm vi ảnh thực
-      const safePitchLimit = Math.max(15, Math.min(45, Math.round(halfV * 0.65)));
+      // Kỹ thuật điều chỉnh tầm nhìn: Cho phép người dùng thoải mái nhìn lên trần và xuống sàn mà không bị khóa cứng
+      const safePitchLimit = Math.max(75, Math.min(85, Math.round(halfV * 0.95)));
       effectiveMinPitch = minPitch !== undefined ? minPitch : -safePitchLimit;
       effectiveMaxPitch = maxPitch !== undefined ? maxPitch : safePitchLimit;
 
@@ -827,6 +829,25 @@ export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
             padding: 5px 10px !important;
             font-size: 11.5px !important;
           }
+          .glass-btn-desktop-only {
+            display: none !important;
+          }
+          .pnlm-bottom-control-bar {
+            bottom: max(16px, calc(env(safe-area-inset-bottom, 16px) + 8px)) !important;
+          }
+        }
+
+        /* Khắc phục triệt để lỗi không vuốt kéo lên/xuống được trên màn hình cảm ứng di động (iOS Safari / Android) */
+        .pnlm-container,
+        .pnlm-render-container,
+        .pnlm-dragfix,
+        .pnlm-grab,
+        .pnlm-canvas {
+          touch-action: none !important;
+          -webkit-touch-callout: none !important;
+          -webkit-user-select: none !important;
+          user-select: none !important;
+          overscroll-behavior: none !important;
         }
       `}</style>
 
@@ -839,7 +860,11 @@ export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
           width: '100%',
           height: '100%',
           background: '#17120E',
-          cursor: isPinMode ? 'crosshair' : 'default'
+          cursor: isPinMode ? 'crosshair' : 'default',
+          touchAction: 'none',
+          WebkitUserSelect: 'none',
+          userSelect: 'none',
+          overscrollBehavior: 'none'
         }}
       />
 
@@ -990,13 +1015,15 @@ export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
       {/* Bottom Floating Control Bar */}
       {!hideControls && (
         <div
+          className="pnlm-bottom-control-bar"
           style={{
             position: 'absolute',
-            bottom: 18,
+            bottom: 'max(18px, calc(env(safe-area-inset-bottom, 18px) + 6px))',
             left: '50%',
             transform: 'translateX(-50%)',
-            zIndex: 20,
-            pointerEvents: 'auto'
+            zIndex: 95,
+            pointerEvents: 'auto',
+            maxWidth: 'calc(100% - 24px)'
           }}
         >
           <div className="glass-toolbar" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 10px' }}>
@@ -1052,20 +1079,28 @@ export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
               <i className="fa-solid fa-arrows-rotate"></i>
             </button>
 
-            {/* Zoom In */}
-            <button className="glass-btn" title="Phóng to" onClick={handleZoomIn}>
+            {/* Zoom In (Desktop only) */}
+            <button className="glass-btn glass-btn-desktop-only" title="Phóng to" onClick={handleZoomIn}>
               <i className="fa-solid fa-plus"></i>
             </button>
 
-            {/* Zoom Out */}
-            <button className="glass-btn" title="Thu nhỏ" onClick={handleZoomOut}>
+            {/* Zoom Out (Desktop only) */}
+            <button className="glass-btn glass-btn-desktop-only" title="Thu nhỏ" onClick={handleZoomOut}>
               <i className="fa-solid fa-minus"></i>
             </button>
 
-            {/* Fullscreen */}
-            <button className="glass-btn" title="Toàn màn hình" onClick={handleToggleFullscreen}>
+            {/* Fullscreen (Desktop only) */}
+            <button className="glass-btn glass-btn-desktop-only" title="Toàn màn hình" onClick={handleToggleFullscreen}>
               <i className="fa-solid fa-expand"></i>
             </button>
+
+            {/* Extra Content (Nút danh sách Cổ vật thống nhất trong 1 dock duy nhất) */}
+            {extraBottomContent && (
+              <>
+                <div style={{ width: 1, height: 18, background: 'rgba(212, 168, 106, 0.35)', margin: '0 4px', flexShrink: 0 }} />
+                {extraBottomContent}
+              </>
+            )}
           </div>
         </div>
       )}
