@@ -55,7 +55,9 @@ def add_references_and_appendices(doc, helpers):
         (29, 'J. Xiang, Z. Lv, S. Long, Y. Deng, K. Chen, and B. Dai, "TRELLIS: Structured 3D Latents for Scalable and Versatile 3D Generation," arXiv preprint arXiv:2412.01506, Dec. 2024. [Online]. Available: https://arxiv.org/abs/2412.01506. [Accessed: Oct. 25, 2026].'),
         (30, 'Hugging Face Inc., "Hugging Face Spaces and ZeroGPU Dynamic Hardware Acceleration Documentation," Hugging Face Platform, 2026. [Online]. Available: https://huggingface.co/docs/hub/spaces-gpus. [Accessed: Oct. 24, 2026].'),
         (31, 'Google Cloud, "Cloud Text-to-Speech Documentation: Neural2 and Multilingual Speech Synthesis," Google Cloud Computing Services, 2026. [Online]. Available: https://cloud.google.com/text-to-speech/docs/neural2. [Accessed: Oct. 18, 2026].'),
-        (32, 'Grafana Labs, "Grafana and Prometheus: Open Observability and Real-Time Systems Monitoring Platform Documentation," Grafana Labs, 2026. [Online]. Available: https://grafana.com/docs/. [Accessed: Oct. 26, 2026].')
+        (32, 'Grafana Labs, "Grafana and Prometheus: Open Observability and Real-Time Systems Monitoring Platform Documentation," Grafana Labs, 2026. [Online]. Available: https://grafana.com/docs/. [Accessed: Oct. 26, 2026].'),
+        (33, 'GitHub Inc., "GitHub Actions Documentation: Continuous Integration and Continuous Delivery (CI/CD) Automation," GitHub Platform, 2026. [Online]. Available: https://docs.github.com/en/actions. [Accessed: Oct. 27, 2026].'),
+        (34, 'Cloudflare Inc., "Cloudflare R2 Object Storage Documentation: S3-Compatible Cloud Storage Architecture," Cloudflare Docs, 2026. [Online]. Available: https://developers.cloudflare.com/r2/. [Accessed: Oct. 28, 2026].')
     ]
 
     for ref_id, citation_text in references_data:
