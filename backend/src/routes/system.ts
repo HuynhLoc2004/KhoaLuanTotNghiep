@@ -577,6 +577,14 @@ systemRouter.get('/branding', async (req: Request, res: Response) => {
 systemRouter.get('/favicon', async (req: Request, res: Response) => {
   try {
     const branding = await getSystemBrandingConfig();
+    const logoUrl = branding.logoUrl && String(branding.logoUrl).trim();
+
+    // Nếu quản trị viên đã tải lên logo ảnh hợp lệ, phục vụ favicon theo ảnh logo chính thức
+    if (logoUrl && !['gunmbt', 'dsy1um', 'kvfot5', 'hbc4hq', 'pxwz8o'].some((s) => logoUrl.includes(s))) {
+      res.setHeader('Cache-Control', 'public, max-age=600, stale-while-revalidate=3600');
+      return res.redirect(302, logoUrl);
+    }
+
     const rawEmblem = (req.query.emblem as string || branding.emblemText || 'BT').trim() || 'BT';
     const emblem = rawEmblem.slice(0, 4).toUpperCase();
     const fontSize = emblem.length > 2 ? (emblem.length > 3 ? 20 : 24) : 32;
@@ -584,7 +592,7 @@ systemRouter.get('/favicon', async (req: Request, res: Response) => {
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64"><defs><linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#962A15"/><stop offset="100%" stop-color="#5A1A0C"/></linearGradient><linearGradient id="gold" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#FFEAA7"/><stop offset="50%" stop-color="#D4A86A"/><stop offset="100%" stop-color="#AA7C39"/></linearGradient></defs><rect width="64" height="64" rx="14" fill="url(#bg)"/><rect x="2.5" y="2.5" width="59" height="59" rx="12" fill="none" stroke="url(#gold)" stroke-width="2.5" stroke-opacity="0.9"/><text x="32" y="33" font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="${fontSize}" font-weight="900" text-anchor="middle" dominant-baseline="central" fill="#FFFFFF" letter-spacing="0.5">${emblem}</text></svg>`;
 
     res.setHeader('Content-Type', 'image/svg+xml');
-    res.setHeader('Cache-Control', 'public, max-age=1800, stale-while-revalidate=86400');
+    res.setHeader('Cache-Control', 'public, max-age=600, stale-while-revalidate=3600');
     return res.send(svg);
   } catch (err: any) {
     const fallbackSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64"><rect width="64" height="64" rx="14" fill="#962A15"/><text x="32" y="33" font-family="sans-serif" font-size="30" font-weight="900" text-anchor="middle" dominant-baseline="central" fill="#FFF">BT</text></svg>`;

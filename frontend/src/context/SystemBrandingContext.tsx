@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { SystemBranding } from '../types';
-import { api, API_ROOT } from '../services/api';
+import { api, API_ROOT, resolveMediaUrl } from '../services/api';
 
 const LOCAL_STORAGE_KEY = 'system_branding_cache';
 
@@ -346,28 +346,47 @@ export const SystemBrandingProvider: React.FC<{ children: React.ReactNode }> = (
       const name = branding.shortName || branding.museumName || 'Bảo tàng Di sản';
       document.title = `${name} - Hệ thống Tour 360 Không gian Di sản`;
 
-      // Favicon biểu trưng BT sắc nét cao: Sử dụng SVG vector nội tuyến đồng bộ tức thì, không phụ thuộc mạng, không bao giờ mất
-      const rawEmblem = (branding.emblemText || 'BT').trim() || 'BT';
-      const emblem = rawEmblem.slice(0, 4).toUpperCase();
-      const fontSize = emblem.length > 2 ? (emblem.length > 3 ? 20 : 24) : 32;
-      const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64"><defs><linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#962A15"/><stop offset="100%" stop-color="#5A1A0C"/></linearGradient><linearGradient id="gold" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#FFEAA7"/><stop offset="50%" stop-color="#D4A86A"/><stop offset="100%" stop-color="#AA7C39"/></linearGradient></defs><rect width="64" height="64" rx="14" fill="url(#bg)"/><rect x="2.5" y="2.5" width="59" height="59" rx="12" fill="none" stroke="url(#gold)" stroke-width="2.5" stroke-opacity="0.9"/><text x="32" y="33" font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="${fontSize}" font-weight="900" text-anchor="middle" dominant-baseline="central" fill="#FFFFFF" letter-spacing="0.5">${emblem}</text></svg>`;
-      const targetIconUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+      const hasCustomLogo = Boolean(branding.logoUrl && branding.logoUrl.trim());
+      let targetIconUrl = '';
+      let mimeType = 'image/svg+xml';
 
-      let favicons = document.querySelectorAll<HTMLLinkElement>("link[rel*='icon']");
-      if (favicons.length > 0) {
-        favicons.forEach((el) => {
-          el.href = targetIconUrl;
-          el.type = 'image/svg+xml';
-        });
+      if (hasCustomLogo) {
+        const resolved = resolveMediaUrl(branding.logoUrl!.trim());
+        // Cache buster bằng timestamp/hash đuôi link để Chrome bắt buộc tải lại icon mới ngay lập tức
+        const buster = `v=${encodeURIComponent(branding.logoUrl!.trim().slice(-16))}`;
+        targetIconUrl = resolved.includes('?') ? `${resolved}&${buster}` : `${resolved}?${buster}`;
+        mimeType = resolved.toLowerCase().endsWith('.svg')
+          ? 'image/svg+xml'
+          : (resolved.toLowerCase().endsWith('.png') ? 'image/png' : 'image/jpeg');
       } else {
-        const newFavicon = document.createElement('link');
-        newFavicon.rel = 'icon';
-        newFavicon.type = 'image/svg+xml';
-        newFavicon.href = targetIconUrl;
-        document.head.appendChild(newFavicon);
+        const rawEmblem = (branding.emblemText || 'BT').trim() || 'BT';
+        const emblem = rawEmblem.slice(0, 4).toUpperCase();
+        const fontSize = emblem.length > 2 ? (emblem.length > 3 ? 20 : 24) : 32;
+        const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64"><defs><linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#962A15"/><stop offset="100%" stop-color="#5A1A0C"/></linearGradient><linearGradient id="gold" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#FFEAA7"/><stop offset="50%" stop-color="#D4A86A"/><stop offset="100%" stop-color="#AA7C39"/></linearGradient></defs><rect width="64" height="64" rx="14" fill="url(#bg)"/><rect x="2.5" y="2.5" width="59" height="59" rx="12" fill="none" stroke="url(#gold)" stroke-width="2.5" stroke-opacity="0.9"/><text x="32" y="33" font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="${fontSize}" font-weight="900" text-anchor="middle" dominant-baseline="central" fill="#FFFFFF" letter-spacing="0.5">${emblem}</text></svg>`;
+        targetIconUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+        mimeType = 'image/svg+xml';
       }
+
+      // Xóa sạch các thẻ link favicon cũ để phá vỡ triệt để bộ nhớ đệm (Favicon Cache) của Chrome
+      const existingFavicons = document.querySelectorAll<HTMLLinkElement>("link[rel*='icon']");
+      existingFavicons.forEach((el) => el.parentNode?.removeChild(el));
+
+      // Tạo mới phần tử link rel="icon" với đường dẫn logo mới
+      const newFavicon = document.createElement('link');
+      newFavicon.id = 'appFavicon';
+      newFavicon.rel = 'icon';
+      newFavicon.type = mimeType;
+      newFavicon.href = targetIconUrl;
+      document.head.appendChild(newFavicon);
+
+      // Thêm thẻ shortcut icon đảm bảo cập nhật ngay lập tức trên tab trình duyệt
+      const shortcutFavicon = document.createElement('link');
+      shortcutFavicon.rel = 'shortcut icon';
+      shortcutFavicon.type = mimeType;
+      shortcutFavicon.href = targetIconUrl;
+      document.head.appendChild(shortcutFavicon);
     }
-  }, [branding.shortName, branding.museumName, branding.emblemText]);
+  }, [branding.shortName, branding.museumName, branding.emblemText, branding.logoUrl]);
 
   const handleUpdateBranding = async (patch: Partial<SystemBranding>): Promise<SystemBranding> => {
     const updated = await api.updateBranding(patch);
