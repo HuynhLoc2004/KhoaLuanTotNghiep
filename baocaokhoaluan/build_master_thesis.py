@@ -447,6 +447,31 @@ def add_db_schema_table(doc, tbl_id, entity_name, columns_desc):
                 c.paragraphs[0].paragraph_format.space_before = Pt(2)
                 c.paragraphs[0].paragraph_format.space_after = Pt(2)
 
+def add_full_width_dotted_line(doc, count=1, space_before=2.5, space_after=2.5, line_spacing=1.3):
+    """
+    Tao dong cham cham cham (dot leader) thang tap tu le trai sang tan le phai 15.5cm.
+    Dung tab stop voi w:leader='dot', KHONG BAO GIO BI XUONG DONG HAY WRAP CHU.
+    """
+    for _ in range(count):
+        p = doc.add_paragraph()
+        p.paragraph_format.space_before = Pt(space_before)
+        p.paragraph_format.space_after = Pt(space_after)
+        p.paragraph_format.line_spacing = line_spacing
+        p.paragraph_format.left_indent = Cm(0)
+        p.paragraph_format.first_line_indent = Cm(0)
+        
+        pPr = p._p.get_or_add_pPr()
+        tabs = OxmlElement('w:tabs')
+        tab = OxmlElement('w:tab')
+        tab.set(qn('w:val'), 'right')
+        tab.set(qn('w:leader'), 'dot')
+        tab.set(qn('w:pos'), str(int(15.5 * 567))) # 15.5cm = 8788 dxa
+        tabs.append(tab)
+        pPr.append(tabs)
+        
+        run = p.add_run("\t")
+        set_run_font(run, "Times New Roman", 13, bold=False, color_rgb=(100, 116, 139))
+
 def add_toc_line(doc, title, page_no, level=1):
     """Them dong muc luc voi tab leader cham cham (. . . . . . .) chuan dep."""
     p = doc.add_paragraph()
@@ -558,6 +583,7 @@ def build_full_document():
         'add_use_case_table': add_use_case_table,
         'add_use_case_spec_table': add_use_case_spec_table,
         'add_db_schema_table': add_db_schema_table,
+        'add_full_width_dotted_line': add_full_width_dotted_line,
         'add_toc_line': add_toc_line,
         'add_reference_entry': add_reference_entry,
         'setup_page_layout': setup_page_layout

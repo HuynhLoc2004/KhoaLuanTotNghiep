@@ -1,8 +1,18 @@
 # -*- coding: utf-8 -*-
 """
-THESIS FRONT MATTER GENERATOR
-Trang bia tieng Viet, Trang bia tieng Anh, Tom tat, Abstract, Loi cam on,
-Phieu GVHD, Phieu GVPB (2 trang), Muc luc, Danh muc hinh, Danh muc bang, Danh muc tu viet tat.
+THESIS FRONT MATTER GENERATOR - CHUẨN BÀI MẪU TIẾN TRẦN & QUY ĐỊNH IUH
+- Trang bìa Tiếng Việt (chuẩn mẫu Tiến Trần)
+- Trang bìa Tiếng Anh (chuẩn mẫu Tiến Trần)
+- ABSTRACT (Tiếng Anh, trang 6 theo Tiến Trần)
+- TÓM TẮT (Tiếng Việt, trang 7 theo Tiến Trần)
+- LỜI CẢM ƠN (trang 8 theo Tiến Trần)
+- NHẬN XÉT CỦA GIÁO VIÊN HƯỚNG DẪN (trang 9 theo Tiến Trần: toàn dòng chấm tab leader chuẩn, không wrap)
+- NHẬN XÉT CỦA GIÁO VIÊN PHẢN BIỆN (trang 10 theo Tiến Trần: tiêu đề chuẩn không có chữ trang 1/2, dòng chấm tab leader)
+- NHẬN XÉT CỦA GIÁO VIÊN PHẢN BIỆN (trang 11 theo Tiến Trần: tiêu đề chuẩn không có chữ trang 2/2, không có câu hỏi lẻ, dòng chấm tab leader)
+- MỤC LỤC (chuẩn tab leader dots)
+- DANH MỤC HÌNH ẢNH (chuẩn tab leader dots)
+- DANH MỤC BẢNG (chuẩn tab leader dots)
+- DANH MỤC CÁC TỪ VIẾT TẮT (bảng tra cứu chuyên nghiệp)
 """
 
 import os
@@ -13,137 +23,107 @@ from docx.oxml import OxmlElement, parse_xml
 from docx.oxml.ns import nsdecls, qn
 
 def add_front_matter(doc, helper):
-    """Xay dung toan bo phan dau bao cao theo quy dinh cua co va mau Tien Tran."""
+    """Xây dựng toàn bộ phần đầu báo cáo chuẩn 100% như mẫu Tiến Trần."""
     
     # -------------------------------------------------------------------------
-    # 1. TRANG BIA TIENG VIET
+    # 1. TRANG BÌA TIẾNG VIỆT (Trang 4 trong mẫu Tiến Trần)
     # -------------------------------------------------------------------------
     p_inst = doc.add_paragraph()
     helper.format_paragraph(p_inst, space_before=0, space_after=2, line_spacing=1.15, align=WD_ALIGN_PARAGRAPH.CENTER, first_indent=0.0)
-    r = p_inst.add_run("BỘ CÔNG THƯƠNG\nTRƯỜNG ĐẠI HỌC CÔNG NGHIỆP THÀNH PHỐ HỒ CHÍ MINH\nKHOA CÔNG NGHỆ THÔNG TIN")
-    helper.set_run_font(r, "Times New Roman", 13, bold=True)
+    r_inst = p_inst.add_run("BỘ CÔNG THƯƠNG\nTRƯỜNG ĐẠI HỌC CÔNG NGHIỆP THÀNH PHỐ HỒ CHÍ MINH\nKHOA CÔNG NGHỆ THÔNG TIN")
+    helper.set_run_font(r_inst, "Times New Roman", 13, bold=True)
     
     # Logo IUH
     if os.path.exists(helper.LOGO_PATH):
         p_logo = doc.add_paragraph()
-        helper.format_paragraph(p_logo, space_before=16, space_after=14, line_spacing=1.0, align=WD_ALIGN_PARAGRAPH.CENTER, first_indent=0.0)
-        p_logo.add_run().add_picture(helper.LOGO_PATH, width=Inches(2.5))
+        helper.format_paragraph(p_logo, space_before=14, space_after=14, line_spacing=1.0, align=WD_ALIGN_PARAGRAPH.CENTER, first_indent=0.0)
+        p_logo.add_run().add_picture(helper.LOGO_PATH, width=Inches(2.3))
     else:
         p_sp = doc.add_paragraph()
-        helper.format_paragraph(p_sp, space_before=24, space_after=24, line_spacing=1.0)
+        helper.format_paragraph(p_sp, space_before=20, space_after=20, line_spacing=1.0)
         
-    p_kltn = doc.add_paragraph()
-    helper.format_paragraph(p_kltn, space_before=6, space_after=14, line_spacing=1.15, align=WD_ALIGN_PARAGRAPH.CENTER, first_indent=0.0)
-    r_kltn = p_kltn.add_run("KHÓA LUẬN TỐT NGHIỆP")
-    helper.set_run_font(r_kltn, "Times New Roman", 16, bold=True)
+    p_sv = doc.add_paragraph()
+    helper.format_paragraph(p_sv, space_before=12, space_after=14, line_spacing=1.2, align=WD_ALIGN_PARAGRAPH.CENTER, first_indent=0.0)
+    r_sv = p_sv.add_run("HUỲNH TẤN LỘC\nTRỊNH VĨ THÀNH")
+    helper.set_run_font(r_sv, "Times New Roman", 14, bold=True)
     
-    # Ten de tai
     p_title = doc.add_paragraph()
-    helper.format_paragraph(p_title, space_before=14, space_after=16, line_spacing=1.3, align=WD_ALIGN_PARAGRAPH.CENTER, first_indent=0.0)
-    r_title = p_title.add_run("HỆ THỐNG THAM QUAN THỰC TẾ ẢO 360° & SỐ HÓA KHÔNG GIAN DI SẢN BẢO TÀNG LỊCH SỬ TP. HỒ CHÍ MINH")
-    helper.set_run_font(r_title, "Times New Roman", 18, bold=True, color_rgb=(140, 45, 25))
+    helper.format_paragraph(p_title, space_before=14, space_after=16, line_spacing=1.25, align=WD_ALIGN_PARAGRAPH.CENTER, first_indent=0.0)
+    r_title = p_title.add_run("HỆ THỐNG THAM QUAN THỰC TẾ ẢO 360°\nVÀ SỐ HÓA KHÔNG GIAN DI SẢN BẢO TÀNG LỊCH SỬ THÀNH PHỐ HỒ CHÍ MINH")
+    helper.set_run_font(r_title, "Times New Roman", 17, bold=True)
+    
+    p_kltn = doc.add_paragraph()
+    helper.format_paragraph(p_kltn, space_before=12, space_after=8, line_spacing=1.15, align=WD_ALIGN_PARAGRAPH.CENTER, first_indent=0.0)
+    r_kltn = p_kltn.add_run("KHÓA LUẬN TỐT NGHIỆP")
+    helper.set_run_font(r_kltn, "Times New Roman", 15, bold=True)
     
     p_major = doc.add_paragraph()
-    helper.format_paragraph(p_major, space_before=8, space_after=24, line_spacing=1.15, align=WD_ALIGN_PARAGRAPH.CENTER, first_indent=0.0)
-    r_maj = p_major.add_run("Chuyên ngành: CÔNG NGHỆ THÔNG TIN\nMã chuyên ngành: 7480201")
-    helper.set_run_font(r_maj, "Times New Roman", 13, bold=True)
+    helper.format_paragraph(p_major, space_before=6, space_after=20, line_spacing=1.15, align=WD_ALIGN_PARAGRAPH.CENTER, first_indent=0.0)
+    r_maj = p_major.add_run("Ngành: Công Nghệ Thông Tin")
+    helper.set_run_font(r_maj, "Times New Roman", 13, bold=False)
     
-    # Khung thong tin GVHD & SVTH
-    p_info = doc.add_paragraph()
-    helper.format_paragraph(p_info, space_before=24, space_after=36, line_spacing=1.3, align=WD_ALIGN_PARAGRAPH.LEFT, first_indent=0.0, left_indent=4.0)
-    r_info = p_info.add_run(
-        "Giảng viên hướng dẫn:\tTS. TRẦN THỊ MINH KHOA\n"
-        "Sinh viên thực hiện 1:\tHUỲNH TẤN LỘC\tMSSV: 22686171\n"
-        "Sinh viên thực hiện 2:\tTRỊNH VĨ THÀNH\tMSSV: 22689411\n"
-        "Lớp học danh nghĩa:\tDHCNTT18ATT"
-    )
-    helper.set_run_font(r_info, "Times New Roman", 13, bold=False)
+    p_gvhd = doc.add_paragraph()
+    helper.format_paragraph(p_gvhd, space_before=16, space_after=28, line_spacing=1.15, align=WD_ALIGN_PARAGRAPH.CENTER, first_indent=0.0)
+    r_gv = p_gvhd.add_run("Giảng viên hướng dẫn: TS. Trần Thị Minh Khoa")
+    helper.set_run_font(r_gv, "Times New Roman", 13, bold=True)
     
     p_date = doc.add_paragraph()
-    helper.format_paragraph(p_date, space_before=36, space_after=0, line_spacing=1.15, align=WD_ALIGN_PARAGRAPH.CENTER, first_indent=0.0)
+    helper.format_paragraph(p_date, space_before=24, space_after=0, line_spacing=1.15, align=WD_ALIGN_PARAGRAPH.CENTER, first_indent=0.0)
     r_date = p_date.add_run("THÀNH PHỐ HỒ CHÍ MINH, THÁNG 12 NĂM 2026")
     helper.set_run_font(r_date, "Times New Roman", 13, bold=True)
     
     doc.add_page_break()
     
     # -------------------------------------------------------------------------
-    # 2. TRANG BIA TIENG ANH
+    # 2. TRANG BÌA TIẾNG ANH (Trang 5 trong mẫu Tiến Trần)
     # -------------------------------------------------------------------------
     p_einst = doc.add_paragraph()
     helper.format_paragraph(p_einst, space_before=0, space_after=2, line_spacing=1.15, align=WD_ALIGN_PARAGRAPH.CENTER, first_indent=0.0)
-    r_einst = p_einst.add_run("MINISTRY OF INDUSTRY AND TRADE\nINDUSTRIAL UNIVERSITY OF HO CHI MINH CITY\nFACULTY OF INFORMATION TECHNOLOGY")
-    helper.set_run_font(r_einst, "Times New Roman", 13, bold=True)
+    r_e = p_einst.add_run("MINISTRY OF INDUSTRY AND TRADE\nINDUSTRIAL UNIVERSITY OF HO CHI MINH CITY\nFACULTY OF INFORMATION TECHNOLOGY")
+    helper.set_run_font(r_e, "Times New Roman", 13, bold=True)
     
     if os.path.exists(helper.LOGO_PATH):
         p_elogo = doc.add_paragraph()
-        helper.format_paragraph(p_elogo, space_before=16, space_after=14, line_spacing=1.0, align=WD_ALIGN_PARAGRAPH.CENTER, first_indent=0.0)
-        p_elogo.add_run().add_picture(helper.LOGO_PATH, width=Inches(2.5))
+        helper.format_paragraph(p_elogo, space_before=14, space_after=14, line_spacing=1.0, align=WD_ALIGN_PARAGRAPH.CENTER, first_indent=0.0)
+        p_elogo.add_run().add_picture(helper.LOGO_PATH, width=Inches(2.3))
     else:
         p_esp = doc.add_paragraph()
-        helper.format_paragraph(p_esp, space_before=24, space_after=24, line_spacing=1.0)
+        helper.format_paragraph(p_esp, space_before=20, space_after=20, line_spacing=1.0)
         
-    p_ekltn = doc.add_paragraph()
-    helper.format_paragraph(p_ekltn, space_before=6, space_after=14, line_spacing=1.15, align=WD_ALIGN_PARAGRAPH.CENTER, first_indent=0.0)
-    r_ekltn = p_ekltn.add_run("GRADUATION THESIS (CAPSTONE PROJECT)")
-    helper.set_run_font(r_ekltn, "Times New Roman", 16, bold=True)
+    p_esv = doc.add_paragraph()
+    helper.format_paragraph(p_esv, space_before=12, space_after=14, line_spacing=1.2, align=WD_ALIGN_PARAGRAPH.CENTER, first_indent=0.0)
+    r_esv = p_esv.add_run("HUYNH TAN LOC\nTRINH VI THANH")
+    helper.set_run_font(r_esv, "Times New Roman", 14, bold=True)
     
     p_etitle = doc.add_paragraph()
-    helper.format_paragraph(p_etitle, space_before=14, space_after=16, line_spacing=1.3, align=WD_ALIGN_PARAGRAPH.CENTER, first_indent=0.0)
-    r_etitle = p_etitle.add_run("VIRTUAL TOUR 360° & HERITAGE SPACE DIGITIZATION FOR HO CHI MINH CITY MUSEUM OF HISTORY")
-    helper.set_run_font(r_etitle, "Times New Roman", 18, bold=True, color_rgb=(140, 45, 25))
+    helper.format_paragraph(p_etitle, space_before=14, space_after=16, line_spacing=1.25, align=WD_ALIGN_PARAGRAPH.CENTER, first_indent=0.0)
+    r_etitle = p_etitle.add_run("360° VIRTUAL REALITY TOUR AND HERITAGE SPACE\nDIGITALIZATION SYSTEM FOR HISTORICAL MUSEUM OF HO CHI MINH CITY")
+    helper.set_run_font(r_etitle, "Times New Roman", 17, bold=True)
+    
+    p_ekltn = doc.add_paragraph()
+    helper.format_paragraph(p_ekltn, space_before=12, space_after=8, line_spacing=1.15, align=WD_ALIGN_PARAGRAPH.CENTER, first_indent=0.0)
+    r_ekltn = p_ekltn.add_run("GRADUATION THESIS")
+    helper.set_run_font(r_ekltn, "Times New Roman", 15, bold=True)
     
     p_emajor = doc.add_paragraph()
-    helper.format_paragraph(p_emajor, space_before=8, space_after=24, line_spacing=1.15, align=WD_ALIGN_PARAGRAPH.CENTER, first_indent=0.0)
-    r_emaj = p_emajor.add_run("Major: INFORMATION TECHNOLOGY\nMajor Code: 7480201")
-    helper.set_run_font(r_emaj, "Times New Roman", 13, bold=True)
+    helper.format_paragraph(p_emajor, space_before=6, space_after=20, line_spacing=1.15, align=WD_ALIGN_PARAGRAPH.CENTER, first_indent=0.0)
+    r_emaj = p_emajor.add_run("Major: Information Technology")
+    helper.set_run_font(r_emaj, "Times New Roman", 13, bold=False)
     
-    p_einfo = doc.add_paragraph()
-    helper.format_paragraph(p_einfo, space_before=24, space_after=36, line_spacing=1.3, align=WD_ALIGN_PARAGRAPH.LEFT, first_indent=0.0, left_indent=4.0)
-    r_einfo = p_einfo.add_run(
-        "Instructor:\t\tPh.D TRAN THI MINH KHOA\n"
-        "Student 1:\t\tHUYNH TAN LOC\tID: 22686171\n"
-        "Student 2:\t\tTRINH VI THANH\tID: 22689411\n"
-        "Class:\t\t\tDHCNTT18ATT"
-    )
-    helper.set_run_font(r_einfo, "Times New Roman", 13, bold=False)
+    p_einstruc = doc.add_paragraph()
+    helper.format_paragraph(p_einstruc, space_before=16, space_after=28, line_spacing=1.15, align=WD_ALIGN_PARAGRAPH.CENTER, first_indent=0.0)
+    r_ei = p_einstruc.add_run("Instructor: Ph.D Tran Thi Minh Khoa")
+    helper.set_run_font(r_ei, "Times New Roman", 13, bold=True)
     
     p_edate = doc.add_paragraph()
-    helper.format_paragraph(p_edate, space_before=36, space_after=0, line_spacing=1.15, align=WD_ALIGN_PARAGRAPH.CENTER, first_indent=0.0)
+    helper.format_paragraph(p_edate, space_before=24, space_after=0, line_spacing=1.15, align=WD_ALIGN_PARAGRAPH.CENTER, first_indent=0.0)
     r_edate = p_edate.add_run("HO CHI MINH CITY, DECEMBER 2026")
     helper.set_run_font(r_edate, "Times New Roman", 13, bold=True)
     
     doc.add_page_break()
     
     # -------------------------------------------------------------------------
-    # 3. TOM TAT DE TAI (TIENG VIET)
-    # -------------------------------------------------------------------------
-    p_tt_h = helper.add_heading_1(doc, "TÓM TẮT ĐỀ TÀI")
-    p_tt_h.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    
-    helper.add_body_p(doc, 
-        "Trong kỷ nguyên chuyển đổi số quốc gia và phát triển kinh tế di sản, việc bảo tồn và phát huy các giá trị văn hóa - lịch sử thông qua công nghệ số đóng vai trò vô cùng cấp thiết. Bảo tàng Lịch sử Thành phố Hồ Chí Minh là một trong những công trình kiến trúc di sản tiêu biểu hàng đầu miền Nam, lưu giữ hơn 40.000 cổ vật và hiện vật quý giá trải dài từ thời kỳ Tiền sơ sử, các nền văn hóa cổ Champa, Óc Eo đến các triều đại phong kiến Việt Nam. Tuy nhiên, trước các thách thức về giới hạn không gian địa lý, nguy cơ xuống cấp vật lý của hiện vật theo thời gian và nhu cầu tiếp cận trải nghiệm số ngày càng cao của công chúng trong và ngoài nước, các phương thức trưng bày tĩnh truyền thống đã bộc lộ nhiều hạn chế."
-    )
-    helper.add_body_p(doc, 
-        "Đề tài “Hệ thống tham quan thực tế ảo 360° & số hóa không gian di sản Bảo tàng Lịch sử TP. Hồ Chí Minh” được thực hiện nhằm xây dựng một hệ sinh thái web di sản toàn diện, tích hợp sâu công nghệ đồ họa không gian 3D WebGL (Three.js), thị giác máy tính ghép ảnh toàn cảnh Panorama Studio, thuật toán định tuyến Dijkstra liên thông 18 gian phòng trưng bày, phân hệ đặt vé và thanh toán trực tuyến VietQR (PayOS) cùng giải pháp soát vé camera thời gian thực trên thiết bị di động."
-    )
-    helper.add_body_p(doc, 
-        "Đặc biệt, hệ thống được nhóm nghiên cứu trực tiếp triển khai thu thập dữ liệu qua 4 đợt tác nghiệp thực địa nghiêm ngặt tại Bảo tàng Lịch sử TP.HCM (Số 2 Nguyễn Bỉnh Khiêm, Quận 1). Toàn bộ 18 gian phòng trưng bày đã được nắn chỉnh hình học trụ (Cylindrical Warping), ghép mí đa dải tần (Multiband Laplacian Pyramid Blending) và xóa bóng chân máy (Nadir Inpainting) để đạt chuẩn không gian cầu tương tác 360° x 180° với độ sắc nét chân thực. Cùng với đó, các cổ vật quý được số hóa 3D tương tác xoay đa chiều, tích hợp thuyết minh âm thanh đa ngôn ngữ (Text-to-Speech) và Trợ lý ảo AI thông minh, mang đến cho khách tham quan trải nghiệm như đang trực tiếp bước đi trong không gian di sản sống động."
-    )
-    helper.add_body_p(doc, 
-        "Hệ thống được thiết kế theo kiến trúc phân tầng 3-tier hiện đại với công nghệ React 18, Node.js/TypeScript, hệ quản trị cơ sở dữ liệu lai PostgreSQL/MongoDB và bộ nhớ đệm Redis, toàn bộ đóng gói trên hạ tầng máy chủ đám mây Cloud VPS và Docker Container. Kết quả kiểm thử chịu tải thực tế với Apache JMeter cho thấy hệ thống duy trì thông lượng ổn định trên 240 requests/giây và thời gian phản hồi trung bình dưới 120ms khi có hàng trăm người dùng đồng thời, chứng minh tính khả thi, độ tin cậy và tiềm năng ứng dụng thực tiễn to lớn trong công tác chuyển đổi số bảo tàng tại Việt Nam."
-    )
-    
-    p_kw = doc.add_paragraph()
-    helper.format_paragraph(p_kw, space_before=12, space_after=0, line_spacing=1.5, align=WD_ALIGN_PARAGRAPH.JUSTIFY, first_indent=0.0)
-    r_kw_title = p_kw.add_run("Từ khóa: ")
-    helper.set_run_font(r_kw_title, "Times New Roman", 13, bold=True)
-    r_kw_txt = p_kw.add_run("Thực tế ảo 360°, Số hóa di sản, Bảo tàng Lịch sử TP.HCM, Three.js, Ghép ảnh Panorama, Thuật toán Dijkstra, PayOS VietQR, Soát vé Camera QR.")
-    helper.set_run_font(r_kw_txt, "Times New Roman", 13, bold=False, italic=True)
-    
-    doc.add_page_break()
-    
-    # -------------------------------------------------------------------------
-    # 4. ABSTRACT (TIENG ANH)
+    # 3. ABSTRACT (Trang 6 trong mẫu Tiến Trần)
     # -------------------------------------------------------------------------
     p_ab_h = helper.add_heading_1(doc, "ABSTRACT")
     p_ab_h.alignment = WD_ALIGN_PARAGRAPH.CENTER
@@ -165,175 +145,138 @@ def add_front_matter(doc, helper):
     helper.format_paragraph(p_ekw, space_before=12, space_after=0, line_spacing=1.5, align=WD_ALIGN_PARAGRAPH.JUSTIFY, first_indent=0.0)
     r_ekw_title = p_ekw.add_run("Keywords: ")
     helper.set_run_font(r_ekw_title, "Times New Roman", 13, bold=True)
-    r_ekw_txt = p_ekw.add_run("Virtual Tour 360°, Heritage Digitization, Ho Chi Minh City Museum of History, Three.js, Panorama Stitching, Dijkstra Algorithm, PayOS VietQR, QR Ticket Scanner.")
+    r_ekw_txt = p_ekw.add_run("Virtual Tour 360°, Heritage Space Digitization, Ho Chi Minh City Museum of History, Three.js WebGL, Dijkstra Algorithm, PayOS VietQR, QR Ticket Scanner.")
     helper.set_run_font(r_ekw_txt, "Times New Roman", 13, bold=False, italic=True)
     
     doc.add_page_break()
     
     # -------------------------------------------------------------------------
-    # 5. LOI CAM ON
+    # 4. TÓM TẮT (Trang 7 trong mẫu Tiến Trần)
+    # -------------------------------------------------------------------------
+    p_tt_h = helper.add_heading_1(doc, "TÓM TẮT")
+    p_tt_h.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    
+    helper.add_body_p(doc, 
+        "Trong kỷ nguyên chuyển đổi số quốc gia và phát triển kinh tế di sản, việc bảo tồn và phát huy các giá trị văn hóa - lịch sử thông qua công nghệ số đóng vai trò vô cùng cấp thiết. Bảo tàng Lịch sử Thành phố Hồ Chí Minh là một trong những công trình kiến trúc di sản tiêu biểu hàng đầu miền Nam, lưu giữ hơn 40.000 cổ vật và hiện vật quý giá trải dài từ thời kỳ Tiền sơ sử, các nền văn hóa cổ Champa, Óc Eo đến các triều đại phong kiến Việt Nam. Tuy nhiên, trước các thách thức về giới hạn không gian địa lý, nguy cơ xuống cấp vật lý của hiện vật theo thời gian và nhu cầu tiếp cận trải nghiệm số ngày càng cao của công chúng trong và ngoài nước, các phương thức trưng bày tĩnh truyền thống đã bộc lộ nhiều hạn chế."
+    )
+    helper.add_body_p(doc, 
+        "Đề tài “Hệ thống tham quan thực tế ảo 360° & số hóa không gian di sản Bảo tàng Lịch sử TP. Hồ Chí Minh” được thực hiện nhằm xây dựng một hệ sinh thái web di sản toàn diện, tích hợp sâu công nghệ đồ họa không gian 3D WebGL (Three.js), thị giác máy tính ghép ảnh toàn cảnh Panorama Studio, thuật toán định tuyến Dijkstra liên thông 18 gian phòng trưng bày, phân hệ đặt vé và thanh toán trực tuyến VietQR (PayOS) cùng giải pháp soát vé camera thời gian thực trên thiết bị di động."
+    )
+    helper.add_body_p(doc, 
+        "Đặc biệt, hệ thống được nhóm nghiên cứu trực tiếp triển khai thu thập dữ liệu qua 4 đợt tác nghiệp thực địa nghiêm ngặt tại Bảo tàng Lịch sử TP.HCM (Số 2 Nguyễn Bỉnh Khiêm, Quận 1). Toàn bộ 18 gian phòng trưng bày đã được nắn chỉnh hình học trụ (Cylindrical Warping), ghép mí đa dải tần (Multiband Laplacian Pyramid Blending) và xóa bóng chân máy (Nadir Inpainting) để đạt chuẩn không gian cầu tương tác 360° x 180° với độ sắc nét chân thực. Cùng với đó, các cổ vật quý được số hóa 3D tương tác xoay đa chiều, tích hợp thuyết minh âm thanh đa ngôn ngữ (Text-to-Speech) và Trợ lý ảo AI thông minh, mang đến cho khách tham quan trải nghiệm như đang trực tiếp bước đi trong không gian di sản sống động."
+    )
+    helper.add_body_p(doc, 
+        "Hệ thống được thiết kế theo kiến trúc phân tầng 3-tier hiện đại với công nghệ React 18, Node.js/TypeScript, hệ quản trị cơ sở dữ liệu lai PostgreSQL/MongoDB và bộ nhớ đệm Redis, toàn bộ đóng gói trên hạ tầng máy chủ đám mây Cloud VPS và Docker Container. Kết quả kiểm thử chịu tải thực tế với Apache JMeter cho thấy hệ thống duy trì thông lượng ổn định trên 240 requests/giây và thời gian phản hồi trung bình dưới 120ms khi có hàng trăm người dùng đồng thời, chứng minh tính khả thi, độ tin cậy và tiềm năng ứng dụng thực tiễn to lớn trong công tác chuyển đổi số bảo tàng tại Việt Nam."
+    )
+    
+    p_kw = doc.add_paragraph()
+    helper.format_paragraph(p_kw, space_before=12, space_after=0, line_spacing=1.5, align=WD_ALIGN_PARAGRAPH.JUSTIFY, first_indent=0.0)
+    r_kw_title = p_kw.add_run("Từ khóa: ")
+    helper.set_run_font(r_kw_title, "Times New Roman", 13, bold=True)
+    r_kw_txt = p_kw.add_run("Thực tế ảo 360°, Số hóa di sản, Bảo tàng Lịch sử TP.HCM, Three.js WebGL, Ghép ảnh Panorama, Thuật toán Dijkstra, PayOS VietQR, Soát vé Camera QR.")
+    helper.set_run_font(r_kw_txt, "Times New Roman", 13, bold=False, italic=True)
+    
+    doc.add_page_break()
+    
+    # -------------------------------------------------------------------------
+    # 5. LỜI CẢM ƠN (Trang 8 trong mẫu Tiến Trần)
     # -------------------------------------------------------------------------
     p_co_h = helper.add_heading_1(doc, "LỜI CẢM ƠN")
     p_co_h.alignment = WD_ALIGN_PARAGRAPH.CENTER
     
     helper.add_body_p(doc, 
-        "Để hoàn thành tốt khóa luận tốt nghiệp này, bên cạnh sự nỗ lực và nghiên cứu nghiêm túc của bản thân, nhóm chúng em đã nhận được sự quan tâm, động viên và chỉ dẫn vô cùng quý báu từ quý thầy cô, các đơn vị chuyên môn và gia đình."
+        "Trong suốt quá trình thực hiện đề tài \"Hệ thống tham quan thực tế ảo 360° & số hóa không gian di sản Bảo tàng Lịch sử Thành phố Hồ Chí Minh\", nhóm chúng em đã nhận được sự hỗ trợ và chỉ dẫn vô cùng quý báu từ quý thầy cô, các đơn vị chuyên môn, bạn bè và gia đình."
     )
     helper.add_body_p(doc, 
-        "Trước hết, nhóm chúng em xin bày tỏ lòng biết ơn sâu sắc và chân thành nhất tới Cô — Tiến sĩ Trần Thị Minh Khoa, giảng viên trực tiếp hướng dẫn khóa luận tốt nghiệp. Trong suốt quá trình nghiên cứu, khảo sát thực tế và triển khai hệ thống, Cô đã luôn dành nhiều thời gian quý báu để định hướng học thuật, chỉnh sửa từng đề cương chi tiết, gợi ý các giải pháp kỹ thuật tối ưu và truyền cho chúng em niềm đam mê nghiên cứu khoa học cũng như tác phong làm việc chuyên nghiệp, chuẩn mực."
+        "Trước hết, nhóm chúng em xin gửi lời cảm ơn chân thành và sâu sắc nhất đến Tiến sĩ Trần Thị Minh Khoa, giảng viên hướng dẫn, người đã tận tình định hướng học thuật, đóng góp những ý kiến chuyên môn sâu sắc và luôn đồng hành, động viên chúng em trong suốt quá trình nghiên cứu, khảo sát thực tế và phát triển đề tài."
     )
     helper.add_body_p(doc, 
-        "Chúng em xin chân thành cảm ơn Ban Giám hiệu, Ban Chủ nhiệm Khoa Công nghệ Thông tin cùng toàn thể quý Thầy, Cô giáo Trường Đại học Công nghiệp Thành phố Hồ Chí Minh (IUH). Trong suốt 4 năm học tập và rèn luyện dưới mái trường, quý Thầy Cô đã tận tâm truyền đạt những nền tảng tri thức vững chắc về công nghệ phần mềm, thị giác máy tính, kiến trúc hệ thống và đạo đức nghề nghiệp, tạo tiền đề vững chắc giúp chúng em tự tin thực hiện đề tài tốt nghiệp này."
+        "Chúng em cũng xin cảm ơn quý thầy cô trong Khoa Công nghệ Thông tin – Trường Đại học Công nghiệp TP.HCM đã truyền đạt những kiến thức nền tảng và chuyên sâu về kỹ thuật phần mềm, thị giác máy tính và kiến trúc hệ thống, tạo mọi điều kiện thuận lợi nhất để chúng em hoàn thành tốt đề tài này."
     )
     helper.add_body_p(doc, 
-        "Nhóm chúng em cũng xin trân trọng gửi lời cảm ơn tới Ban Giám đốc cùng các cán bộ, nhân viên tại Bảo tàng Lịch sử Thành phố Hồ Chí Minh (Số 2 Nguyễn Bỉnh Khiêm, Quận 1). Sự hỗ trợ nhiệt tình, tạo điều kiện thuận lợi của Ban Quản lý Bảo tàng trong suốt 4 đợt khảo sát thực địa đã giúp chúng em tiếp cận không gian 18 phòng trưng bày, thu thập tư liệu lịch sử chính xác và kiểm nghiệm hệ thống trên thực tế một cách hiệu quả."
+        "Nhóm chúng em xin trân trọng gửi lời cảm ơn đến Ban Giám đốc và các cán bộ, nhân viên tại Bảo tàng Lịch sử Thành phố Hồ Chí Minh (Số 2 Nguyễn Bỉnh Khiêm, Quận 1). Sự tạo điều kiện và hỗ trợ nhiệt tình của Ban Quản lý Bảo tàng trong 4 đợt khảo sát thực địa đã giúp chúng em tiếp cận không gian 18 gian phòng trưng bày, thu thập tư liệu lịch sử chính xác và kiểm nghiệm hệ thống trên thực tế."
     )
     helper.add_body_p(doc, 
-        "Cuối cùng, chúng con xin gửi lời tri ân sâu sắc nhất tới Cha Mẹ và Gia đình — điểm tựa tinh thần vững chắc luôn động viên, chia sẻ và tạo mọi điều kiện tốt nhất trong suốt chặng đường học tập. Xin cảm ơn tất cả bạn bè lớp DHCNTT18ATT đã luôn đồng hành, góp ý và sát cánh cùng chúng em trong những năm tháng đại học đáng nhớ."
+        "Xin gửi lời cảm ơn sâu sắc đến gia đình và bạn bè – những người đã luôn quan tâm, động viên, chia sẻ và tiếp thêm động lực cho chúng em trong suốt quá trình học tập và thực hiện khóa luận."
     )
     helper.add_body_p(doc, 
-        "Dù đã nỗ lực hết mình và bám sát mã nguồn cũng như dữ liệu thực tế, song do giới hạn về mặt thời gian và kinh nghiệm, khóa luận khó tránh khỏi những thiếu sót nhất định. Nhóm chúng em rất mong nhận được những lời chỉ bảo, nhận xét và đóng góp quý báu từ quý Thầy Cô trong Hội đồng phản biện để đề tài ngày càng hoàn thiện hơn."
+        "Mặc dù đã cố gắng hết sức, nhưng do thời gian có hạn và trình độ còn hạn chế, đề tài khó tránh khỏi những thiếu sót nhất định. Nhóm chúng em rất mong nhận được sự góp ý từ quý thầy cô để có thể hoàn thiện và phát triển tốt hơn trong tương lai."
     )
     
-    p_sv = doc.add_paragraph()
-    helper.format_paragraph(p_sv, space_before=24, space_after=0, line_spacing=1.3, align=WD_ALIGN_PARAGRAPH.RIGHT, first_indent=0.0)
-    r_sv = p_sv.add_run(
-        "TP. Hồ Chí Minh, ngày 20 tháng 11 năm 2026\n"
-        "Nhóm sinh viên thực hiện:\n\n\n"
-        "Huỳnh Tấn Lộc             Trịnh Vĩ Thành"
+    p_sv_sign = doc.add_paragraph()
+    helper.format_paragraph(p_sv_sign, space_before=20, space_after=0, line_spacing=1.3, align=WD_ALIGN_PARAGRAPH.RIGHT, first_indent=0.0)
+    r_sign = p_sv_sign.add_run(
+        "TP. Hồ Chí Minh, ngày … tháng … năm 2026\n"
+        "SINH VIÊN THỰC HIỆN\n\n\n\n"
+        "Huỳnh Tấn Lộc         Trịnh Vĩ Thành"
     )
-    helper.set_run_font(r_sv, "Times New Roman", 13, bold=True)
+    helper.set_run_font(r_sign, "Times New Roman", 13, bold=True)
     
     doc.add_page_break()
     
     # -------------------------------------------------------------------------
-    # 6. PHIEU NHAN XET CUA GIANG VIEN HUONG DAN
+    # 6. NHẬN XÉT CỦA GIÁO VIÊN HƯỚNG DẪN (Trang 9 trong mẫu Tiến Trần)
     # -------------------------------------------------------------------------
     p_gvhd_h = helper.add_heading_1(doc, "NHẬN XÉT CỦA GIÁO VIÊN HƯỚNG DẪN")
     p_gvhd_h.alignment = WD_ALIGN_PARAGRAPH.CENTER
     
-    p_gvhd_info = doc.add_paragraph()
-    helper.format_paragraph(p_gvhd_info, space_before=6, space_after=8, line_spacing=1.3, align=WD_ALIGN_PARAGRAPH.LEFT, first_indent=0.0)
-    r_gi = p_gvhd_info.add_run(
-        "Họ và tên sinh viên thực hiện:\n"
-        "1. Huỳnh Tấn Lộc\tMSSV: 22686171\tLớp: DHCNTT18ATT\n"
-        "2. Trịnh Vĩ Thành\tMSSV: 22689411\tLớp: DHCNTT18ATT\n"
-        "Tên đề tài: Hệ thống tham quan thực tế ảo 360° & số hóa không gian di sản Bảo tàng Lịch sử TP. Hồ Chí Minh.\n"
-        "Cán bộ hướng dẫn: TS. Trần Thị Minh Khoa\n"
-        "Đơn vị công tác: Khoa Công nghệ Thông tin – Trường Đại học Công nghiệp TP.HCM"
-    )
-    helper.set_run_font(r_gi, "Times New Roman", 13, bold=False)
+    # Dòng chấm toàn chiều rộng (tab leader dots, 21 dòng thẳng tắp phủ kín trang chuẩn bài mẫu)
+    helper.add_full_width_dotted_line(doc, count=21, space_before=2.5, space_after=2.5, line_spacing=1.3)
     
-    # Cac dong cham nhan xet
-    dots_line = ". . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . ."
-    for sec_title in [
-        "1. Về tinh thần, thái độ làm việc của sinh viên:",
-        "2. Về kiến thức chuyên môn và khả năng giải quyết vấn đề:",
-        "3. Đánh giá chất lượng sản phẩm và chương trình phần mềm:",
-        "4. Điểm mạnh và những điểm cần khắc phục của đề tài:",
-        "5. Kết luận và đề nghị cho phép bảo vệ trước Hội đồng:"
-    ]:
-        p_sec = doc.add_paragraph()
-        helper.format_paragraph(p_sec, space_before=6, space_after=2, line_spacing=1.15, align=WD_ALIGN_PARAGRAPH.LEFT, first_indent=0.0)
-        r_sec = p_sec.add_run(sec_title)
-        helper.set_run_font(r_sec, "Times New Roman", 13, bold=True)
-        for _ in range(2):
-            p_dot = doc.add_paragraph()
-            helper.format_paragraph(p_dot, space_before=2, space_after=2, line_spacing=1.15, align=WD_ALIGN_PARAGRAPH.LEFT, first_indent=0.0)
-            r_dot = p_dot.add_run(dots_line)
-            helper.set_run_font(r_dot, "Times New Roman", 12, bold=False, color_rgb=(100, 116, 139))
-            
-    p_score = doc.add_paragraph()
-    helper.format_paragraph(p_score, space_before=10, space_after=0, line_spacing=1.3, align=WD_ALIGN_PARAGRAPH.RIGHT, first_indent=0.0)
-    r_sc = p_score.add_run(
-        "Điểm đánh giá: . . . . . . . /10   (Bằng chữ: . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .)\n"
-        "TP. Hồ Chí Minh, ngày . . . tháng . . . năm 2026\n"
-        "GIÁNG VIÊN HƯỚNG DẪN\n"
+    p_gvhd_bot = doc.add_paragraph()
+    helper.format_paragraph(p_gvhd_bot, space_before=16, space_after=0, line_spacing=1.3, align=WD_ALIGN_PARAGRAPH.RIGHT, first_indent=0.0)
+    r_ghb = p_gvhd_bot.add_run(
+        "Tp. Hồ Chí Minh, ngày... tháng ... năm 2026\n"
+        "GIÁO VIÊN HƯỚNG DẪN\n"
         "(Ký và ghi rõ họ tên)\n\n\n\n"
         "TS. TRẦN THỊ MINH KHOA"
     )
-    helper.set_run_font(r_sc, "Times New Roman", 13, bold=True)
+    helper.set_run_font(r_ghb, "Times New Roman", 13, bold=True)
     
     doc.add_page_break()
     
     # -------------------------------------------------------------------------
-    # 7. PHIEU NHAN XET CUA GIANG VIEN PHAN BIEN (TRANG 1)
+    # 7. NHẬN XÉT CỦA GIÁO VIÊN PHẢN BIỆN (TRANG 1) (Trang 10 trong mẫu Tiến Trần)
     # -------------------------------------------------------------------------
-    p_gvpb_h1 = helper.add_heading_1(doc, "NHẬN XÉT CỦA GIÁO VIÊN PHẢN BIỆN (TRANG 1/2)")
+    p_gvpb_h1 = helper.add_heading_1(doc, "NHẬN XÉT CỦA GIÁO VIÊN PHẢN BIỆN")
     p_gvpb_h1.alignment = WD_ALIGN_PARAGRAPH.CENTER
     
-    p_pb_info = doc.add_paragraph()
-    helper.format_paragraph(p_pb_info, space_before=6, space_after=8, line_spacing=1.3, align=WD_ALIGN_PARAGRAPH.LEFT, first_indent=0.0)
-    r_pbi = p_pb_info.add_run(
-        "Họ và tên sinh viên: 1. Huỳnh Tấn Lộc (22686171)\t2. Trịnh Vĩ Thành (22689411)\n"
-        "Đề tài: Hệ thống tham quan thực tế ảo 360° & số hóa không gian di sản Bảo tàng Lịch sử TP.HCM.\n"
-        "Cán bộ phản biện: . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .\n"
-        "Đơn vị công tác: Khoa Công nghệ Thông tin – Trường Đại học Công nghiệp TP.HCM"
-    )
-    helper.set_run_font(r_pbi, "Times New Roman", 13, bold=False)
+    # Dòng chấm toàn chiều rộng (tab leader dots, 21 dòng thẳng tắp phủ kín trang chuẩn bài mẫu)
+    helper.add_full_width_dotted_line(doc, count=21, space_before=2.5, space_after=2.5, line_spacing=1.3)
     
-    for sec_title in [
-        "1. Tính cấp thiết, tính thời sự và ý nghĩa thực tiễn của đề tài:",
-        "2. Đánh giá về bố cục, hình thức trình bày và dung lượng báo cáo:",
-        "3. Đánh giá tính đúng đắn của phương pháp nghiên cứu và cơ sở lý thuyết:"
-    ]:
-        p_sec = doc.add_paragraph()
-        helper.format_paragraph(p_sec, space_before=6, space_after=2, line_spacing=1.15, align=WD_ALIGN_PARAGRAPH.LEFT, first_indent=0.0)
-        r_sec = p_sec.add_run(sec_title)
-        helper.set_run_font(r_sec, "Times New Roman", 13, bold=True)
-        for _ in range(4):
-            p_dot = doc.add_paragraph()
-            helper.format_paragraph(p_dot, space_before=2, space_after=2, line_spacing=1.15, align=WD_ALIGN_PARAGRAPH.LEFT, first_indent=0.0)
-            r_dot = p_dot.add_run(dots_line)
-            helper.set_run_font(r_dot, "Times New Roman", 12, bold=False, color_rgb=(100, 116, 139))
-            
+    p_gvpb_bot1 = doc.add_paragraph()
+    helper.format_paragraph(p_gvpb_bot1, space_before=16, space_after=0, line_spacing=1.3, align=WD_ALIGN_PARAGRAPH.RIGHT, first_indent=0.0)
+    r_gpb1 = p_gvpb_bot1.add_run(
+        "Tp. Hồ Chí Minh, ngày... tháng ... năm 2026\n"
+        "GIÁO VIÊN PHẢN BIỆN\n"
+        "(Ký và ghi rõ họ tên)"
+    )
+    helper.set_run_font(r_gpb1, "Times New Roman", 13, bold=True)
+    
     doc.add_page_break()
     
     # -------------------------------------------------------------------------
-    # 8. PHIEU NHAN XET CUA GIANG VIEN PHAN BIEN (TRANG 2)
+    # 8. NHẬN XÉT CỦA GIÁO VIÊN PHẢN BIỆN (TRANG 2) (Trang 11 trong mẫu Tiến Trần)
     # -------------------------------------------------------------------------
-    p_gvpb_h2 = helper.add_heading_1(doc, "NHẬN XÉT CỦA GIÁO VIÊN PHẢN BIỆN (TRANG 2/2)")
+    p_gvpb_h2 = helper.add_heading_1(doc, "NHẬN XÉT CỦA GIÁO VIÊN PHẢN BIỆN")
     p_gvpb_h2.alignment = WD_ALIGN_PARAGRAPH.CENTER
     
-    for sec_title in [
-        "4. Đánh giá kết quả chương trình, tính năng và độ ổn định của sản phẩm:",
-        "5. Những thiếu sót, hạn chế cần giải trình trước Hội đồng:",
-        "6. Các câu hỏi dành cho sinh viên trong buổi bảo vệ:"
-    ]:
-        p_sec = doc.add_paragraph()
-        helper.format_paragraph(p_sec, space_before=6, space_after=2, line_spacing=1.15, align=WD_ALIGN_PARAGRAPH.LEFT, first_indent=0.0)
-        r_sec = p_sec.add_run(sec_title)
-        helper.set_run_font(r_sec, "Times New Roman", 13, bold=True)
-        for _ in range(3):
-            p_dot = doc.add_paragraph()
-            helper.format_paragraph(p_dot, space_before=2, space_after=2, line_spacing=1.15, align=WD_ALIGN_PARAGRAPH.LEFT, first_indent=0.0)
-            r_dot = p_dot.add_run(dots_line)
-            helper.set_run_font(r_dot, "Times New Roman", 12, bold=False, color_rgb=(100, 116, 139))
-            
-    p_pb_concl = doc.add_paragraph()
-    helper.format_paragraph(p_pb_concl, space_before=8, space_after=2, line_spacing=1.15, align=WD_ALIGN_PARAGRAPH.LEFT, first_indent=0.0)
-    r_pbc = p_pb_concl.add_run("7. Kết luận chung:")
-    helper.set_run_font(r_pbc, "Times New Roman", 13, bold=True)
-    p_chk = doc.add_paragraph()
-    helper.format_paragraph(p_chk, space_before=2, space_after=4, line_spacing=1.15, align=WD_ALIGN_PARAGRAPH.LEFT, first_indent=0.0)
-    r_chk = p_chk.add_run("[   ] Đồng ý cho sinh viên bảo vệ\t\t\t[   ] Không đồng ý cho bảo vệ")
-    helper.set_run_font(r_chk, "Times New Roman", 13, bold=True)
+    # Dòng chấm toàn chiều rộng (tab leader dots, 21 dòng thẳng tắp phủ kín trang chuẩn bài mẫu)
+    helper.add_full_width_dotted_line(doc, count=21, space_before=2.5, space_after=2.5, line_spacing=1.3)
     
-    p_pb_score = doc.add_paragraph()
-    helper.format_paragraph(p_pb_score, space_before=10, space_after=0, line_spacing=1.3, align=WD_ALIGN_PARAGRAPH.RIGHT, first_indent=0.0)
-    r_pbsc = p_pb_score.add_run(
-        "Điểm đánh giá: . . . . . . . /10   (Bằng chữ: . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .)\n"
-        "TP. Hồ Chí Minh, ngày . . . tháng . . . năm 2026\n"
-        "GIẢNG VIÊN PHẢN BIỆN\n"
-        "(Ký và ghi rõ họ tên)\n\n\n\n"
-        ". . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . ."
+    p_gvpb_bot2 = doc.add_paragraph()
+    helper.format_paragraph(p_gvpb_bot2, space_before=16, space_after=0, line_spacing=1.3, align=WD_ALIGN_PARAGRAPH.RIGHT, first_indent=0.0)
+    r_gpb2 = p_gvpb_bot2.add_run(
+        "Tp. Hồ Chí Minh, ngày... tháng ... năm 2026\n"
+        "GIÁO VIÊN PHẢN BIỆN\n"
+        "(Ký và ghi rõ họ tên)"
     )
-    helper.set_run_font(r_pbsc, "Times New Roman", 13, bold=True)
+    helper.set_run_font(r_gpb2, "Times New Roman", 13, bold=True)
     
     doc.add_page_break()
     
     # -------------------------------------------------------------------------
-    # 9. MUC LUC (TABLE OF CONTENTS)
+    # 9. MỤC LỤC (Trang 12 trong mẫu Tiến Trần)
     # -------------------------------------------------------------------------
     p_toc_h = helper.add_heading_1(doc, "MỤC LỤC")
     p_toc_h.alignment = WD_ALIGN_PARAGRAPH.CENTER
@@ -425,7 +368,7 @@ def add_front_matter(doc, helper):
     doc.add_page_break()
     
     # -------------------------------------------------------------------------
-    # 10. DANH MUC HINH ANH
+    # 10. DANH MỤC HÌNH ẢNH (Trang 15 trong mẫu Tiến Trần)
     # -------------------------------------------------------------------------
     p_fig_h = helper.add_heading_1(doc, "DANH MỤC HÌNH ẢNH")
     p_fig_h.alignment = WD_ALIGN_PARAGRAPH.CENTER
@@ -449,192 +392,170 @@ def add_front_matter(doc, helper):
         ("Hình 2.13 Sơ đồ kiến trúc ảo hóa và điều phối container với Docker Compose & Nginx", 54),
         ("Hình 3.1 Sơ đồ Use Case tổng quát toàn hệ thống", 61),
         ("Hình 3.2 Sơ đồ Use Case phân hệ Khách tham quan (Visitor)", 62),
-        ("Hình 3.3 Sơ đồ Use Case phân hệ Quản trị viên (Admin)", 63),
-        ("Hình 3.4 Sơ đồ Use Case phân hệ Ghép ảnh toàn cảnh (Stitching Studio)", 64),
-        ("Hình 3.5 Sơ đồ thực thể liên kết (ERD) cơ sở dữ liệu hệ thống", 83),
-        ("Hình 3.6 Sơ đồ tuần tự quy trình đặt vé và thanh toán VietQR PayOS", 93),
-        ("Hình 3.7 Sơ đồ tuần tự quy trình soát vé QR bằng camera trực tiếp", 95),
-        ("Hình 3.8 Sơ đồ tuần tự quy trình tương tác không gian 360° và chuyển phòng qua Hotspot", 97),
-        ("Hình 4.1 Sơ đồ phân cấp chức năng toàn diện hệ thống (Functional Hierarchy Mindmap)", 99),
-        ("Hình 4.2 Lưu đồ thuật toán quy trình xử lý và ghép ảnh Panorama Studio", 101),
-        ("Hình 4.3 Lưu đồ thuật toán Dijkstra tìm lộ trình di chuyển tối ưu giữa 18 phòng bảo tàng", 104),
-        ("Hình 4.4 Lưu đồ thuật toán kiểm tra và xác thực mã vé QR soát vé thời gian thực", 108),
-        ("Hình 4.5 Giao diện Trang chủ - Banner Hero và Nhận diện di sản Bảo tàng Lịch sử", 115),
-        ("Hình 4.6 Giao diện Giới thiệu không gian di sản và tổng quan 18 phòng trưng bày", 116),
-        ("Hình 4.7 Giao diện Không gian Tour 360° tương tác toàn cảnh độ phân giải cao", 118),
-        ("Hình 4.8 Giao diện Điểm nối chuyển cảnh (Hotspot) và bảng thông tin tương tác", 119),
-        ("Hình 4.9 Giao diện Sơ đồ mặt bằng Mini-map và tính năng tìm đường liên thông Dijkstra", 121),
-        ("Hình 4.10 Giao diện Thuyết minh âm thanh đa ngôn ngữ (Text-to-Speech Audio Guide)", 122),
-        ("Hình 4.11 Giao diện Chiêm ngưỡng cổ vật 3D tương tác xoay đa chiều", 123),
-        ("Hình 4.12 Giao diện Trợ lý Di sản Ảo AI tư vấn thông tin và giải đáp lịch sử", 124),
-        ("Hình 4.13 Giao diện Đặt vé tham quan trực tuyến và chọn loại vé", 126),
-        ("Hình 4.14 Giao diện Thanh toán VietQR động liên kết ngân hàng qua PayOS", 127),
-        ("Hình 4.15 Giao diện Vé điện tử với mã QR bảo mật SHA-256", 128),
-        ("Hình 4.16 Giao diện Quét mã QR soát vé camera trực tiếp trên thiết bị di động", 129),
-        ("Hình 4.17 Giao diện Bảng điều khiển Quản trị viên (Admin Dashboard)", 130),
-        ("Hình 4.18 Giao diện Quản lý danh mục 18 gian phòng trưng bày 360°", 131),
-        ("Hình 4.19 Giao diện Cấu hình tọa độ Hotspot và thiết lập liên kết phòng", 132),
-        ("Hình 4.20 Giao diện Quản lý kho tư liệu cổ vật và mô hình 3D", 133),
-        ("Hình 4.21 Giao diện Quản lý vé tham quan và lịch sử giao dịch PayOS", 134),
-        ("Hình 4.22 Giao diện Quản lý người dùng và phân quyền quản trị", 135),
-        ("Hình 4.23 Giao diện Quản lý nhận diện thương hiệu CMS (Logo, Slogan, Banner)", 136),
-        ("Hình 4.24 Giao diện Điều khiển chế độ bảo trì hệ thống (Maintenance Mode)", 137),
-        ("Hình 4.25 Giao diện Công cụ ghép ảnh Panorama Studio - Tải video và lọc khung hình", 138),
-        ("Hình 4.26 Giao diện Công cụ Panorama Studio - Nắn chỉnh trụ và ghép mí đa dải tần", 139),
-        ("Hình 4.27 Biểu đồ thời gian phản hồi trung bình (Response Time) theo số lượng users", 141),
-        ("Hình 4.28 Biểu đồ thông lượng hệ thống (Throughput - Requests/sec) kiểm thử bằng JMeter", 142),
-        ("Hình 4.29 Biểu đồ tỷ lệ lỗi (Error Rate) khi tăng tải từ 50 đến 1000 người dùng đồng thời", 143),
-        ("Hình 4.30 Kết quả đánh giá chỉ số hiệu năng và Web Vitals bằng Google Lighthouse", 144)
+        ("Hình 3.3 Sơ đồ Use Case phân hệ Quản trị viên (Admin)", 62),
+        ("Hình 3.4 Sơ đồ Use Case phân hệ Công cụ Stitching Studio", 63),
+        ("Hình 3.5 Mô hình quan hệ thực thể (Entity Relationship Diagram - ERD)", 83),
+        ("Hình 3.6 Sơ đồ tuần tự quy trình Đặt vé và Thanh toán VietQR qua PayOS", 93),
+        ("Hình 3.7 Sơ đồ tuần tự quy trình Quét mã QR soát vé qua Camera", 95),
+        ("Hình 3.8 Sơ đồ tuần tự quy trình Điều hướng Tour 360° và định tuyến Dijkstra", 97),
+        ("Hình 4.1 Sơ đồ phân cấp chức năng hệ thống (Mindmap tổng thể)", 99),
+        ("Hình 4.2 Sơ đồ khối quy trình nắn trụ, ghép ảnh SIFT và hòa trộn dải tần", 101),
+        ("Hình 4.3 Đồ thị liên thông 18 gian phòng và giải thuật Dijkstra định tuyến tối ưu", 104),
+        ("Hình 4.4 Quy trình mã hóa AES-256 mã vé và đối soát qua camera HTML5-QRCode", 110),
+        ("Hình 4.5 Giao diện Trang chủ Di sản (Chế độ Dark Mode)", 115),
+        ("Hình 4.6 Giao diện Không gian Tour 360° toàn cảnh gian phòng trưng bày", 116),
+        ("Hình 4.7 Giao diện Tương tác Hotspot đa phương tiện bên trong phòng 360°", 117),
+        ("Hình 4.8 Giao diện Sơ đồ mặt bằng Floorplan 2D định vị và chỉ đường Dijkstra", 118),
+        ("Hình 4.9 Giao diện Chiêm ngưỡng cổ vật 3D tương tác xoay đa chiều", 119),
+        ("Hình 4.10 Giao diện Đặt vé tham quan trực tuyến và chọn số lượng vé", 120),
+        ("Hình 4.11 Giao diện Thanh toán chuyển khoản VietQR Napas 247 qua PayOS", 121),
+        ("Hình 4.12 Giao diện Vé điện tử kèm mã QR bảo mật gửi về Email khách hàng", 122),
+        ("Hình 4.13 Giao diện Quét mã QR hiện vật và phòng bằng Camera trên trình duyệt", 123),
+        ("Hình 4.14 Giao diện Hộp thoại tương tác cùng Trợ lý Di sản Ảo AI đa ngôn ngữ", 124),
+        ("Hình 4.15 Giao diện Đăng nhập quản trị viên Admin (Email OTP bảo mật)", 126),
+        ("Hình 4.16 Giao diện Tổng quan bảng điều khiển Dashboard Admin", 127),
+        ("Hình 4.17 Giao diện Quản lý danh mục 18 gian phòng trưng bày 360°", 128),
+        ("Hình 4.18 Giao diện Chỉnh sửa thông tin phòng và tải ảnh Panorama 8K", 129),
+        ("Hình 4.19 Giao diện Trình thiết lập Hotspot tương tác trên không gian cầu 360°", 130),
+        ("Hình 4.20 Giao diện Quản lý danh mục cổ vật và mô hình 3D", 131),
+        ("Hình 4.21 Giao diện Quản lý vé tham quan và lịch sử đối soát QR", 132),
+        ("Hình 4.22 Giao diện Báo cáo thống kê lượt truy cập và doanh thu vé", 133),
+        ("Hình 4.23 Giao diện Quản lý nhận diện thương hiệu CMS (Logo, Slogan, Banner)", 134),
+        ("Hình 4.24 Giao diện Cấu hình hệ thống, đa bảo tàng và chế độ bảo trì", 135),
+        ("Hình 4.25 Giao diện Công cụ Panorama Stitching Studio (Tải chuỗi ảnh chụp)", 136),
+        ("Hình 4.26 Giao diện Studio xem trước ảnh sau nắn chỉnh trụ và hòa trộn đa dải", 137),
+        ("Hình 4.27 Biểu đồ thời gian phản hồi trung bình (Response Time) theo số user", 141),
+        ("Hình 4.28 Biểu đồ thông lượng xử lý hệ thống (Throughput) theo số user", 142),
+        ("Hình 4.29 Biểu đồ tỷ lệ lỗi (Error Rate) trong kịch bản thử nghiệm chịu tải", 143),
+        ("Hình 4.30 Kết quả đo lường hiệu năng Web Vitals bằng Google Lighthouse", 144)
     ]
     
-    for f_title, f_page in figures_list:
-        helper.add_toc_line(doc, f_title, f_page, level=1)
+    for title, pg in figures_list:
+        helper.add_toc_line(doc, title, pg, level=1)
         
     doc.add_page_break()
     
     # -------------------------------------------------------------------------
-    # 11. DANH MUC CAC BANG BIEU
+    # 11. DANH MỤC BẢNG (Trang 19 trong mẫu Tiến Trần)
     # -------------------------------------------------------------------------
-    p_tbl_h = helper.add_heading_1(doc, "DANH MỤC CÁC BẢNG BIỂU")
+    p_tbl_h = helper.add_heading_1(doc, "DANH MỤC BẢNG")
     p_tbl_h.alignment = WD_ALIGN_PARAGRAPH.CENTER
     
     tables_list = [
-        ("Bảng 1.1 Bảng tổng hợp nhu cầu và kỳ vọng của các nhóm đối tượng người dùng", 11),
-        ("Bảng 1.2 Bảng danh mục công nghệ và công cụ sử dụng trong toàn bộ đề tài", 13),
-        ("Bảng 1.3 Bảng phân loại yêu cầu chức năng theo từng phân hệ hệ thống", 15),
-        ("Bảng 1.4 Bảng đặc tả các chỉ tiêu yêu cầu phi chức năng của hệ thống", 17),
-        ("Bảng 2.1 Bảng so sánh các phương pháp trích xuất đặc trưng điểm ảnh (SIFT, SURF, ORB)", 25),
-        ("Bảng 2.2 Bảng so sánh các kỹ thuật tái tạo 3D (Photogrammetry, 3DGS, NeRF)", 38),
-        ("Bảng 2.3 Bảng so sánh chiến lược lưu trữ dữ liệu (PostgreSQL vs MongoDB vs Redis)", 44),
-        ("Bảng 3.1 Bảng danh sách các Tác nhân (Actors) tham gia vào hệ thống", 59),
-        ("Bảng 3.2 Bảng ánh xạ Use Case và quyền truy cập của các Tác nhân", 60),
-        ("Bảng 3.3 Bảng tổng hợp danh mục các Use Case trong hệ thống", 65),
-        ("Bảng 3.4 Đặc tả Use Case Đăng ký tài khoản (Email OTP)", 66),
-        ("Bảng 3.5 Đặc tả Use Case Đăng nhập hệ thống (Email OTP / JWT)", 67),
-        ("Bảng 3.6 Đặc tả Use Case Đăng xuất khỏi hệ thống", 68),
-        ("Bảng 3.7 Đặc tả Use Case Quản lý hồ sơ cá nhân người dùng", 69),
-        ("Bảng 3.8 Đặc tả Use Case Khám phá không gian Tour 360° tương tác", 70),
-        ("Bảng 3.9 Đặc tả Use Case Chuyển phòng trưng bày thông qua Hotspot", 71),
-        ("Bảng 3.10 Đặc tả Use Case Chiêm ngưỡng chi tiết cổ vật 3D tương tác", 72),
-        ("Bảng 3.11 Đặc tả Use Case Nghe thuyết minh âm thanh đa ngôn ngữ (TTS)", 73),
-        ("Bảng 3.12 Đặc tả Use Case Tìm đường di chuyển trong bảo tàng bằng Dijkstra", 74),
-        ("Bảng 3.13 Đặc tả Use Case Tương tác hỏi đáp cùng Trợ lý ảo Di sản AI", 75),
-        ("Bảng 3.14 Đặc tả Use Case Đặt vé tham quan trực tuyến", 76),
-        ("Bảng 3.15 Đặc tả Use Case Thanh toán vé qua VietQR PayOS", 77),
-        ("Bảng 3.16 Đặc tả Use Case Tra cứu và tải vé điện tử (Mã QR bảo mật)", 78),
-        ("Bảng 3.17 Đặc tả Use Case Soát vé khách tham quan bằng Camera quét mã QR", 79),
-        ("Bảng 3.18 Đặc tả Use Case Quản lý danh mục gian phòng 360°", 80),
-        ("Bảng 3.19 Đặc tả Use Case Cấu hình Hotspot và liên kết phòng", 81),
-        ("Bảng 3.20 Đặc tả Use Case Quản lý tư liệu cổ vật và mô hình 3D", 82),
-        ("Bảng 3.21 Đặc tả Use Case Quản lý phát hành vé và bảng giá", 83),
-        ("Bảng 3.22 Đặc tả Use Case Quản lý đơn hàng và báo cáo doanh thu", 84),
-        ("Bảng 3.23 Đặc tả Use Case Quản lý người dùng và phân quyền", 85),
-        ("Bảng 3.24 Đặc tả Use Case Quản lý nhận diện thương hiệu CMS", 86),
-        ("Bảng 3.25 Đặc tả Use Case Ghép ảnh toàn cảnh Panorama Studio", 87),
-        ("Bảng 3.26 Cấu trúc thực thể Bảng Rooms (Gian phòng trưng bày 360°)", 88),
-        ("Bảng 3.27 Cấu trúc thực thể Bảng Hotspots (Điểm nối tương tác chuyển phòng)", 88),
-        ("Bảng 3.28 Cấu trúc thực thể Bảng Artifacts (Cổ vật và hiện vật 3D)", 89),
-        ("Bảng 3.29 Cấu trúc thực thể Bảng Tickets (Vé tham quan và mã QR)", 89),
-        ("Bảng 3.30 Cấu trúc thực thể Bảng Orders (Giao dịch và đơn thanh toán PayOS)", 90),
-        ("Bảng 3.31 Cấu trúc thực thể Bảng Users (Tài khoản người dùng và quyền hạn)", 91),
-        ("Bảng 3.32 Cấu trúc thực thể Bảng BrandingSettings (Cấu hình thương hiệu CMS)", 91),
-        ("Bảng 3.33 Cấu trúc thực thể Bảng StitchingTasks (Nhiệm vụ xử lý ghép ảnh)", 92),
-        ("Bảng 4.1 Bảng thông số kỹ thuật môi trường máy chủ thử nghiệm (Cloud VPS)", 139),
-        ("Bảng 4.2 Bảng kết quả đo lường hiệu năng chịu tải hệ thống với Apache JMeter", 140),
-        ("Bảng 4.3 Bảng kết quả đánh giá các chỉ số Google Lighthouse trên môi trường thực tế", 144)
+        ("Bảng 1.1 Khảo sát nhu cầu và kỳ vọng của khách tham quan và bảo tàng", 11),
+        ("Bảng 1.2 Bảng tổng hợp công nghệ và công cụ sử dụng trong đề tài", 13),
+        ("Bảng 1.3 Bảng yêu cầu chức năng theo từng phân hệ", 15),
+        ("Bảng 1.4 Bảng yêu cầu phi chức năng của hệ thống", 17),
+        ("Bảng 2.1 Bảng so sánh các kỹ thuật phát hiện và mô tả đặc trưng điểm ảnh", 25),
+        ("Bảng 2.2 Bảng so sánh phương pháp Photogrammetry với 3D Laser Scanning", 39),
+        ("Bảng 2.3 Bảng so sánh chiến lược lưu trữ dữ liệu PostgreSQL và MongoDB", 43),
+        ("Bảng 3.1 Bảng danh sách các tác nhân (Actors) trong hệ thống", 59),
+        ("Bảng 3.2 Bảng ma trận phân quyền tác nhân theo chức năng", 60),
+        ("Bảng 3.3 Bảng tổng hợp danh sách 22 Use Case của hệ thống", 63),
+        ("Bảng 3.4 Đặc tả Use Case UC-01: Tham quan gian phòng 360° tương tác", 64),
+        ("Bảng 3.5 Đặc tả Use Case UC-02: Tương tác Hotspot xem thông tin hiện vật", 65),
+        ("Bảng 3.6 Đặc tả Use Case UC-03: Tìm đường ngắn nhất trên sơ đồ Floorplan", 66),
+        ("Bảng 3.7 Đặc tả Use Case UC-04: Chiêm ngưỡng và xoay mô hình cổ vật 3D", 67),
+        ("Bảng 3.8 Đặc tả Use Case UC-05: Đặt vé tham quan trực tuyến", 68),
+        ("Bảng 3.9 Đặc tả Use Case UC-06: Thanh toán vé tự động bằng VietQR PayOS", 69),
+        ("Bảng 3.10 Đặc tả Use Case UC-07: Quét mã QR bằng Camera tra cứu hiện vật", 70),
+        ("Bảng 3.11 Đặc tả Use Case UC-08: Trò chuyện và hỏi đáp cùng Trợ lý ảo AI", 71),
+        ("Bảng 3.12 Đặc tả Use Case UC-09: Đổi ngôn ngữ hiển thị (Việt - Anh - Nhật)", 72),
+        ("Bảng 3.13 Đặc tả Use Case UC-10: Đăng nhập quản trị hệ thống qua Email OTP", 73),
+        ("Bảng 3.14 Đặc tả Use Case UC-11: Quản lý danh mục 18 gian phòng trưng bày", 74),
+        ("Bảng 3.15 Đặc tả Use Case UC-12: Cấu hình Hotspot điều hướng trên ảnh 360°", 75),
+        ("Bảng 3.16 Đặc tả Use Case UC-13: Quản lý danh mục cổ vật và mô hình 3D", 76),
+        ("Bảng 3.17 Đặc tả Use Case UC-14: Quản lý và phát hành các loại vé tham quan", 77),
+        ("Bảng 3.18 Đặc tả Use Case UC-15: Quét Camera soát vé và đối soát tại cửa", 78),
+        ("Bảng 3.19 Đặc tả Use Case UC-16: Xem báo cáo thống kê doanh thu và lượng khách", 79),
+        ("Bảng 3.20 Đặc tả Use Case UC-17: Cấu hình thông tin nhận diện thương hiệu CMS", 80),
+        ("Bảng 3.21 Đặc tả Use Case UC-18: Bật/tắt chế độ bảo trì và cấu hình đa bảo tàng", 81),
+        ("Bảng 3.22 Đặc tả Use Case UC-19: Tải chuỗi ảnh chụp và nắn chỉnh hình trụ", 82),
+        ("Bảng 3.23 Đặc tả Use Case UC-20: Trích xuất đặc trưng SIFT và ghép mí tự động", 83),
+        ("Bảng 3.24 Đặc tả Use Case UC-21: Hòa trộn đa dải tần và tối ưu đường nối", 84),
+        ("Bảng 3.25 Đặc tả Use Case UC-22: Xuất ảnh toàn cảnh Equirectangular 8K", 85),
+        ("Bảng 3.26 Cấu trúc bảng Users (Người dùng và Quản trị viên)", 86),
+        ("Bảng 3.27 Cấu trúc bảng Rooms (Danh mục 18 gian phòng 360°)", 86),
+        ("Bảng 3.28 Cấu trúc bảng Panoramas (Metadata ảnh toàn cảnh 8K)", 87),
+        ("Bảng 3.29 Cấu trúc bảng Hotspots (Điểm tương tác chuyển phòng và hiện vật)", 87),
+        ("Bảng 3.30 Cấu trúc bảng Artifacts (Danh mục cổ vật và bảo vật quốc gia)", 88),
+        ("Bảng 3.31 Cấu trúc bảng Tickets (Thông tin vé tham quan bảo tàng)", 88),
+        ("Bảng 3.32 Cấu trúc bảng Orders (Đơn hàng và giao dịch VietQR)", 89),
+        ("Bảng 3.33 Cấu trúc bảng SystemSettings (Cấu hình thương hiệu và đa bảo tàng)", 89),
+        ("Bảng 4.1 Thông số cấu hình phần cứng máy chủ thử nghiệm hiệu năng", 139),
+        ("Bảng 4.2 Kết quả thử nghiệm hiệu năng chịu tải với Apache JMeter", 140),
+        ("Bảng 4.3 Kết quả đánh giá chỉ số hiệu năng với Google Lighthouse", 144),
+        ("Bảng A.1 Ma trận khoảng cách liên thông giữa 18 gian phòng bảo tàng", 153),
+        ("Bảng B.1 Tiến độ chi tiết thực hiện đề tài khóa luận qua 15 tuần", 154),
+        ("Bảng C.1 Nhật ký chi tiết 4 đợt khảo sát thực tế tại Bảo tàng Lịch sử TP.HCM", 155),
+        ("Bảng D.1 Bảng phân công nhiệm vụ và tỷ lệ đóng góp của từng sinh viên", 157)
     ]
     
-    for t_title, t_page in tables_list:
-        helper.add_toc_line(doc, t_title, t_page, level=1)
+    for title, pg in tables_list:
+        helper.add_toc_line(doc, title, pg, level=1)
         
     doc.add_page_break()
     
     # -------------------------------------------------------------------------
-    # 12. DANH MUC CAC TU VIET TAT
+    # 12. DANH MỤC CÁC TỪ VIẾT TẮT
     # -------------------------------------------------------------------------
     p_abbr_h = helper.add_heading_1(doc, "DANH MỤC CÁC TỪ VIẾT TẮT")
     p_abbr_h.alignment = WD_ALIGN_PARAGRAPH.CENTER
     
-    abbr_list = [
-        ("AI", "Artificial Intelligence", "Trí tuệ nhân tạo"),
-        ("API", "Application Programming Interface", "Giao diện lập trình ứng dụng"),
-        ("CMS", "Content Management System", "Hệ thống quản trị nội dung"),
-        ("CSS", "Cascading Style Sheets", "Ngôn ngữ định kiểu cho tài liệu web"),
-        ("DBMS", "Database Management System", "Hệ quản trị cơ sở dữ liệu"),
-        ("DoG", "Difference of Gaussians", "Sai phân các hàm Gauss"),
-        ("DOM", "Document Object Model", "Mô hình đối tượng tài liệu HTML"),
-        ("ERD", "Entity Relationship Diagram", "Sơ đồ thực thể liên kết"),
-        ("FOV", "Field of View", "Trường nhìn quang học"),
-        ("GLB", "GL Transmission Format Binary", "Định dạng nhị phân chuẩn lưu trữ mô hình 3D"),
-        ("GUI", "Graphical User Interface", "Giao diện đồ họa người dùng"),
-        ("HNSW", "Hierarchical Navigable Small World", "Thuật toán tìm kiếm lân cận gần nhất theo đồ thị"),
-        ("HTML", "HyperText Markup Language", "Ngôn ngữ đánh dấu siêu văn bản"),
-        ("HTTP/HTTPS", "HyperText Transfer Protocol (Secure)", "Giao thức truyền tải siêu văn bản (Bảo mật)"),
-        ("IEEE", "Institute of Electrical and Electronics Engineers", "Viện Kỹ sư Điện và Điện tử Quốc tế"),
-        ("IUH", "Industrial University of Ho Chi Minh City", "Trường Đại học Công nghiệp TP. Hồ Chí Minh"),
-        ("JSON", "JavaScript Object Notation", "Định dạng trao đổi dữ liệu dạng văn bản nhẹ"),
-        ("JWT", "JSON Web Token", "Chuẩn mã thông báo JSON xác thực an toàn"),
-        ("LCP", "Largest Contentful Paint", "Thời gian hiển thị phần tử nội dung lớn nhất"),
-        ("Nadir", "Nadir Point", "Điểm chân trời đáy của ảnh toàn cảnh (vùng sàn)"),
-        ("NeRF", "Neural Radiance Fields", "Trường bức xạ nơ-ron tái tạo không gian 3D"),
-        ("ODM", "Object Document Mapper", "Ánh xạ đối tượng tài liệu (MongoDB)"),
-        ("OpenCV", "Open Source Computer Vision Library", "Thư viện thị giác máy tính nguồn mở"),
-        ("ORM", "Object Relational Mapping", "Ánh xạ quan hệ đối tượng cơ sở dữ liệu"),
-        ("OTP", "One-Time Password", "Mật khẩu xác thực dùng một lần qua Email"),
-        ("POS", "Point of Sale", "Điểm thanh toán / Soát vé tại chỗ"),
-        ("QR Code", "Quick Response Code", "Mã phản hồi nhanh 2 chiều"),
-        ("RANSAC", "Random Sample Consensus", "Thuật toán đồng thuận mẫu ngẫu nhiên loại bỏ nhiễu"),
-        ("REST", "Representational State Transfer", "Kiến trúc thiết kế dịch vụ web chuẩn"),
-        ("SIFT", "Scale-Invariant Feature Transform", "Thuật toán biến đổi đặc trưng bất biến tỷ lệ"),
-        ("SQL", "Structured Query Language", "Ngôn ngữ truy vấn có cấu trúc"),
-        ("SVG", "Scalable Vector Graphics", "Định dạng đồ họa véc-tơ có thể thu phóng"),
-        ("Three.js", "Three JavaScript Library", "Thư viện đồ họa 3D WebGL trên trình duyệt"),
-        ("TTS", "Text-to-Speech", "Công nghệ chuyển đổi văn bản thành giọng nói"),
-        ("UI", "User Interface", "Giao diện người dùng"),
-        ("UX", "User Experience", "Trải nghiệm người dùng"),
-        ("VietQR", "Vietnam Quick Response", "Chuẩn thanh toán mã QR liên ngân hàng quốc gia"),
-        ("VPS", "Virtual Private Server", "Máy chủ riêng ảo trên đám mây"),
-        ("WebGL", "Web Graphics Library", "Thư viện đồ họa 3D tăng tốc phần cứng trên Web")
+    abbr_headers = ["STT", "Từ viết tắt", "Cụm từ đầy đủ (Tiếng Anh / Tiếng Việt)"]
+    abbr_widths = [1.2, 3.2, 11.1]
+    abbr_alignments = [WD_ALIGN_PARAGRAPH.CENTER, WD_ALIGN_PARAGRAPH.CENTER, WD_ALIGN_PARAGRAPH.LEFT]
+    
+    abbr_data = [
+        ["1", "2D", "Two-Dimensional (Không gian hai chiều)"],
+        ["2", "3D", "Three-Dimensional (Không gian ba chiều)"],
+        ["3", "3DGS", "3D Gaussian Splatting (Kỹ thuật kết xuất trường quang học bằng đám mây Gaussian)"],
+        ["4", "ACID", "Atomicity, Consistency, Isolation, Durability (Thuộc tính giao dịch CSDL tin cậy)"],
+        ["5", "AES", "Advanced Encryption Standard (Chuẩn mã hóa nâng cao)"],
+        ["6", "AI", "Artificial Intelligence (Trí tuệ nhân tạo)"],
+        ["7", "API", "Application Programming Interface (Giao diện lập trình ứng dụng)"],
+        ["8", "AR", "Augmented Reality (Thực tế tăng cường)"],
+        ["9", "CMS", "Content Management System (Hệ thống quản trị nội dung)"],
+        ["10", "CPU", "Central Processing Unit (Bộ vi xử lý trung tâm)"],
+        ["11", "CSS", "Cascading Style Sheets (Ngôn ngữ định dạng trang web)"],
+        ["12", "DoG", "Difference of Gaussians (Sai phân của các hàm Gauss)"],
+        ["13", "DOM", "Document Object Model (Mô hình đối tượng tài liệu)"],
+        ["14", "ERD", "Entity Relationship Diagram (Sơ đồ quan hệ thực thể)"],
+        ["15", "FOV", "Field of View (Góc nhìn trường quan sát)"],
+        ["16", "FPS", "Frames Per Second (Số khung hình hiển thị trên mỗi giây)"],
+        ["17", "GPU", "Graphics Processing Unit (Bộ xử lý đồ họa chuyên dụng)"],
+        ["18", "HMAC", "Hash-based Message Authentication Code (Mã xác thực thông điệp dựa trên hàm băm)"],
+        ["19", "HTML", "HyperText Markup Language (Ngôn ngữ đánh dấu siêu văn bản)"],
+        ["20", "HTTP/HTTPS", "HyperText Transfer Protocol (Secure) (Giao thức truyền tải siêu văn bản bảo mật)"],
+        ["21", "IUH", "Industrial University of Ho Chi Minh City (Trường ĐH Công nghiệp TP.HCM)"],
+        ["22", "JSON", "JavaScript Object Notation (Định dạng trao đổi dữ liệu gọn nhẹ)"],
+        ["23", "JWT", "JSON Web Token (Phương tiện xác thực an toàn không lưu trạng thái)"],
+        ["24", "LLM", "Large Language Model (Mô hình ngôn ngữ lớn)"],
+        ["25", "LTS", "Long Term Support (Phiên bản hỗ trợ dài hạn)"],
+        ["26", "MVC", "Model - View - Controller (Mô hình kiến trúc phần mềm)"],
+        ["27", "NeRF", "Neural Radiance Fields (Trường phát xạ thần kinh nhân tạo)"],
+        ["28", "NoSQL", "Not Only SQL (Cơ sở dữ liệu phi quan hệ)"],
+        ["29", "NPM", "Node Package Manager (Trình quản lý gói cho môi trường Node.js)"],
+        ["30", "ORM", "Object-Relational Mapping (Kỹ thuật ánh xạ đối tượng quan hệ)"],
+        ["31", "OTP", "One-Time Password (Mật khẩu xác thực sử dụng một lần)"],
+        ["32", "PBR", "Physically Based Rendering (Kết xuất đồ họa dựa trên vật lý quang học)"],
+        ["33", "QR Code", "Quick Response Code (Mã phản hồi nhanh 2 chiều)"],
+        ["34", "RAM", "Random Access Memory (Bộ nhớ truy xuất ngẫu nhiên)"],
+        ["35", "RANSAC", "Random Sample Consensus (Thuật toán đồng thuận mẫu ngẫu nhiên)"],
+        ["36", "RESTful", "Representational State Transfer (Kiểu kiến trúc thiết kế dịch vụ mạng)"],
+        ["37", "SIFT", "Scale-Invariant Feature Transform (Biến đổi đặc trưng bất biến theo tỷ lệ)"],
+        ["38", "SPA", "Single Page Application (Ứng dụng web đơn trang)"],
+        ["39", "SSL/TLS", "Secure Sockets Layer / Transport Layer Security (Giao thức bảo mật truyền thông)"],
+        ["40", "TTS", "Text-to-Speech (Chuyển đổi văn bản thành giọng nói nhân tạo)"],
+        ["41", "UI/UX", "User Interface / User Experience (Giao diện người dùng / Trải nghiệm người dùng)"],
+        ["42", "URI/URL", "Uniform Resource Identifier / Locator (Định danh / Địa chỉ tài nguyên thống nhất)"],
+        ["43", "VPS", "Virtual Private Server (Máy chủ riêng ảo đám mây)"],
+        ["44", "VR", "Virtual Reality (Thực tế ảo)"],
+        ["45", "WebGL", "Web Graphics Library (Thư viện đồ họa 3D trên trình duyệt web)"],
+        ["46", "WebP", "Định dạng hình ảnh hiện đại tối ưu nén dữ liệu cho web của Google"],
+        ["47", "WebXR", "Web Extended Reality (API mở rộng thực tế ảo và tăng cường trên web)"]
     ]
     
-    # Bang tu viet tat 3 cot
-    tbl_a = doc.add_table(rows=1 + len(abbr_list), cols=3)
-    tbl_a.alignment = WD_TABLE_ALIGNMENT.CENTER
-    tbl_a.autofit = False
-    helper.set_table_borders(tbl_a, color="475569", sz="6", val="single")
+    helper.add_custom_table(doc, abbr_headers, abbr_data, abbr_widths, abbr_alignments, table_caption=None)
     
-    col_w = [Cm(3.0), Cm(6.5), Cm(6.0)]
-    
-    # Header
-    r0 = tbl_a.rows[0]
-    helper.make_row_header(r0)
-    helper.make_row_cant_split(r0)
-    heads = ["Từ viết tắt", "Tên đầy đủ (Tiếng Anh)", "Ý nghĩa tiếng Việt"]
-    for i, h in enumerate(heads):
-        c = r0.cells[i]
-        c.width = col_w[i]
-        helper.set_cell_background(c, "E2E8F0")
-        c.paragraphs[0].text = h
-        c.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
-        helper.set_run_font(c.paragraphs[0].runs[0], "Times New Roman", 12, bold=True)
-        
-    for idx, (abbr, full, mean) in enumerate(abbr_list):
-        row = tbl_a.rows[idx + 1]
-        helper.make_row_cant_split(row)
-        for i, val in enumerate([abbr, full, mean]):
-            c = row.cells[i]
-            c.width = col_w[i]
-            c.paragraphs[0].text = val
-            c.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER if i == 0 else WD_ALIGN_PARAGRAPH.LEFT
-            helper.set_run_font(c.paragraphs[0].runs[0], "Times New Roman", 11, bold=(i == 0))
-            
-    for r in tbl_a.rows:
-        for c in r.cells:
-            helper.set_cell_margins(c, top=60, bottom=60, left=80, right=80)
-            if len(c.paragraphs) > 0:
-                c.paragraphs[0].paragraph_format.line_spacing = 1.15
-                c.paragraphs[0].paragraph_format.space_before = Pt(2)
-                c.paragraphs[0].paragraph_format.space_after = Pt(2)
-                
-    doc.add_page_break()
     print("Front matter added successfully.")
