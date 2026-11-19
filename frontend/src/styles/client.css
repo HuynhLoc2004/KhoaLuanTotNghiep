@@ -166,7 +166,7 @@ html {
   box-shadow: 0 18px 45px -8px rgba(0, 0, 0, 0.7), 0 0 25px -4px rgba(212, 175, 55, 0.25);
 }
 
-@media (max-width: 992px) {
+@media (max-width: 1140px) {
   .client-navbar {
     width: calc(100% - 20px);
     top: 10px;
@@ -279,6 +279,7 @@ html {
   cursor: pointer;
   justify-self: start;
   min-width: 0;
+  flex-shrink: 0;
   transition: opacity 0.2s ease, transform 0.2s ease;
 }
 
@@ -398,7 +399,8 @@ html {
   align-items: center;
   justify-content: center;
   justify-self: center;
-  flex: 0 0 auto;
+  flex: 0 1 auto;
+  min-width: 0;
 }
 
 .client-nav-menu {
@@ -526,6 +528,7 @@ html {
   justify-self: end;
   gap: clamp(6px, 0.8vw, 10px);
   min-width: 0;
+  flex-shrink: 0;
 }
 
 .client-theme-toggle {
@@ -640,78 +643,79 @@ html {
   font-weight: 600;
 }
 
-@media (max-width: 1260px) {
-  .client-nav-qr-btn {
-    width: 38px;
-    height: 38px;
-    padding: 0;
-    justify-content: center;
-  }
-  .client-nav-qr-text {
-    display: none;
-  }
-  .client-nav-booking-btn {
-    height: 34px;
-    padding: 0 10px;
-    font-size: 0.78rem;
-    gap: 5px;
-  }
+@media (max-width: 1380px) {
   /* 1. Thu gọn cụm logo bên trái: ẩn bớt dòng subtitle dài để nhường không gian cho menu */
   .client-nav-subtitle-row {
     display: none !important;
   }
   .client-nav-title {
-    font-size: 0.9rem;
+    font-size: 0.92rem;
     white-space: nowrap;
   }
   .client-nav-brand {
     gap: 8px;
     flex-shrink: 0;
   }
-  /* 2. Thu gọn menu giữa để không bị chồng lên */
+  /* 2. Cân chỉnh menu giữa gọn gàng, tránh tràn hoặc đè sang nút hành động */
   .client-nav-menu-wrapper {
-    flex-shrink: 1;
+    flex-shrink: 0;
     min-width: 0;
   }
   .client-nav-menu {
     padding: 2px 4px;
-    gap: 1px;
+    gap: 2px;
   }
   .client-nav-link {
     font-size: 0.8rem;
-    padding: 5px 8px;
+    padding: 5px 9px;
     white-space: nowrap;
   }
-  /* 3. Thu gọn cụm tài khoản người dùng góc phải: avatar tròn hoàn hảo căn giữa */
-  .client-user-btn {
-    width: 34px !important;
-    height: 34px !important;
-    min-width: 34px !important;
-    max-width: 34px !important;
+  /* 3. Thu gọn cụm hành động góc phải: icon tròn chuẩn mực */
+  .client-nav-qr-btn {
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+    max-width: 36px !important;
     padding: 0 !important;
     border-radius: 50% !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    border: none !important;
-    background: transparent !important;
-    box-sizing: border-box !important;
+    justify-content: center;
   }
-  .client-user-avatar {
-    width: 34px !important;
-    height: 34px !important;
-    margin: 0 !important;
-  }
-  .client-user-name,
-  .client-user-btn span:last-child {
+  .client-nav-qr-text {
     display: none !important;
+  }
+  .client-nav-booking-btn {
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+    max-width: 36px !important;
+    padding: 0 !important;
+    border-radius: 50% !important;
+    justify-content: center;
+  }
+  .client-nav-booking-text {
+    display: none !important;
+  }
+  .client-nav-login-btn {
+    padding: 6px 12px;
+    font-size: 0.82rem;
+    gap: 5px;
+  }
+  .client-user-name {
+    max-width: 85px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .client-user-btn {
+    padding: 4px 8px 4px 4px;
+    font-size: 0.82rem;
   }
   .client-nav-lang-btn,
   .client-theme-toggle {
-    width: 34px !important;
-    height: 34px !important;
-    min-width: 34px !important;
-    max-width: 34px !important;
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+    max-width: 36px !important;
     padding: 0 !important;
     border-radius: 50% !important;
     display: flex !important;
@@ -720,23 +724,8 @@ html {
     box-sizing: border-box !important;
   }
   .client-nav-lang-code {
-    font-size: 0.74rem !important;
+    font-size: 0.76rem !important;
     line-height: 1 !important;
-  }
-}
-
-@media (max-width: 1080px) {
-  .client-nav-booking-btn {
-    width: 34px !important;
-    height: 34px !important;
-    min-width: 34px !important;
-    max-width: 34px !important;
-    padding: 0 !important;
-    border-radius: 50% !important;
-    justify-content: center;
-  }
-  .client-nav-booking-text {
-    display: none !important;
   }
 }
 
@@ -865,8 +854,8 @@ html {
 }
 
 /* --- RESPONSIVE CHO CLIENT NAVBAR & MOBILE MENU DRAWER --- */
-/* Đảm bảo ở màn hình Desktop (min-width: 993px), toàn bộ Mobile Drawer, Backdrop và Mobile Toggle tuyệt đối không được hiển thị */
-@media (min-width: 993px) {
+/* Đảm bảo ở màn hình Desktop (min-width: 1141px), toàn bộ Mobile Drawer, Backdrop và Mobile Toggle tuyệt đối không được hiển thị */
+@media (min-width: 1141px) {
   .client-mobile-drawer,
   .client-mobile-backdrop,
   .client-nav-mobile-toggle {
@@ -1068,7 +1057,7 @@ html {
   color: var(--c-gold);
 }
 
-@media (max-width: 992px) {
+@media (max-width: 1140px) {
   .client-navbar {
     width: calc(100% - 24px);
     top: 10px;
@@ -1089,11 +1078,11 @@ html {
     gap: 12px;
   }
   .client-nav-menu-wrapper {
-    display: none;
+    display: none !important;
   }
   /* Ẩn nút đăng nhập to trên top bar, chuyển vào mobile drawer */
   .client-nav-actions .client-nav-login-btn {
-    display: none;
+    display: none !important;
   }
   /* Thu gọn nút user thành icon tròn hoàn hảo căn giữa */
   .client-user-btn {
@@ -1120,7 +1109,7 @@ html {
     display: none !important;
   }
   .client-nav-mobile-toggle {
-    display: flex;
+    display: flex !important;
     align-items: center;
     justify-content: center;
     width: 38px;
@@ -4104,19 +4093,19 @@ html {
 /* Nút cuộn nhanh về đỉnh trang (Quick Scroll To Top Floating Button) */
 .client-floating-scroll-top {
   position: fixed;
-  bottom: 28px;
-  right: 28px;
-  width: 44px;
-  height: 44px;
+  bottom: 80px;
+  right: 24px;
+  width: 42px;
+  height: 42px;
   border-radius: 50%;
-  background: rgba(16, 22, 34, 0.88);
+  background: rgba(16, 22, 34, 0.92);
   border: 1px solid rgba(212, 168, 106, 0.45);
   color: #F3E0A3;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  z-index: 990;
+  z-index: 995;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6), 0 0 16px rgba(212, 168, 106, 0.25);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
@@ -4138,6 +4127,15 @@ html {
   color: #FFFFFF;
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.75), 0 0 24px rgba(212, 168, 106, 0.5);
   transform: translateY(-3px) scale(1.06);
+}
+
+@media (max-width: 768px) {
+  .client-floating-scroll-top {
+    bottom: 68px;
+    right: 16px;
+    width: 36px;
+    height: 36px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
