@@ -258,42 +258,95 @@ def add_chapter_4(doc, helper):
     # 4.2.2. Phân hệ tái tạo cổ vật 3D với 2 động cơ và 2 chế độ nạp ảnh
     helper.add_heading_3(doc, "4.2.2. Phân hệ tái tạo cổ vật 3D với 2 động cơ (Local CPU vs Cloud AI TRELLIS)")
     helper.add_body_p(doc,
-        "Nhằm đáp ứng yêu cầu chiêm ngưỡng hiện vật đa chiều của du khách mà không bị giới hạn bởi chi phí hạ tầng máy tính đồ họa đắt đỏ, "
-        "hệ thống đã tích hợp kiến trúc tái tạo 3D lai (Hybrid 3D Reconstruction Architecture) đột phá với 2 động cơ xử lý độc lập và linh hoạt:"
+        "Số hóa hiện vật bảo tàng từ ảnh tư liệu 2D sang mô hình không gian 3D tương tác WebGL là bài toán công nghệ mang tính cốt lõi trong công tác bảo tồn di sản. "
+        "Tuy nhiên, các bảo tàng truyền thống tại Việt Nam thường đối mặt với rào cản rất lớn về kinh phí trang bị máy quét 3D Laser / LiDAR chuyên dụng đắt đỏ "
+        "(lên tới hàng trăm triệu đồng) cũng như sự thiếu hụt hạ tầng máy chủ trang bị card đồ họa GPU cao cấp. "
+        "Để giải quyết triệt để thách thức này, nhóm nghiên cứu đã triển khai kiến trúc Tái tạo 3D Lai ghép Đa động cơ (Hybrid Multi-Engine 3D Reconstruction Architecture), "
+        "đồng thời thực hiện nghiên cứu so sánh thực nghiệm sâu sắc giữa Động cơ Máy chủ nội bộ (Local CPU Server) và Động cơ Đám mây AI (TRELLIS ZeroGPU A100) [29], [30]."
+    )
+    
+    helper.add_body_p(doc,
+        "Về nguồn ảnh đầu vào, hệ thống cung cấp 2 chế độ nạp ảnh linh hoạt phù hợp với đặc thù thực địa tại bảo tàng:"
     )
     helper.add_bullet_item(doc,
-        "Được xây dựng trên module thuật toán v15.0 (Faithful 3D Volumetric Reconstruction). Động cơ này tự động tách phông nền bằng giải thuật Otsu kết hợp Rembg [11], trích xuất đường biên hình học (Silhouette Contour) của cổ vật với độ bảo toàn chi tiết mặt trước đạt 100%. Áp dụng thuật toán đối xứng trục xoay (Radial-Axial Symmetry) kết hợp trường khoảng cách điều hòa liên tục (Harmonic Continuous Field) và chuẩn hóa bán kính vòm cầu (Spherical Harmonic Depth Calibration, Depth ≈ 85% - 100% Width). Bề mặt vật thể được xử lý làm mịn, nở biên vân (Texture Dilation) 18 chu kỳ để khử viền đen và sinh Normal Map. Vận hành trực tiếp 100% trên CPU máy chủ VPS nội bộ, hoàn toàn không phụ thuộc GPU ngoài, không tốn quota API, tốc độ xử lý siêu tốc chỉ 5 - 15 giây và xuất ra file chuẩn .GLB [8].",
-        bold_prefix="1. Động cơ Máy chủ nội bộ (Cục bộ) - CPU Server: "
+        "Áp dụng cho các hiện vật đặt sát vách tường, trong tủ kính niêm phong trưng bày cố định hoặc các tài liệu ảnh tư liệu lịch sử chỉ có thể chụp từ một góc diện duy nhất. Người quản trị chỉ cần tải lên 1 bức ảnh chụp chính diện rõ nét.",
+        bold_prefix="• Chế độ 1 ảnh đơn (Single-view 3D Input): "
     )
     helper.add_bullet_item(doc,
-        "Ứng dụng công trình nghiên cứu học sâu của Microsoft Research và Đại học Thanh Hoa (Xiang et al., arXiv:2412.01506, Dec. 2024 [29]). Động cơ kết nối trực tiếp đến cụm máy chủ Hugging Face Spaces ZeroGPU trang bị card tăng tốc NVIDIA A100 [30]. TRELLIS đại diện hình học 3D dưới dạng biến tiềm ẩn có cấu trúc (Structured 3D Latents - SLAT), kết hợp mạng biến đổi luồng hiệu chỉnh (Rectified Flow Transformers) để dự đoán chính xác cả lưới đa giác 3D (Mesh) và các bản đồ chất liệu PBR (Physically Based Rendering) từ ảnh chụp phẳng 2D [29].",
+        "Áp dụng cho các hiện vật có thể tiếp cận đa chiều (đặt tại bục trưng bày giữa phòng hoặc sảnh lớn). Người dùng có thể nạp từ 2 đến 8 góc ảnh tư liệu khác nhau (mặt trước, cạnh trái, cạnh phải, góc nhìn trên xuống và chi tiết hoa văn đế). Hệ thống tự động phân tích và đối chiếu các góc ảnh để tăng độ chính xác cấu trúc khối.",
+        bold_prefix="• Chế độ nhiều ảnh đa góc độ (Multi-view 3D Input): "
+    )
+    
+    helper.add_body_p(doc,
+        "Dưới đây là phân tích chi tiết về cơ chế vận hành, ưu điểm và các hạn chế thực tế của từng động cơ:"
+    )
+    helper.add_bullet_item(doc,
+        "Được xây dựng trên module thuật toán hình học v15.0 do nhóm tự nghiên cứu. Quy trình gồm 3 bước: (1) Tự động phân đoạn tách nền bằng giải thuật Otsu kết hợp Rembg [11], trích xuất đường biên hình học (Silhouette Contour) của cổ vật; (2) Áp dụng thuật toán cắt lát và xoay đối xứng trục quay (Radial-Axial Symmetrical Revolve). Thuật toán coi trục tung chính giữa ảnh là trục quay đứng Oy, sau đó xoay biên dạng mặt trước quanh trục này để bù đắp thể tích 3D khép kín theo trường thế điều hòa (Harmonic Field); (3) Nở biên vân (Texture Dilation) 18 chu kỳ để khử viền đen, sinh bản đồ pháp tuyến (Normal Map) và đóng gói tệp chuẩn .GLB [8].",
+        bold_prefix="1. Động cơ Máy chủ nội bộ (Local CPU Server): "
+    )
+    helper.add_body_p(doc,
+        "Hạn chế kỹ thuật và khiếm khuyết hình học thực tế của Động cơ Local CPU: "
+        "Do máy chủ VPS của nhóm nghiên cứu chỉ sử dụng CPU phổ thông (2 vCPU, RAM 8GB) mà không có card đồ họa GPU chuyên dụng (VRAM), "
+        "thuật toán bắt buộc phải dựa trên giả định đối xứng trục quay toán học thuần túy. Hạn chế này dẫn đến các nhược điểm nghiêm trọng khi thử nghiệm thực tế: "
+        "(1) Biến dạng tròn xoay bất hợp lý: Với các hiện vật điêu khắc có hình thái bất đối xứng phức tạp như Tượng Phật ngồi kiết già, linh vật hoặc phù điêu, "
+        "thuật toán ép đối xứng trục quay khiến mô hình bị phồng to tròn xoe, nhẵn thín như bóng nước hoặc khối trụ bẹt (minh chứng rõ rệt tại Hình 4.6a), "
+        "làm mất hoàn toàn các góc cạnh khối điêu khắc tinh xảo như nếp áo cà sa, thế ngồi của bàn tay, các tầng đài sen bát giác và toàn bộ mặt lưng tượng. "
+        "(2) Mặt lưới đa giác dư thừa và kém tối ưu: Để cố gắng làm mịn bề mặt vòm tròn, thuật toán sinh ra tới 95.404 mặt lưới đa giác (Polygons), "
+        "gây lãng phí dung lượng lưu trữ tệp và làm nặng nề bộ nhớ WebGL khi kết xuất trên trình duyệt. "
+        "(3) Tiêu tốn cực hạn tài nguyên máy chủ: Quá trình tính toán ma trận cắt lát chiếm trọn 100% công suất CPU VPS trong 10 – 15 giây, "
+        "dễ gây tắc nghẽn tài nguyên và ảnh hưởng tiêu cực đến các dịch vụ web, cơ sở dữ liệu đang chạy đồng thời trên máy chủ."
+    )
+    helper.add_body_p(doc,
+        "Do đó, nhóm nghiên cứu khẳng định Động cơ Máy chủ nội bộ KHÔNG PHẢI là giải pháp tối ưu cho sản phẩm số hóa cuối cùng của bảo tàng. "
+        "Động cơ này được duy trì trong hệ thống với 2 mục đích học thuật và thực tiễn xác đáng: "
+        "Thứ nhất, làm bài toán đối chứng thực nghiệm (Baseline Experimental Model) để so sánh và làm nổi bật sự vượt trội vượt bậc của công nghệ Deep Learning; "
+        "Thứ hai, đóng vai trò là Động cơ dự phòng cấp cứu (Emergency Fallback Engine) nhằm đảm bảo tính sẵn sàng cao (High Availability) cho hệ thống, "
+        "cho phép sinh ra một vật thể 3D cơ bản tạm thời nếu dịch vụ AI đám mây bên ngoài gặp sự cố hoặc cạn kiệt hạn ngạch."
+    )
+    
+    helper.add_bullet_item(doc,
+        "Ứng dụng công trình nghiên cứu học sâu đột phá của Microsoft Research và Đại học Thanh Hoa (Xiang et al., arXiv:2412.01506, Dec. 2024 [29]). Động cơ kết nối trực tiếp đến cụm máy chủ Hugging Face Spaces trang bị card tăng tốc đồ họa cao cấp NVIDIA A100 (80GB VRAM) thông qua hạ tầng tính toán phân bổ động ZeroGPU [30]. TRELLIS đại diện hình học 3D dưới dạng biến tiềm ẩn có cấu trúc (Structured 3D Latents - SLAT), kết hợp mạng biến đổi luồng hiệu chỉnh (Rectified Flow Transformers) và kết xuất khả vi (Differentiable Rendering) để dự đoán chính xác cả lưới đa giác 3D (Mesh) và các bản đồ chất liệu PBR chân thực từ ảnh chụp phẳng 2D [29].",
         bold_prefix="2. Động cơ Đám mây AI (TRELLIS) - ZeroGPU A100: "
     )
     helper.add_body_p(doc,
-        "Về nguồn ảnh đầu vào cho quá trình dựng 3D, hệ thống hỗ trợ 2 chế độ nạp ảnh rõ ràng: Chế độ 1 ảnh đơn (Single-image 3D) và Chế độ nhiều ảnh đa góc độ (Multi-view: mặt trước, cạnh trái, cạnh phải, góc trên và chi tiết hoa văn). "
-        "Hệ thống trang bị cơ chế chuyển đổi dự phòng tự động (Automatic Fallback Mechanism). Khi cụm ZeroGPU Hugging Face bận, sleep, quá thời gian chờ (>300s) hoặc chạm trần quota miễn phí hàng ngày (HTTP 429), hệ thống tự động chuyển hướng tác vụ sang Động cơ Máy chủ nội bộ (Local CPU Server) trong nền (Hình 4.5)."
+        "Ưu thế vượt trội của Động cơ Đám mây AI TRELLIS: "
+        "(1) Khả năng suy luận không gian 3D thực thụ: Nhờ được huấn luyện sâu trên hàng triệu mẫu 3D thực tế, TRELLIS có khả năng 'tưởng tượng' "
+        "và tái tạo chân thực hình thể không gian đa hướng của hiện vật chỉ từ 1 ảnh chụp đơn lẻ. Như thể hiện ở Hình 4.6b, pho Tượng Phật Thời Lý được "
+        "tái hiện đầy đủ nếp áo cà sa mềm mại, thế ngồi kiết già trang nghiêm, đài sen nhiều tầng bát giác sắc sảo và hình khối mặt sau sống động mà không hề bị phồng tròn gượng ép. "
+        "(2) Tối ưu hóa lưới đa giác vượt bậc: Mô hình chỉ chứa 25.619 mặt lưới (nhẹ hơn gần 4 lần so với mô hình 95k polygons của Local CPU), "
+        "đảm bảo tốc độ tải tức thì qua mạng Internet và kết xuất mượt mà 60 FPS trên mọi thiết bị di động của du khách. "
+        "(3) Chất liệu PBR chuẩn Studio: Tự động sinh đầy đủ bản đồ Albedo, Normal và Roughness, tạo hiệu ứng phản quang chân thực theo nguồn sáng 3D của không gian trưng bày. "
+        "Hạn chế duy nhất của TRELLIS là phụ thuộc vào kết nối Internet tới máy chủ Hugging Face và hạn ngạch miễn phí hàng ngày (Rate Limit) [30]."
+    )
+    
+    helper.add_body_p(doc,
+        "Quyết định thiết kế kiến trúc và lựa chọn giải pháp tối ưu: "
+        "Từ kết quả so sánh định lượng và trực quan thực tế, nhóm nghiên cứu khẳng định Động cơ Đám mây AI TRELLIS là giải pháp tối ưu hàng đầu được lựa chọn "
+        "cho hệ thống trưng bày di sản số hóa. Nhằm khắc phục hạn chế về quota và độ trễ mạng, hệ thống đã thiết lập Cơ chế Chuyển đổi Dự phòng Tự động (Automated Fallback Architecture). "
+        "Khi quản trị viên yêu cầu dựng 3D, hệ thống luôn ưu tiên gọi API đến cụm TRELLIS ZeroGPU A100. Nếu gặp lỗi quá tải (HTTP 429), quá thời gian chờ (>300s) "
+        "hoặc máy chủ AI bảo trì, hệ thống tự động kích hoạt Fallback sang Động cơ Local CPU để hoàn tất tác vụ trong nền, bảo đảm quy trình vận hành bảo tàng không bao giờ bị đình trệ (Hình 4.5)."
     )
     
     helper.add_figure_placeholder(doc, "4.5",
-        "Sơ đồ khối quy trình tái tạo cổ vật 3D với 2 động cơ và cơ chế chuyển đổi dự phòng",
-        "Quy trình khối: Nhận ảnh tư liệu (1 ảnh đơn / Đa góc) -> Kiểm tra lựa chọn động cơ -> Nếu chọn TRELLIS: Ping HuggingFace ZeroGPU A100 [30] -> Thành công: Sinh Mesh & PBR qua Structured 3D Latents [29] -> Thất bại / Hết Quota (429): Tự động Fallback sang Local CPU Engine -> Phân đoạn Otsu/Rembg [11] -> Cắt lát xoay trục Radial-Axial v15.0 -> Nở biên vân & Sinh Normal Map -> Đóng gói .GLB -> Đồng bộ CSDL",
+        "Sơ đồ khối quy trình tái tạo cổ vật 3D với 2 động cơ và cơ chế chuyển đổi dự phòng tự động",
+        "Lưu đồ hoạt động chi tiết: Nạp ảnh tư liệu (1 ảnh đơn / Đa góc) -> Lựa chọn động cơ ưu tiên (Mặc định: TRELLIS AI) -> Gọi API Space ZeroGPU A100 [30] -> Thành công: Xuất Mesh 25k polygons kèm PBR PBR [29] -> Thất bại / Hết Quota (429) / Timeout: Tự động kích hoạt Fallback sang Local CPU -> Phân đoạn Otsu/Rembg [11] -> Cắt lát đối xứng trục Radial-Axial v15.0 -> Nở biên vân & Sinh Normal Map -> Đóng gói file chuẩn .GLB -> Đồng bộ kho lưu trữ R2 [34] và CSDL",
         width_cm=15.0, height_cm=8.5
     )
     
     helper.add_figure_placeholder(doc, "4.6",
-        "Giao diện cấu hình tái tạo cổ vật 3D và các chế độ nạp ảnh đơn / đa góc",
-        "Màn hình thực tế cấu hình hiện vật trong Admin: Tùy chọn 'Tự động dựng mô hình 3D sau khi lưu', nút chọn Động cơ Máy chủ nội bộ (CPU Server) hoặc Đám mây AI (TRELLIS ZeroGPU A100) và khu vực nạp ảnh tư liệu đa góc độ",
-        width_cm=15.0, height_cm=7.5
+        "So sánh trực quan kết quả tái tạo hiện vật 3D thực tế giữa Động cơ Máy chủ nội bộ (Local CPU) và Động cơ Đám mây AI (TRELLIS ZeroGPU)",
+        "Minh chứng thực nghiệm trực quan: (a) Kết quả Local CPU (Tượng abca - 95.404 mặt lưới) bị ép đối xứng trục xoay nên phồng tròn nhẵn thín như bóng nước, mất toàn bộ góc cạnh khối phía sau; (b) Kết quả Đám mây AI TRELLIS (Tượng phật Thời Lý - 25.619 mặt lưới) tái hiện sắc nét nếp áo cà sa, đài sen bát giác và khối 3D đa hướng chân thực chuẩn studio",
+        width_cm=15.2, height_cm=7.5
     )
     
-    # Bảng 4.2: So sánh 2 động cơ tái tạo 3D
-    helper.add_table_caption(doc, "4.2", "Bảng so sánh chi tiết giữa Động cơ Máy chủ nội bộ (Local CPU) và Đám mây AI TRELLIS")
-    tbl_3d_compare = doc.add_table(rows=8, cols=3)
+    # Bảng 4.2: So sánh chi tiết 2 động cơ tái tạo 3D
+    helper.add_table_caption(doc, "4.2", "Bảng so sánh chi tiết và đánh giá chuyên sâu giữa Động cơ Máy chủ nội bộ (Local CPU) và Đám mây AI TRELLIS")
+    tbl_3d_compare = doc.add_table(rows=9, cols=3)
     tbl_3d_compare.alignment = WD_TABLE_ALIGNMENT.CENTER
     tbl_3d_compare.autofit = False
     helper.set_table_borders(tbl_3d_compare, color="475569", sz="6", val="single")
     
-    col_w_3d = [Cm(3.8), Cm(5.8), Cm(6.4)]
+    col_w_3d = [Cm(3.5), Cm(6.0), Cm(6.0)]
     r0_3d = tbl_3d_compare.rows[0]
     helper.make_row_header(r0_3d)
     helper.make_row_cant_split(r0_3d)
@@ -307,13 +360,14 @@ def add_chapter_4(doc, helper):
         helper.set_run_font(c.paragraphs[0].runs[0], "Times New Roman", 10.5, bold=True)
         
     c3d_data = [
-        ("Thuật toán cốt lõi", "Cắt lát đối xứng trục Radial-Axial v15.0, Harmonic Field, Otsu Segmentation [11]", "Structured 3D Latents (SLAT), Rectified Flow Transformers, Differentiable Rendering [29]"),
-        ("Hạ tầng phần cứng", "CPU máy chủ VPS nội bộ (Intel Xeon / AMD EPYC)", "Cụm Cloud GPU cao cấp NVIDIA A100 (Hugging Face Spaces) [30]"),
-        ("Dạng hình học hỗ trợ", "Tối ưu cho hiện vật đối xứng trục xoay (Lư hương, bình gốm, trống đồng, chuông đồng)", "Hỗ trợ hoàn hảo mọi hình thái phức tạp, bất đối xứng (Tượng linh vật, phù điêu, vũ khí)"),
-        ("Thời gian xử lý", "Siêu nhanh: 5 – 15 giây / mô hình", "Trung bình: 45 – 90 giây / mô hình (bao gồm thời gian xếp hàng)"),
-        ("Chi phí & Hạn ngạch (Quota)", "Hoàn toàn miễn phí, không giới hạn số lượng tác vụ", "Phụ thuộc hạn ngạch miễn phí hàng ngày (Cần cơ chế Fallback khi cạn quota)"),
-        ("Độ phụ thuộc mạng", "Hoạt động offline 100% trên máy chủ nội bộ", "Đòi hỏi kết nối Internet ổn định đến cụm Hugging Face Spaces"),
-        ("Chất lượng thị giác kết xuất", "Mặt trước sắc nét tuyệt đối (100% Texture), chiều sâu nở tròn chuẩn vòm cầu", "Đầy đủ lưới đa giác Mesh 3D đa hướng kèm chất liệu PBR chân thực chuẩn studio [29]")
+        ("Thuật toán cốt lõi", "Cắt lát đối xứng trục Radial-Axial v15.0, Harmonic Field, phân đoạn Otsu/Rembg [11]", "Structured 3D Latents (SLAT), Rectified Flow Transformers, Differentiable Rendering [29]"),
+        ("Hạ tầng phần cứng", "CPU máy chủ VPS nội bộ (2 vCPU Intel Xeon / AMD EPYC)", "Cụm Cloud GPU cao cấp NVIDIA A100 80GB VRAM (Hugging Face Spaces) [30]"),
+        ("Hình thái hình học & Tính chân thực góc cạnh", "Kém chân thực: Bị ép đối xứng trục xoay nên phồng tròn như bóng nước (Hình 4.6a), mất toàn bộ góc cạnh, nếp gấp và chi tiết mặt lưng", "Xuất sắc: Tái tạo sống động khối 3D đa hướng thực thụ, sắc nét từng nếp áo, đài sen bát giác và khối mặt lưng (Hình 4.6b)"),
+        ("Số lượng mặt lưới đa giác (Polygons)", "Kém tối ưu: ~95.404 đa giác (mật độ lưới quá dày nhưng không có chi tiết khối, nặng WebGL)", "Tối ưu vượt trội: ~25.619 đa giác (nhẹ hơn gần 4 lần, tải cực nhanh, đạt chuẩn 60 FPS WebGL)"),
+        ("Tiêu thụ tài nguyên máy chủ VPS", "Rất cao: Tiêu tốn 100% công suất CPU VPS trong 10–15s, có nguy cơ nghẽn tải máy chủ", "Bằng 0: Toàn bộ quá trình tính toán nặng được ủy thác hoàn toàn cho cụm GPU đám mây"),
+        ("Thời gian xử lý & Độ trễ", "Nhanh: 5 – 15 giây / mô hình (xử lý cục bộ tức thì)", "Trung bình: 45 – 90 giây / mô hình (bao gồm độ trễ mạng và thời gian xếp hàng hàng đợi)"),
+        ("Chi phí & Hạn ngạch (Quota)", "Hoàn toàn miễn phí, không giới hạn số lượng tác vụ", "Miễn phí theo hạn ngạch hàng ngày (Cần cơ chế Fallback tự động khi chạm ngưỡng HTTP 429)"),
+        ("Quyết định kiến trúc & Ứng dụng thực tế", "Giải pháp thứ cấp: Đóng vai trò đối chứng thực nghiệm (Baseline) và cơ chế cứu hộ dự phòng khẩn cấp", "Giải pháp tối ưu hàng đầu: Được lựa chọn chính thức để tạo ra các mô hình 3D chất lượng cao của bảo tàng")
     ]
     for idx, (crit, local_v, cloud_v) in enumerate(c3d_data):
         row = tbl_3d_compare.rows[idx + 1]

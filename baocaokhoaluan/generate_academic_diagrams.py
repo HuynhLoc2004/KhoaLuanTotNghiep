@@ -326,6 +326,29 @@ def gen_fig_4_5():
     plt.title("HÌNH 4.5: QUY TRÌNH TÁI TẠO CỔ VẬT 3D VỚI 2 ĐỘNG CƠ VÀ CƠ CHẾ DỰ PHÒNG TỰ ĐỘNG", fontsize=10.5, fontweight='bold', pad=12)
     fig.savefig(os.path.join(DIAGRAMS_DIR, "hinh_4_5_artifact_2engines.png"), bbox_inches='tight'); plt.close(fig)
 
+def gen_fig_4_6():
+    """Tao anh so sanh truc quan ket qua tai tao 3D thuc te giua Local CPU va TRELLIS AI tu anh nguoi dung."""
+    p2 = r"C:/Users/HUYNH TAN LOC/.gemini/antigravity/brain/c9a48d8a-80fb-42de-8766-be88653eace8/.user_uploaded/media_1795104558258_b9b7daa7.jpg"
+    p3 = r"C:/Users/HUYNH TAN LOC/.gemini/antigravity/brain/c9a48d8a-80fb-42de-8766-be88653eace8/.user_uploaded/media_1795104579468_1b0a2492.png"
+    if not (os.path.exists(p2) and os.path.exists(p3)):
+        return
+    from PIL import Image
+    im2 = Image.open(p2).convert('RGB')
+    im3 = Image.open(p3).convert('RGB')
+    
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(11.5, 5.0), dpi=220)
+    ax1.imshow(im2)
+    ax1.set_title('(a) ĐỘNG CƠ MÁY CHỦ NỘI BỘ (LOCAL CPU)\nBị ép đối xứng trục xoay -> Phồng tròn như bóng nước,\nmất toàn bộ góc cạnh khối phía sau (95.404 Polygons)', fontsize=9.0, fontweight='bold', pad=8, color='#B91C1C')
+    ax1.axis('off')
+    
+    ax2.imshow(im3)
+    ax2.set_title('(b) ĐỘNG CƠ ĐÁM MÂY AI (TRELLIS ZeroGPU)\nDự đoán khối 3D chân thực bằng SLAT Transformer -> Sắc nét\ntừng nếp áo và đài sen bát giác (25.619 Polygons)', fontsize=9.0, fontweight='bold', pad=8, color='#15803D')
+    ax2.axis('off')
+    
+    plt.tight_layout()
+    fig.savefig(os.path.join(DIAGRAMS_DIR, "hinh_4_6_so_sanh_3d_thuc_te.png"), bbox_inches='tight')
+    plt.close(fig)
+
 def gen_fig_4_7():
     fig, ax = plt.subplots(figsize=(10, 3.0), dpi=220)
     ax.set_xlim(0, 10); ax.set_ylim(0, 3.0); ax.axis('off')
@@ -362,6 +385,6 @@ if __name__ == '__main__':
     gen_fig_1_1(); gen_fig_1_3(); gen_fig_2_1(); gen_fig_2_2(); gen_fig_2_3()
     gen_fig_2_4(); gen_fig_2_5(); gen_fig_2_6(); gen_fig_2_7(); gen_fig_2_8()
     gen_fig_2_9(); gen_fig_2_10(); gen_fig_2_11(); gen_fig_2_12(); gen_fig_2_13()
-    gen_fig_3_1(); gen_fig_3_5(); gen_fig_4_1(); gen_fig_4_3(); gen_fig_4_5()
+    gen_fig_3_1(); gen_fig_3_5(); gen_fig_4_1(); gen_fig_4_3(); gen_fig_4_5(); gen_fig_4_6()
     gen_fig_4_7(); gen_fig_4_8()
-    print("=== HOAN TAT TAO TOAN BO 22 SO DO HOC THUAT CHUAN DEP! ===")
+    print("=== HOAN TAT TAO TOAN BO 23 SO DO HOC THUAT CHUAN DEP! ===")
