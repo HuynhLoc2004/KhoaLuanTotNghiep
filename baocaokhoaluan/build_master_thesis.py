@@ -155,10 +155,31 @@ def add_figure_caption(doc, fig_id, fig_title):
 
 def add_figure_placeholder(doc, fig_id, fig_title, description, width_cm=15.0, height_cm=7.5):
     """
-    Tao 1 bang 1 o thanh nha, vien net dut mau xam nhe, lam khung cho de sinh vien
-    dan truc tiep anh chup man hinh / so do thuc te vao. Phia duoi la chu thich
-    chuan: 'Hinh X.Y: Ten hinh...' (in dam, in nghieng, can giua).
+    Neu da co so do vector hoc thuat trong thu muc assets/diagrams (khop voi fig_id),
+    se chen truc tiep hinh anh vao tai lieu va in chu thich.
+    Neu la anh chup man hinh giao dien thuc te chua co, se tao khung cho trang nha.
     """
+    import glob
+    diagrams_dir = os.path.join(os.path.dirname(__file__), "assets", "diagrams")
+    normalized_id = str(fig_id).replace('.', '_')
+    matching_files = glob.glob(os.path.join(diagrams_dir, f"hinh_{normalized_id}_*.png"))
+    
+    if matching_files and os.path.exists(matching_files[0]):
+        img_path = matching_files[0]
+        p_img = doc.add_paragraph()
+        format_paragraph(p_img, space_before=6, space_after=2, line_spacing=1.0, align=WD_ALIGN_PARAGRAPH.CENTER, first_indent=0.0)
+        p_img.paragraph_format.keep_with_next = True
+        r_img = p_img.add_run()
+        r_img.add_picture(img_path, width=Cm(15.2))
+        
+        # Chu thich phia duoi
+        p_cap = doc.add_paragraph()
+        format_paragraph(p_cap, space_before=4, space_after=8, line_spacing=1.5, align=WD_ALIGN_PARAGRAPH.CENTER, first_indent=0.0)
+        p_cap.paragraph_format.keep_with_next = False
+        r_cap = p_cap.add_run(f"Hình {fig_id}: {fig_title}")
+        set_run_font(r_cap, "Times New Roman", 13, bold=True, italic=True, color_rgb=COLOR_BLACK)
+        return
+        
     p_box = doc.add_paragraph()
     format_paragraph(p_box, space_before=6, space_after=0, line_spacing=1.0, align=WD_ALIGN_PARAGRAPH.CENTER, first_indent=0.0)
     
@@ -199,6 +220,50 @@ def add_figure_placeholder(doc, fig_id, fig_title, description, width_cm=15.0, h
     p_cap.paragraph_format.keep_with_next = False
     r_cap = p_cap.add_run(f"Hình {fig_id}: {fig_title}")
     set_run_font(r_cap, "Times New Roman", 13, bold=True, italic=True, color_rgb=COLOR_BLACK)
+
+def add_equation(doc, math_expr, eq_no):
+    """
+    Dinh dang cong thuc toan hoc tren bang 1 hang 2 cot khong vien.
+    Cot 1 (13.5cm): Cong thuc toan can giua, nghieng, Times New Roman 12.5pt.
+    Cot 2 (2.0cm): Danh so cong thuc (X.Y) can phai, in dam.
+    Dam bao khong bao gio bi wrap hay xuong dong lech cot.
+    """
+    tbl = doc.add_table(rows=1, cols=2)
+    tbl.alignment = WD_TABLE_ALIGNMENT.CENTER
+    tbl.autofit = False
+    
+    borders = parse_xml(f'''
+        <w:tblBorders {nsdecls("w")}>
+            <w:top w:val="none"/>
+            <w:bottom w:val="none"/>
+            <w:left w:val="none"/>
+            <w:right w:val="none"/>
+            <w:insideH w:val="none"/>
+            <w:insideV w:val="none"/>
+        </w:tblBorders>
+    ''')
+    tbl._tbl.tblPr.append(borders)
+    
+    row = tbl.rows[0]
+    make_row_cant_split(row)
+    
+    c_m = row.cells[0]
+    c_m.width = Cm(13.5)
+    set_cell_margins(c_m, top=30, bottom=30, left=30, right=30)
+    set_cell_vertical_alignment(c_m, "center")
+    p_m = c_m.paragraphs[0]
+    format_paragraph(p_m, space_before=2, space_after=2, line_spacing=1.15, align=WD_ALIGN_PARAGRAPH.CENTER, first_indent=0.0)
+    r_m = p_m.add_run(math_expr)
+    set_run_font(r_m, "Times New Roman", 12.5, bold=False, italic=True, color_rgb=COLOR_BLACK)
+    
+    c_n = row.cells[1]
+    c_n.width = Cm(2.0)
+    set_cell_margins(c_n, top=30, bottom=30, left=30, right=30)
+    set_cell_vertical_alignment(c_n, "center")
+    p_n = c_n.paragraphs[0]
+    format_paragraph(p_n, space_before=2, space_after=2, line_spacing=1.15, align=WD_ALIGN_PARAGRAPH.RIGHT, first_indent=0.0)
+    r_n = p_n.add_run(f"({eq_no})")
+    set_run_font(r_n, "Times New Roman", 12.5, bold=True, italic=False, color_rgb=COLOR_BLACK)
 
 def add_custom_table(doc, headers, rows, col_widths, alignments, table_caption=None):
     """
@@ -511,9 +576,9 @@ def add_toc_line(doc, title, page_no, level=1):
     set_run_font(r_page, "Times New Roman", 12, bold=bold)
 
 def add_reference_entry(doc, ref_id, citation_text):
-    """Them muc Tai lieu tham khao theo chuan Hanging Indent 1.0cm."""
+    """Them muc Tai lieu tham khao theo chuan Hanging Indent 1.0cm, can trai de tranh gian khoang trang."""
     p = doc.add_paragraph()
-    format_paragraph(p, space_before=4, space_after=3, line_spacing=1.3, align=WD_ALIGN_PARAGRAPH.JUSTIFY, first_indent=-1.0, left_indent=1.0)
+    format_paragraph(p, space_before=4, space_after=3, line_spacing=1.3, align=WD_ALIGN_PARAGRAPH.LEFT, first_indent=-1.0, left_indent=1.0)
     r1 = p.add_run(f"[{ref_id}]\t")
     set_run_font(r1, "Times New Roman", 12, bold=True)
     r2 = p.add_run(citation_text)
@@ -579,6 +644,7 @@ def build_full_document():
         'add_figure_caption': add_figure_caption,
         'add_table_caption': add_table_caption,
         'add_figure_placeholder': add_figure_placeholder,
+        'add_equation': add_equation,
         'add_custom_table': add_custom_table,
         'add_use_case_table': add_use_case_table,
         'add_use_case_spec_table': add_use_case_spec_table,
@@ -604,68 +670,116 @@ def build_full_document():
     pgNumType.set(qn('w:start'), '1')
     sectPr.append(pgNumType)
 
-    # Thiet lap Header: De tai (trai) - GVHD (phai)
+    # Thiet lap Header Section 2: Chuan mau Tien Tran
     header = section_body.header
-    p_head = header.paragraphs[0]
-    p_head.paragraph_format.space_before = Pt(0)
-    p_head.paragraph_format.space_after = Pt(4)
-    p_head.paragraph_format.line_spacing = 1.0
-    
-    # Right tab tai 15.5cm
-    pPr_h = p_head._p.get_or_add_pPr()
-    tabs_h = OxmlElement('w:tabs')
-    tab_h = OxmlElement('w:tab')
-    tab_h.set(qn('w:val'), 'right')
-    tab_h.set(qn('w:pos'), str(int(15.5 * 567)))
-    tabs_h.append(tab_h)
-    pPr_h.append(tabs_h)
+    for p in header.paragraphs:
+        p.text = ""
+        p.paragraph_format.space_before = Pt(0)
+        p.paragraph_format.space_after = Pt(0)
+        p.paragraph_format.line_spacing = Pt(1)
 
-    r_h1 = p_head.add_run("KHOÁ LUẬN TỐT NGHIỆP - IUH")
-    set_run_font(r_h1, "Times New Roman", 9.5, italic=True, color_rgb=(100, 116, 139))
-    r_htab = p_head.add_run("\t")
-    r_h2 = p_head.add_run("GVHD: TS. TRẦN THỊ MINH KHOA")
-    set_run_font(r_h2, "Times New Roman", 9.5, italic=True, color_rgb=(100, 116, 139))
+    tbl_h = header.add_table(rows=1, cols=2, width=Cm(15.5))
+    tbl_h.alignment = WD_TABLE_ALIGNMENT.CENTER
+    tbl_h.autofit = False
+    tbl_h.rows[0].cells[0].width = Cm(10.5)
+    tbl_h.rows[0].cells[1].width = Cm(5.0)
 
-    # Thiet lap Footer: SVTH (trai) - So trang (phai)
+    borders_h = parse_xml(f'''
+        <w:tblBorders {nsdecls("w")}>
+            <w:top w:val="none"/>
+            <w:bottom w:val="single" w:sz="8" w:space="0" w:color="1B365D"/>
+            <w:left w:val="none"/>
+            <w:right w:val="none"/>
+            <w:insideH w:val="none"/>
+            <w:insideV w:val="none"/>
+        </w:tblBorders>
+    ''')
+    tbl_h._tbl.tblPr.append(borders_h)
+
+    # Header Trai: 2 dong
+    c_h0 = tbl_h.rows[0].cells[0]
+    set_cell_margins(c_h0, top=0, bottom=40, left=0, right=40)
+    p_h0_1 = c_h0.paragraphs[0]
+    format_paragraph(p_h0_1, space_before=0, space_after=1, line_spacing=1.0, align=WD_ALIGN_PARAGRAPH.LEFT, first_indent=0.0)
+    r_h0_1 = p_h0_1.add_run("HỆ THỐNG TOUR 360° BẢO TÀNG LỊCH SỬ TP.HCM")
+    set_run_font(r_h0_1, "Times New Roman", 10, bold=True, color_rgb=(15, 23, 42))
+
+    p_h0_2 = c_h0.add_paragraph()
+    format_paragraph(p_h0_2, space_before=0, space_after=2, line_spacing=1.0, align=WD_ALIGN_PARAGRAPH.LEFT, first_indent=0.0)
+    r_h0_2 = p_h0_2.add_run("Số hóa không gian di sản & Trải nghiệm thực tế ảo tương tác")
+    set_run_font(r_h0_2, "Times New Roman", 9, italic=True, color_rgb=(71, 85, 105))
+
+    # Header Phai: GVHD
+    c_h1 = tbl_h.rows[0].cells[1]
+    set_cell_margins(c_h1, top=0, bottom=40, left=40, right=0)
+    p_h1 = c_h1.paragraphs[0]
+    format_paragraph(p_h1, space_before=0, space_after=2, line_spacing=1.0, align=WD_ALIGN_PARAGRAPH.RIGHT, first_indent=0.0)
+    r_h1 = p_h1.add_run("GVHD: TS. TRẦN THỊ MINH KHOA")
+    set_run_font(r_h1, "Times New Roman", 10, bold=True, color_rgb=(15, 23, 42))
+
+    # Thiet lap Footer Section 2: Chuan mau Tien Tran
     footer = section_body.footer
-    p_foot = footer.paragraphs[0]
-    p_foot.paragraph_format.space_before = Pt(4)
-    p_foot.paragraph_format.space_after = Pt(0)
-    p_foot.paragraph_format.line_spacing = 1.0
+    for p in footer.paragraphs:
+        p.text = ""
+        p.paragraph_format.space_before = Pt(0)
+        p.paragraph_format.space_after = Pt(0)
+        p.paragraph_format.line_spacing = Pt(1)
 
-    pPr_f = p_foot._p.get_or_add_pPr()
-    tabs_f = OxmlElement('w:tabs')
-    tab_f = OxmlElement('w:tab')
-    tab_f.set(qn('w:val'), 'right')
-    tab_f.set(qn('w:pos'), str(int(15.5 * 567)))
-    tabs_f.append(tab_f)
-    pPr_f.append(tabs_f)
+    tbl_f = footer.add_table(rows=1, cols=2, width=Cm(15.5))
+    tbl_f.alignment = WD_TABLE_ALIGNMENT.CENTER
+    tbl_f.autofit = False
+    tbl_f.rows[0].cells[0].width = Cm(12.0)
+    tbl_f.rows[0].cells[1].width = Cm(3.5)
 
-    r_f1 = p_foot.add_run("SVTH: Huỳnh Tấn Lộc (22686171) - Trịnh Vĩ Thành (22689411)")
-    set_run_font(r_f1, "Times New Roman", 10, italic=True, color_rgb=(100, 116, 139))
-    r_ftab = p_foot.add_run("\t")
-    r_f2 = p_foot.add_run()
-    set_run_font(r_f2, "Times New Roman", 10, bold=True, color_rgb=(15, 23, 42))
-    add_page_number_to_run(r_f2)
+    borders_f = parse_xml(f'''
+        <w:tblBorders {nsdecls("w")}>
+            <w:top w:val="single" w:sz="8" w:space="0" w:color="1B365D"/>
+            <w:bottom w:val="none"/>
+            <w:left w:val="none"/>
+            <w:right w:val="none"/>
+            <w:insideH w:val="none"/>
+            <w:insideV w:val="none"/>
+        </w:tblBorders>
+    ''')
+    tbl_f._tbl.tblPr.append(borders_f)
 
-    # 3. NAP CAC CHUONG NOI DUNG
+    # Footer Trai: 2 sinh vien thuc hien
+    c_f0 = tbl_f.rows[0].cells[0]
+    set_cell_margins(c_f0, top=40, bottom=0, left=0, right=40)
+    p_f0_1 = c_f0.paragraphs[0]
+    format_paragraph(p_f0_1, space_before=2, space_after=1, line_spacing=1.0, align=WD_ALIGN_PARAGRAPH.LEFT, first_indent=0.0)
+    r_f0_1 = p_f0_1.add_run("Huỳnh Tấn Lộc   - 22686171")
+    set_run_font(r_f0_1, "Times New Roman", 10, color_rgb=(15, 23, 42))
+
+    p_f0_2 = c_f0.add_paragraph()
+    format_paragraph(p_f0_2, space_before=0, space_after=0, line_spacing=1.0, align=WD_ALIGN_PARAGRAPH.LEFT, first_indent=0.0)
+    r_f0_2 = p_f0_2.add_run("Trịnh Vĩ Thành  - 22689411")
+    set_run_font(r_f0_2, "Times New Roman", 10, color_rgb=(15, 23, 42))
+
+    # Footer Phai: So trang tu dong
+    c_f1 = tbl_f.rows[0].cells[1]
+    set_cell_margins(c_f1, top=40, bottom=0, left=40, right=0)
+    set_cell_vertical_alignment(c_f1, "center")
+    p_f1 = c_f1.paragraphs[0]
+    format_paragraph(p_f1, space_before=2, space_after=0, line_spacing=1.0, align=WD_ALIGN_PARAGRAPH.RIGHT, first_indent=0.0)
+    r_f1 = p_f1.add_run()
+    set_run_font(r_f1, "Times New Roman", 11, bold=True, color_rgb=(15, 23, 42))
+    add_page_number_to_run(r_f1)
+
+    # 3. NAP CAC CHUONG NOI DUNG (Moi chuong da co doc.add_page_break() o cuoi)
     print("Dang nap Chuong 1...")
     thesis_chapter_1.add_chapter_1(doc, helpers)
 
     print("Dang nap Chuong 2...")
-    doc.add_page_break()
     thesis_chapter_2.add_chapter_2(doc, helpers)
 
     print("Dang nap Chuong 3...")
-    doc.add_page_break()
     thesis_chapter_3.add_chapter_3(doc, helpers)
 
     print("Dang nap Chuong 4...")
-    doc.add_page_break()
     thesis_chapter_4.add_chapter_4(doc, helpers)
 
     print("Dang nap Chuong 5...")
-    doc.add_page_break()
     thesis_chapter_5.add_chapter_5(doc, helpers)
 
     print("Dang nap Tai lieu tham khao & Phu luc...")

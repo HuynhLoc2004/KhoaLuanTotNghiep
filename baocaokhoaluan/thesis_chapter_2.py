@@ -30,17 +30,13 @@ def add_chapter_2(doc, helper):
         "Hệ tọa độ cầu được xác định bởi góc kinh độ ngang theta trong khoảng [-pi, pi] và góc vĩ độ đứng phi trong khoảng [-pi/2, pi/2]. "
         "Mối quan hệ ánh xạ giữa tọa độ pixel phẳng (x, y) trên ảnh có chiều rộng W và chiều cao H với tọa độ góc cầu được mô hình hóa bằng hệ phương trình toán học:"
     )
-    helper.add_body_p(doc,
-        "theta = (x / W - 0.5) * 2 * pi               (2.1)\n"
-        "phi = (0.5 - y / H) * pi                     (2.2)"
-    )
+    helper.add_equation(doc, "θ = (x / W - 0.5) · 2π", "2.1")
+    helper.add_equation(doc, "φ = (0.5 - y / H) · π", "2.2")
     helper.add_body_p(doc,
         "Ngược lại, từ một điểm tọa độ không gian 3D bất kỳ P(X, Y, Z) nằm trên bề mặt hình cầu đơn vị (X^2 + Y^2 + Z^2 = 1), tọa độ pixel tương ứng trên ảnh Equirectangular được suy biến thông qua hàm lượng giác nghịch đảo:"
     )
-    helper.add_body_p(doc,
-        "x = W * (arctan2(X, Z) / (2 * pi) + 0.5)      (2.3)\n"
-        "y = H * (0.5 - arcsin(Y) / pi)                (2.4)"
-    )
+    helper.add_equation(doc, "x = W · (arctan2(X, Z) / (2π) + 0.5)", "2.3")
+    helper.add_equation(doc, "y = H · (0.5 - arcsin(Y) / π)", "2.4")
     helper.add_body_p(doc,
         "Đặc điểm cốt lõi của phép chiếu Equirectangular là các đường kinh tuyến là những đường thẳng đứng song song cách đều nhau, trong khi các cực cầu (Zenith - đỉnh đầu và Nadir - đáy sàn) bị kéo giãn biến dạng tối đa theo phương ngang. Do đó, việc xử lý ảnh Panorama đòi hỏi các phép chiếu trung gian để tránh hiện tượng méo hình khi ghép nối [5]."
     )
@@ -61,17 +57,13 @@ def add_chapter_2(doc, helper):
     helper.add_body_p(doc,
         "Giả sử camera có tiêu cự f (được chuẩn hóa theo kích thước pixel) và tâm quang học nằm tại gốc tọa độ ảnh (x_c, y_c). Một điểm ảnh phẳng có tọa độ (x_p, y_p) khi được chiếu uốn cong lên mặt trụ có bán kính bằng tiêu cự f sẽ có tọa độ trụ (x_cyl, y_cyl) được tính theo công thức:"
     )
-    helper.add_body_p(doc,
-        "x_cyl = f * arctan((x_p - x_c) / f)                                   (2.5)\n"
-        "y_cyl = f * (y_p - y_c) / sqrt((x_p - x_c)^2 + f^2)                   (2.6)"
-    )
+    helper.add_equation(doc, "x_cyl = f · arctan((x_p - x_c) / f)", "2.5")
+    helper.add_equation(doc, "y_cyl = f · (y_p - y_c) / √((x_p - x_c)² + f²)", "2.6")
     helper.add_body_p(doc,
         "Trong chiều biến đổi ngược (Inverse Mapping) phục vụ nội suy màu pixel (Bilinear Interpolation) để tránh hiện tượng răng cưa hoặc đứt gãy ảnh, tọa độ pixel gốc được tính ngược lại từ tọa độ trụ:"
     )
-    helper.add_body_p(doc,
-        "x_p = f * tan(x_cyl / f) + x_c                                        (2.7)\n"
-        "y_p = (y_cyl / f) * sqrt((x_p - x_c)^2 + f^2) + y_c                   (2.8)"
-    )
+    helper.add_equation(doc, "x_p = f · tan(x_cyl / f) + x_c", "2.7")
+    helper.add_equation(doc, "y_p = (y_cyl / f) · √((x_p - x_c)² + f²) + y_c", "2.8")
     helper.add_body_p(doc,
         "Sau phép chiếu trụ, toàn bộ các vật thể trong ảnh được đưa về cùng một tỷ lệ hình học theo phương ngang, giúp thuật toán dò tìm chuyển động có thể tính toán chính xác độ dời tịnh tiến (dx, dy) giữa hai khung hình liên tiếp."
     )
@@ -162,9 +154,7 @@ def add_chapter_2(doc, helper):
     helper.add_body_p(doc,
         "Sau khi trích xuất tập hợp các vector đặc trưng SIFT từ hai bức ảnh kề nhau, hệ thống sử dụng thuật toán tìm kiếm lân cận gần nhất k-NN (k-Nearest Neighbors) kết hợp phép kiểm tra tỷ lệ khoảng cách (Lowe's Ratio Test) để loại bỏ các điểm khớp sai ban đầu:"
     )
-    helper.add_body_p(doc,
-        "d(f_A, f_B1) / d(f_A, f_B2) < threshold_ratio (thường chọn 0.7 - 0.75)         (2.9)"
-    )
+    helper.add_equation(doc, "d(f_A, f_B1) / d(f_A, f_B2) < threshold_ratio  (0.7 - 0.75)", "2.9")
     helper.add_body_p(doc,
         "Tuy nhiên, do hoa văn lặp lại trên tường bảo tàng hoặc bóng phản chiếu trên kính tủ hiện vật, tập hợp điểm khớp vẫn chứa nhiều cặp điểm ngoại lai (Outliers). "
         "Thuật toán RANSAC (Random Sample Consensus) được áp dụng để ước lượng ma trận chuyển vị hình học chính xác (Affine hoặc Homography Matrix) [8]."
@@ -193,16 +183,12 @@ def add_chapter_2(doc, helper):
     helper.add_body_p(doc,
         "1. Tối ưu hóa đường cắt mí (Optimal Seam Finding / Voronoi Seam): Thay vì cắt theo đường thẳng đứng cứng nhắc ở giữa vùng giao thoa, thuật toán tìm một đường biên đi qua các vùng có độ chênh lệch màu sắc nhỏ nhất giữa hai ảnh bằng cách cực tiểu hóa hàm năng lượng vi sai (Energy Minimization):"
     )
-    helper.add_body_p(doc,
-        "E(p) = ||I_1(p) - I_2(p)||^2 + ||grad(I_1(p)) - grad(I_2(p))||^2             (2.10)"
-    )
+    helper.add_equation(doc, "E(p) = ||I₁(p) - I₂(p)||² + ||∇(I₁(p)) - ∇(I₂(p))||²", "2.10")
     helper.add_body_p(doc,
         "2. Hòa trộn đa dải tần (Multiband Laplacian Pyramid Blending): Thuật toán phân rã mỗi ảnh thành một tháp ảnh Laplace gồm nhiều dải tần số không gian khác nhau (từ tần số cao thể hiện chi tiết cạnh sắc nét đến tần số thấp thể hiện tông màu nền) [9]. "
         "Ở mỗi tầng k, ảnh được hòa trộn thông qua trọng số mặt nạ mượt mà (Gaussian Weight Mask W_k):"
     )
-    helper.add_body_p(doc,
-        "L_out^k = W_k * L_1^k + (1 - W_k) * L_2^k                                      (2.11)"
-    )
+    helper.add_equation(doc, "L_out^k = W_k · L₁^k + (1 - W_k) · L₂^k", "2.11")
     helper.add_body_p(doc,
         "Sau đó, bức ảnh Panorama cuối cùng được tái tạo hoàn chỉnh bằng cách cộng dồn các tầng tháp từ trên xuống dưới. "
         "Phương pháp này đảm bảo màu sắc chuyển tiếp vô cùng êm dịu mà không làm mờ đi các chi tiết hoa văn sắc sảo của hiện vật."
@@ -228,12 +214,10 @@ def add_chapter_2(doc, helper):
     helper.add_body_p(doc,
         "Góc nhìn của khách tham quan được điều khiển bởi hai góc tọa độ cầu: góc Yaw (kinh độ, quay trái/phải [-180°, 180°]) và góc Pitch (vĩ độ, ngước lên/nhìn xuống [-85°, 85°]). Vector hướng nhìn của Camera được tính toán trong vòng lặp Render (requestAnimationFrame):"
     )
-    helper.add_body_p(doc,
-        "target.x = R * cos(pitch) * sin(yaw)                                         (2.12)\n"
-        "target.y = R * sin(pitch)                                                    (2.13)\n"
-        "target.z = R * cos(pitch) * cos(yaw)                                         (2.14)\n"
-        "camera.lookAt(target)"
-    )
+    helper.add_equation(doc, "target.x = R · cos(pitch) · sin(yaw)", "2.12")
+    helper.add_equation(doc, "target.y = R · sin(pitch)", "2.13")
+    helper.add_equation(doc, "target.z = R · cos(pitch) · cos(yaw)", "2.14")
+    helper.add_body_p(doc, "Sau khi tính toán được vector đích, camera thực thi lệnh camera.lookAt(target) để hướng góc nhìn tương tác mượt mà.")
     
     # Placeholder Hình 2.6
     helper.add_figure_placeholder(doc, "2.6",
