@@ -101,7 +101,7 @@ export const ClientNavbar: React.FC<ClientNavbarProps> = ({
   // Tự động đóng Mobile Menu khi xoay màn hình hoặc resize lên màn hình lớn (Desktop)
   useEffect(() => {
     const handleResize = () => {
-      if (window.innerWidth > 1140) {
+      if (window.innerWidth > 1200) {
         setIsMobileMenuOpen(false);
       }
     };

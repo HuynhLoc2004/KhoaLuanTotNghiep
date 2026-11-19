@@ -720,8 +720,8 @@ const AppContent: React.FC = () => {
           }}
         />
 
-        {/* Nút nổi Trợ lý Di sản Ảo AI ở góc dưới màn hình - ẩn khi modal trợ lý đang mở để tránh chồng lấn */}
-        {!isAIAssistantOpen && (
+        {/* Nút nổi Trợ lý Di sản Ảo AI ở góc dưới màn hình - ẩn khi modal trợ lý đang mở hoặc đang xem Tour 360 để tránh che khuất bản đồ và thanh điều khiển */}
+        {!isAIAssistantOpen && !publicTourRoom && (
           <button
             type="button"
             className="client-floating-ai-btn"
