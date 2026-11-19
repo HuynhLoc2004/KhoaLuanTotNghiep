@@ -768,7 +768,7 @@ export async function getSystemBrandingConfig(): Promise<any> {
 
     // Tự động dọn dẹp các liên kết Cloudinary 404 đã chết / hết hạn để trang chủ và trang quản trị luôn hiển thị hoàn hảo 100%
     const DEAD_SIGNATURES = [
-      'gunmbt', 'dsy1um', 'kvfot5', 'hbc4hq'
+      'gunmbt', 'dsy1um', 'kvfot5', 'hbc4hq', 'pxwz8o'
     ];
     const isDeadUrl = (url?: string) => {
       if (!url) return false;

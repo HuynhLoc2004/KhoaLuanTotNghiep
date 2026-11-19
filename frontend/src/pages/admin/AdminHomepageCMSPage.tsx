@@ -706,7 +706,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
           museumName: 'Bảo tàng Lịch sử Thành phố Hồ Chí Minh',
           shortName: 'Bảo tàng Lịch sử',
           emblemText: 'BT',
-          logoUrl: '',
+          logoUrl: AUTHENTIC_BRANDING_ASSETS.logoUrl,
           tagline: 'Hệ thống Tour 360 Không gian Di sản',
           city: 'TP. Hồ Chí Minh',
           address: 'Số 2 Nguyễn Bỉnh Khiêm, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh',
@@ -715,7 +715,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
           emailSenderName: 'Bảo Tàng Lịch Sử TP.HCM',
           heroTitle: 'Bảo tàng Lịch sử TP. Hồ Chí Minh',
           heroTagline: 'Khám phá dòng chảy lịch sử qua công nghệ thực tế ảo Tour 360° toàn cảnh và không gian chiêm ngưỡng bảo vật 3D sống động.',
-          heroBannerUrl: '',
+          heroBannerUrl: AUTHENTIC_BRANDING_ASSETS.heroBannerUrl,
           heroVideoUrl: '',
           heroCta1Text: 'Bắt Đầu Tour 360°',
           heroCta2Text: 'Chiêm Ngưỡng Cổ Vật 3D',
@@ -723,7 +723,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
           introTitle: 'Bảo Tàng Lịch Sử TP. Hồ Chí Minh',
           introDesc: 'Công trình kiến trúc Đông Dương đặc sắc giữa lòng thành phố, lưu giữ và số hóa các bộ sưu tập di sản phục vụ trải nghiệm tham quan trực quan đa chiều.',
           introBadgeText: 'Di tích Kiến trúc Nghệ thuật Cấp Quốc gia',
-          introImageUrl: '',
+          introImageUrl: AUTHENTIC_BRANDING_ASSETS.introImageUrl,
           introCtaText: 'Khám phá gian trưng bày',
           roomsTag: 'Không Gian Thực Tế Ảo',
           roomsTitle: 'Hệ Thống Gian Phòng Tour 360°',
@@ -1080,6 +1080,7 @@ export const AdminHomepageCMSPage: React.FC<AdminHomepageCMSPageProps> = ({
                     type="button"
                     className="btn btn-secondary btn-sm"
                     onClick={() => {
+                      setLogoPreviewError(false);
                       handleChange('logoUrl', AUTHENTIC_BRANDING_ASSETS.logoUrl);
                       showToast('Đã nạp logo nhận diện chuẩn của Bảo tàng Lịch sử TP.HCM', 'info');
                     }}

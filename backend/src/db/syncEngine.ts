@@ -1354,7 +1354,9 @@ export async function runStartupDataSync() {
             museumName: row.museum_name || pgData.museumName || DEFAULT_BRANDING.museumName,
             shortName: row.short_name || pgData.shortName || DEFAULT_BRANDING.shortName,
             emblemText: row.emblem_text || pgData.emblemText || DEFAULT_BRANDING.emblemText,
-            logoUrl: row.logo_url ?? pgData.logoUrl ?? '',
+            logoUrl: (row.logo_url && !['gunmbt', 'dsy1um', 'kvfot5', 'hbc4hq', 'pxwz8o'].some(s => row.logo_url.includes(s)))
+              ? row.logo_url
+              : (pgData.logoUrl && !['gunmbt', 'dsy1um', 'kvfot5', 'hbc4hq', 'pxwz8o'].some(s => pgData.logoUrl.includes(s)) ? pgData.logoUrl : DEFAULT_BRANDING.logoUrl),
             tagline: row.tagline || pgData.tagline || DEFAULT_BRANDING.tagline,
             city: row.city || pgData.city || DEFAULT_BRANDING.city,
             address: row.address || pgData.address || DEFAULT_BRANDING.address,

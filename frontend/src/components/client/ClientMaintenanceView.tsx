@@ -54,15 +54,17 @@ export const ClientMaintenanceView: React.FC<ClientMaintenanceViewProps> = ({
   useEffect(() => {
     if (typeof document !== 'undefined') {
       document.title = `Thông Báo Bảo Trì | ${branding.museumName || 'Bảo tàng Lịch sử TP. Hồ Chí Minh'}`;
-      const targetFavicon = branding.logoUrl && branding.logoUrl.trim();
-      if (targetFavicon) {
-        let favicons = document.querySelectorAll<HTMLLinkElement>("link[rel*='icon']");
-        if (favicons.length > 0) {
-          favicons.forEach((el) => {
-            el.href = targetFavicon;
-            el.type = 'image/png';
-          });
-        }
+      const rawEmblem = (branding.emblemText || 'BT').trim() || 'BT';
+      const emblem = rawEmblem.slice(0, 4).toUpperCase();
+      const fontSize = emblem.length > 2 ? (emblem.length > 3 ? 20 : 24) : 32;
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64"><defs><linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#962A15"/><stop offset="100%" stop-color="#5A1A0C"/></linearGradient><linearGradient id="gold" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#FFEAA7"/><stop offset="50%" stop-color="#D4A86A"/><stop offset="100%" stop-color="#AA7C39"/></linearGradient></defs><rect width="64" height="64" rx="14" fill="url(#bg)"/><rect x="2.5" y="2.5" width="59" height="59" rx="12" fill="none" stroke="url(#gold)" stroke-width="2.5" stroke-opacity="0.9"/><text x="32" y="33" font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="${fontSize}" font-weight="900" text-anchor="middle" dominant-baseline="central" fill="#FFFFFF" letter-spacing="0.5">${emblem}</text></svg>`;
+      const targetFavicon = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+      let favicons = document.querySelectorAll<HTMLLinkElement>("link[rel*='icon']");
+      if (favicons.length > 0) {
+        favicons.forEach((el) => {
+          el.href = targetFavicon;
+          el.type = 'image/svg+xml';
+        });
       }
     }
   }, [branding]);

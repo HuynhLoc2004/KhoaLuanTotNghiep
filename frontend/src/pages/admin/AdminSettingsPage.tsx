@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { api, resolveMediaUrl } from '../../services/api';
 import { useToast } from '../../components/Toast';
 import { MaintenanceStatus, SystemInfo, SystemBranding } from '../../types';
-import { useSystemBranding } from '../../context/SystemBrandingContext';
+import { useSystemBranding, AUTHENTIC_BRANDING_ASSETS } from '../../context/SystemBrandingContext';
 import { useMaintenance } from '../../context/MaintenanceContext';
 import { useClientTranslation } from '../../context/ClientTranslationContext';
 import {
@@ -211,7 +211,7 @@ export const AdminSettingsPage: React.FC = () => {
       museumName: 'Bảo tàng Lịch sử Thành phố Hồ Chí Minh',
       shortName: 'Bảo tàng Lịch sử',
       emblemText: 'BT',
-      logoUrl: '',
+      logoUrl: AUTHENTIC_BRANDING_ASSETS.logoUrl,
       tagline: 'Hệ thống Tour 360 Không gian Di sản',
       city: 'TP. Hồ Chí Minh',
       address: 'Số 2 Nguyễn Bỉnh Khiêm, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh',

@@ -570,29 +570,24 @@ systemRouter.get('/branding', async (req: Request, res: Response) => {
 
 /**
  * GET /api/system/favicon
- * Phục vụ Favicon động chuẩn xác 100% theo logo thương hiệu thực tế của Bảo tàng
- * Nếu bảo tàng có logo ảnh (Cloudinary / File upload) -> Chuyển hướng trực tiếp 307
- * Nếu bảo tàng dùng biểu trưng chữ (Emblem) -> Sinh SVG sắc nét đúng chuẩn
+ * Phục vụ Favicon động chuẩn xác 100% theo biểu trưng nhận diện thương hiệu Bảo tàng
+ * Trả về trực tiếp vector SVG sắc nét cao (64x64) mang sắc đỏ di sản và chữ BT hoàng kim
+ * Đảm bảo hiển thị hoàn hảo, không bị vỡ hạt, không bị lỗi 307 redirect hay mất icon trên tab trình duyệt
  */
 systemRouter.get('/favicon', async (req: Request, res: Response) => {
   try {
     const branding = await getSystemBrandingConfig();
-    const logoUrl = branding.logoUrl && String(branding.logoUrl).trim();
+    const rawEmblem = (req.query.emblem as string || branding.emblemText || 'BT').trim() || 'BT';
+    const emblem = rawEmblem.slice(0, 4).toUpperCase();
+    const fontSize = emblem.length > 2 ? (emblem.length > 3 ? 20 : 24) : 32;
 
-    if (logoUrl) {
-      res.setHeader('Cache-Control', 'public, max-age=3600, stale-while-revalidate=86400');
-      return res.redirect(307, logoUrl);
-    }
-
-    const emblem = (branding.emblemText || 'BT').trim() || 'BT';
-    const fontSize = emblem.length > 2 ? (emblem.length > 3 ? 18 : 22) : 28;
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64"><defs><linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#8C2D19"/><stop offset="100%" stop-color="#5A1A0C"/></linearGradient><linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#F3E5AB"/><stop offset="50%" stop-color="#D4A86A"/><stop offset="100%" stop-color="#AA7C39"/></linearGradient></defs><rect width="64" height="64" rx="14" fill="url(#bgGrad)"/><rect x="2" y="2" width="60" height="60" rx="12" fill="none" stroke="url(#goldGrad)" stroke-width="2.5" stroke-opacity="0.85"/><text x="32" y="44" font-family="'Be Vietnam Pro', system-ui, -apple-system, sans-serif, Arial" font-size="${fontSize}" font-weight="800" text-anchor="middle" fill="#FFFFFF" letter-spacing="1">${emblem}</text></svg>`;
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64"><defs><linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#962A15"/><stop offset="100%" stop-color="#5A1A0C"/></linearGradient><linearGradient id="gold" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#FFEAA7"/><stop offset="50%" stop-color="#D4A86A"/><stop offset="100%" stop-color="#AA7C39"/></linearGradient></defs><rect width="64" height="64" rx="14" fill="url(#bg)"/><rect x="2.5" y="2.5" width="59" height="59" rx="12" fill="none" stroke="url(#gold)" stroke-width="2.5" stroke-opacity="0.9"/><text x="32" y="33" font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="${fontSize}" font-weight="900" text-anchor="middle" dominant-baseline="central" fill="#FFFFFF" letter-spacing="0.5">${emblem}</text></svg>`;
 
     res.setHeader('Content-Type', 'image/svg+xml');
-    res.setHeader('Cache-Control', 'public, max-age=3600, stale-while-revalidate=86400');
+    res.setHeader('Cache-Control', 'public, max-age=1800, stale-while-revalidate=86400');
     return res.send(svg);
   } catch (err: any) {
-    const fallbackSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64"><rect width="64" height="64" rx="14" fill="#8C2D19"/><text x="32" y="44" font-family="sans-serif" font-size="28" font-weight="bold" text-anchor="middle" fill="#FFF">BT</text></svg>`;
+    const fallbackSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64"><rect width="64" height="64" rx="14" fill="#962A15"/><text x="32" y="33" font-family="sans-serif" font-size="30" font-weight="900" text-anchor="middle" dominant-baseline="central" fill="#FFF">BT</text></svg>`;
     res.setHeader('Content-Type', 'image/svg+xml');
     return res.send(fallbackSvg);
   }
