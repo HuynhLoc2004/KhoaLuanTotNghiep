@@ -354,14 +354,14 @@ def add_front_matter(doc, helper):
     # 8B. PHIẾU XÁC NHẬN CHỈNH SỬA KHÓA LUẬN TỐT NGHIỆP (Mục 6 trong Bảng 2.1.2 Hướng dẫn KLTN 01/2024)
     # -------------------------------------------------------------------------
     p_xn_hdr = doc.add_paragraph()
-    helper.format_paragraph(p_xn_hdr, space_before=0, space_after=4, line_spacing=1.15, align=WD_ALIGN_PARAGRAPH.CENTER, first_indent=0.0)
+    helper.format_paragraph(p_xn_hdr, space_before=0, space_after=2, line_spacing=1.15, align=WD_ALIGN_PARAGRAPH.CENTER, first_indent=0.0)
     r_xn_h1 = p_xn_hdr.add_run("BỘ CÔNG THƯƠNG\nTRƯỜNG ĐẠI HỌC CÔNG NGHIỆP THÀNH PHỐ HỒ CHÍ MINH\nKHOA CÔNG NGHỆ THÔNG TIN\n\n")
-    helper.set_run_font(r_xn_h1, "Times New Roman", 13, bold=True)
+    helper.set_run_font(r_xn_h1, "Times New Roman", 12, bold=True)
     r_xn_h2 = p_xn_hdr.add_run("PHIẾU XÁC NHẬN CHỈNH SỬA KHÓA LUẬN TỐT NGHIỆP")
-    helper.set_run_font(r_xn_h2, "Times New Roman", 14, bold=True)
+    helper.set_run_font(r_xn_h2, "Times New Roman", 13, bold=True)
     
     p_info = doc.add_paragraph()
-    helper.format_paragraph(p_info, space_before=6, space_after=4, line_spacing=1.2, align=WD_ALIGN_PARAGRAPH.LEFT, first_indent=0.0)
+    helper.format_paragraph(p_info, space_before=2, space_after=3, line_spacing=1.15, align=WD_ALIGN_PARAGRAPH.LEFT, first_indent=0.0)
     r_info = p_info.add_run(
         "Tên đề tài: Hệ thống tham quan thực tế ảo 360° và số hóa không gian di sản Bảo tàng Lịch sử TP.HCM\n"
         "Ngành: Công nghệ Thông tin                         Chuyên ngành: Kỹ thuật phần mềm\n"
@@ -370,28 +370,28 @@ def add_front_matter(doc, helper):
         "Giảng viên hướng dẫn: TS. Trần Thị Minh Khoa\n"
         "Hội đồng đánh giá: Hội đồng Chuyên môn Khoa Công nghệ Thông tin"
     )
-    helper.set_run_font(r_info, "Times New Roman", 12, bold=False)
+    helper.set_run_font(r_info, "Times New Roman", 11.5, bold=False)
     
     p_tbl_lbl = doc.add_paragraph()
-    helper.format_paragraph(p_tbl_lbl, space_before=4, space_after=2, line_spacing=1.15, align=WD_ALIGN_PARAGRAPH.LEFT, first_indent=0.0)
+    helper.format_paragraph(p_tbl_lbl, space_before=3, space_after=2, line_spacing=1.15, align=WD_ALIGN_PARAGRAPH.LEFT, first_indent=0.0)
     r_tbl_lbl = p_tbl_lbl.add_run("Nội dung và kết quả chỉnh sửa hoàn thiện theo góp ý của Hội đồng:")
-    helper.set_run_font(r_tbl_lbl, "Times New Roman", 12, bold=True, italic=True)
+    helper.set_run_font(r_tbl_lbl, "Times New Roman", 11.5, bold=True, italic=True)
     
-    # Bang noi dung chinh sua theo mau
+    # Bang noi dung chinh sua - CHUA CHO TRONG de Hoi dong ghi nhan
     xn_headers = ["STT", "Nội dung góp ý của Hội đồng", "Nội dung & Kết quả đã chỉnh sửa hoàn thiện", "Xác nhận"]
     xn_rows = [
-        ["1", "Chuẩn hóa định dạng văn bản, lề trang (3-2-2-2cm), giãn dòng 1.5 lines và thụt đầu dòng 0.76cm theo Quy định KLTN 01/2024.", "Đã rà soát toàn bộ 5 chương và phụ lục, áp dụng chuẩn xác lề trang, font Times New Roman 13pt và khoảng cách đoạn chuẩn.", "Đạt"],
-        ["2", "Bổ sung cơ sở lý thuyết, công thức toán học và sơ đồ nguyên lý cho các giải thuật nắn chỉnh ảnh trụ (Cylindrical Warping) và Dijkstra.", "Đã cập nhật chi tiết hệ công thức toán học (2.1 - 2.8), bảng biến thiên và 23 sơ đồ thiết kế kiến trúc chuẩn mực.", "Đạt"],
-        ["3", "Làm rõ phân hệ thanh toán VietQR (PayOS) và quy trình kiểm tra vé bằng camera thời gian thực.", "Đã phân tích chi tiết quy trình xác thực JWT, cơ chế webhook bất đồng bộ, mã hóa AES-256 và thuật toán quét QR.", "Đạt"],
-        ["4", "Hoàn thiện danh mục tài liệu tham khảo theo đúng chuẩn quy định của Nhà trường (không để URL trần, hanging indent 1.0cm).", "Đã chuẩn hóa 34 mục tài liệu tham khảo theo chuẩn IEEE/IUH, bổ sung đầy đủ tác giả, tên bài, tạp chí và thời gian truy cập.", "Đạt"]
+        ["1", "\n\n", "\n\n", ""],
+        ["2", "\n\n", "\n\n", ""],
+        ["3", "\n\n", "\n\n", ""],
+        ["4", "\n\n", "\n\n", ""]
     ]
-    helper.add_custom_table(doc, xn_headers, xn_rows, [1.2, 5.0, 7.5, 1.8], [WD_ALIGN_PARAGRAPH.CENTER, WD_ALIGN_PARAGRAPH.LEFT, WD_ALIGN_PARAGRAPH.LEFT, WD_ALIGN_PARAGRAPH.CENTER])
+    helper.add_custom_table(doc, xn_headers, xn_rows, [1.2, 5.2, 7.3, 1.8], [WD_ALIGN_PARAGRAPH.CENTER, WD_ALIGN_PARAGRAPH.LEFT, WD_ALIGN_PARAGRAPH.LEFT, WD_ALIGN_PARAGRAPH.CENTER])
     
-    # 3 chu ky xac nhan
+    # 3 chu ky xac nhan (Thiet ke thanh lich, vua van trong 1 trang duy nhat)
     p_sign_tbl = doc.add_paragraph()
-    helper.format_paragraph(p_sign_tbl, space_before=10, space_after=0, line_spacing=1.15, align=WD_ALIGN_PARAGRAPH.CENTER, first_indent=0.0)
+    helper.format_paragraph(p_sign_tbl, space_before=4, space_after=0, line_spacing=1.0, align=WD_ALIGN_PARAGRAPH.CENTER, first_indent=0.0)
     
-    tbl_sign = doc.add_table(rows=1, cols=3)
+    tbl_sign = doc.add_table(rows=2, cols=3)
     tbl_sign.alignment = WD_TABLE_ALIGNMENT.CENTER
     tbl_sign.autofit = False
     
@@ -403,30 +403,42 @@ def add_front_matter(doc, helper):
     tbl_sign._tbl.tblPr.append(borders_none)
     
     col_w = Cm(5.1)
-    for c in tbl_sign.rows[0].cells:
-        c.width = col_w
+    for row in tbl_sign.rows:
+        helper.make_row_cant_split(row)
+        for c in row.cells:
+            c.width = col_w
+            
+    # Row 0: Chuc danh
+    r0_titles = [
+        ("GIẢNG VIÊN HƯỚNG DẪN\n(Ký và ghi rõ họ tên)"),
+        ("GIẢNG VIÊN PHẢN BIỆN\n(Ký và ghi rõ họ tên)"),
+        ("CHỦ TỊCH HỘI ĐỒNG\n(Ký và ghi rõ họ tên)")
+    ]
+    for idx, title in enumerate(r0_titles):
+        cell = tbl_sign.rows[0].cells[idx]
+        p = cell.paragraphs[0]
+        helper.format_paragraph(p, space_before=0, space_after=0, line_spacing=1.1, align=WD_ALIGN_PARAGRAPH.CENTER, first_indent=0.0)
+        lines = title.split("\n")
+        r_t = p.add_run(lines[0] + "\n")
+        helper.set_run_font(r_t, "Times New Roman", 10.5, bold=True)
+        r_s = p.add_run(lines[1])
+        helper.set_run_font(r_s, "Times New Roman", 9.5, italic=True)
         
-    c0 = tbl_sign.rows[0].cells[0]
-    p0 = c0.paragraphs[0]
-    helper.format_paragraph(p0, space_before=0, space_after=0, line_spacing=1.15, align=WD_ALIGN_PARAGRAPH.CENTER, first_indent=0.0)
-    r0 = p0.add_run("GIẢNG VIÊN HƯỚNG DẪN\n\n\n\nTS. Trần Thị Minh Khoa")
-    helper.set_run_font(r0, "Times New Roman", 11, bold=True)
-    
-    c1 = tbl_sign.rows[0].cells[1]
-    p1 = c1.paragraphs[0]
-    helper.format_paragraph(p1, space_before=0, space_after=0, line_spacing=1.15, align=WD_ALIGN_PARAGRAPH.CENTER, first_indent=0.0)
-    r1 = p1.add_run("GIẢNG VIÊN PHẢN BIỆN\n\n\n\n.......................................")
-    helper.set_run_font(r1, "Times New Roman", 11, bold=True)
-    
-    c2 = tbl_sign.rows[0].cells[2]
-    p2 = c2.paragraphs[0]
-    helper.format_paragraph(p2, space_before=0, space_after=0, line_spacing=1.15, align=WD_ALIGN_PARAGRAPH.CENTER, first_indent=0.0)
-    r2 = p2.add_run("CHỦ TỊCH HỘI ĐỒNG\n\n\n\n.......................................")
-    helper.set_run_font(r2, "Times New Roman", 11, bold=True)
-    
+    # Row 1: Khoang trong chu ky & Ho ten
+    r1_names = [
+        "\n\n\nTS. Trần Thị Minh Khoa",
+        "\n\n\n.......................................",
+        "\n\n\n......................................."
+    ]
+    for idx, name in enumerate(r1_names):
+        cell = tbl_sign.rows[1].cells[idx]
+        p = cell.paragraphs[0]
+        helper.format_paragraph(p, space_before=0, space_after=0, line_spacing=1.1, align=WD_ALIGN_PARAGRAPH.CENTER, first_indent=0.0)
+        r = p.add_run(name)
+        helper.set_run_font(r, "Times New Roman", 10.5, bold=True)
+        
     doc.add_page_break()
     
-    # -------------------------------------------------------------------------
     # 9. MỤC LỤC (Trang 12 trong mẫu Tiến Trần)
     # -------------------------------------------------------------------------
     p_toc_h = helper.add_heading_1(doc, "MỤC LỤC")
