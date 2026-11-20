@@ -596,6 +596,9 @@ def add_toc_line(doc, title, page_no, level=1):
     p.paragraph_format.line_spacing = 1.15
     p.alignment = WD_ALIGN_PARAGRAPH.LEFT
     
+    # Thiet lap le phai de tranh text tran cham vao so trang (chong dinh chu va so)
+    p.paragraph_format.right_indent = Cm(1.2)
+    
     # Thut le theo cap
     if level == 1:
         p.paragraph_format.left_indent = Cm(0.0)
