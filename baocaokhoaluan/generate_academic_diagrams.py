@@ -235,7 +235,7 @@ def gen_fig_2_1():
     ax.text(cx + 0.35, cy + 0.48, r'$\phi$', fontsize=9, fontweight='bold', color=C_DARK_TEXT,
             bbox=dict(boxstyle='round,pad=0.1', facecolor='#FFFFFF', edgecolor='none'), zorder=6)
     
-    ax.text(cx, cy - R - 0.32, 'Mặt cầu 3D đơn vị ($X^2 + Y^2 + Z^2 = 1$)\nTọa độ góc $(\\theta, \\phi)$',
+    ax.text(cx, cy - R - 0.32, 'Mặt cầu 3D đơn vị ($X^2 + Y^2 + Z^2 = 1$)\nTọa độ góc $(\theta, \\phi)$',
             ha='center', va='top', fontsize=8, fontweight='bold', color=C_DARK_TEXT)
     
     # Formulations
@@ -245,7 +245,7 @@ def gen_fig_2_1():
             bbox=dict(boxstyle='round,pad=0.2', facecolor='#EFF6FF', edgecolor='#93C5FD', lw=0.7))
     
     ax.annotate('', xy=(4.4, 1.4), xytext=(5.9, 1.4), arrowprops=dict(arrowstyle='->', color=C_LINE_DARK, lw=1.4), zorder=5)
-    ax.text(5.15, 1.25, 'Chiếu ngược (2.3 - 2.4)\n$X = -\\cos\\phi\\sin\\theta$\n$Y = \\sin\\phi, Z = -\\cos\\phi\\cos\\theta$',
+    ax.text(5.15, 1.25, 'Chiếu ngược (2.3 - 2.4)\n$X = -\\cos\\phi\\sin\theta$\n$Y = \\sin\\phi, Z = -\\cos\\phi\\cos\theta$',
             ha='center', va='top', fontsize=7.2, color=C_DARK_TEXT,
             bbox=dict(boxstyle='round,pad=0.2', facecolor='#F0FDF4', edgecolor='#86EFAC', lw=0.7))
     
@@ -275,91 +275,129 @@ def gen_fig_2_1():
     ax.text(rx + rw/2, ry + rh + 0.10, r'Cực Bắc ($\phi = +\pi/2$)', fontsize=7.2, ha='center', color=C_DARK_TEXT)
     ax.text(rx + rw/2, ry - 0.22, r'Cực Nam ($\phi = -\pi/2$)', fontsize=7.2, ha='center', color=C_DARK_TEXT)
     
-    ax.text(rx + rw/2, ry - 0.45, 'Ảnh phẳng Equirectangular ($W \\times H$, tỷ lệ 2:1)\n$x = (\\theta + \\pi) / (2\\pi) \\cdot W, \\quad y = (\\pi/2 - \\phi) / \\pi \\cdot H$',
+    ax.text(rx + rw/2, ry - 0.45, 'Ảnh phẳng Equirectangular ($W \\times H$, tỷ lệ 2:1)\n$x = (\theta + \\pi) / (2\\pi) \\cdot W, \\quad y = (\\pi/2 - \\phi) / \\pi \\cdot H$',
             ha='center', va='top', fontsize=8, fontweight='bold', color=C_DARK_TEXT)
     
     fig.savefig(os.path.join(DIAGRAMS_DIR, "hinh_2_1_he_toa_do_cau.png"), bbox_inches='tight')
     plt.close(fig)
 
 def gen_fig_2_2():
-    """Hinh 2.2: Quy trinh nan chinh bien dang hinh hoc tru (Cylindrical Warping)"""
-    fig, ax = plt.subplots(figsize=(10.5, 4.0), dpi=300)
-    ax.set_xlim(0, 10.5); ax.set_ylim(0, 4.0); ax.axis('off')
+    """Hinh 2.2: Quy trinh nan chinh bien dang hinh hoc tru (Cylindrical Warping) - Toi gian, khong de chu, khong hop mau me"""
+    fig, ax = plt.subplots(figsize=(11.0, 4.6), dpi=300)
+    ax.set_xlim(0, 11.0); ax.set_ylim(0, 4.6); ax.axis('off')
     
-    cam_x, cam_y = 1.2, 2.0
-    f = 2.4
+    # Left: Geometry diagram (0.5 to 5.2)
+    ax.text(2.8, 4.35, 'HÌNH HỌC PHÉP CHIẾU MẶT TRỤ (CYLINDRICAL PROJECTION)',
+            fontsize=8.0, fontweight='bold', ha='center', color=C_DARK_TEXT)
+            
+    cam_x, cam_y = 1.0, 2.2
+    f = 2.6
     
-    ax.plot(cam_x, cam_y, 'o', color=C_LINE_DARK, markersize=5.5, zorder=6)
-    ax.text(cam_x - 0.1, cam_y - 0.22, 'C (Tâm quang học)', fontsize=8, fontweight='bold', ha='right', color=C_DARK_TEXT)
+    # Tam camera C
+    ax.plot(cam_x, cam_y, 'o', color=C_LINE_DARK, markersize=6, zorder=6)
+    ax.text(cam_x - 0.15, cam_y, 'C (Tâm quang học)', fontsize=7.8, fontweight='bold', ha='right', va='center', color=C_DARK_TEXT)
     
-    ax.plot([cam_x, cam_x + f + 1.2], [cam_y, cam_y], color=C_MUTED_TEXT, ls='--', lw=1.0, zorder=2)
-    ax.text(cam_x + 1.5, cam_y - 0.22, f'Tiêu cự f = {f}', fontsize=7.5, color=C_MUTED_TEXT, ha='center',
+    # Truc quang hoc (optical axis)
+    ax.plot([cam_x, cam_x + f + 1.2], [cam_y, cam_y], color='#64748B', ls='--', lw=1.0, zorder=2)
+    ax.text(cam_x + 1.3, cam_y - 0.20, f'Trục quang học (Tiêu cự f = {f})', fontsize=7.2, color='#475569', ha='center',
             bbox=dict(boxstyle='round,pad=0.15', facecolor='#FFFFFF', edgecolor='none'))
-    
+            
+    # Mat phang cam bien (Sensor Plane)
     sensor_x = cam_x + f
-    ax.plot([sensor_x, sensor_x], [cam_y - 1.4, cam_y + 1.4], color=C_LINE_DARK, lw=2.0, zorder=3)
-    ax.text(sensor_x - 0.08, cam_y + 1.5, 'Mặt phẳng cảm biến (Ảnh phẳng)\n$x_p \\in [-W/2, W/2]$',
-            fontsize=7.8, fontweight='bold', ha='center', color=C_DARK_TEXT)
-    
-    theta_arc = np.linspace(-np.pi/4, np.pi/4, 100)
+    ax.plot([sensor_x, sensor_x], [cam_y - 1.6, cam_y + 1.6], color=C_LINE_DARK, lw=1.8, zorder=3)
+    ax.text(sensor_x, cam_y + 1.85, 'Mặt phẳng cảm biến (Ảnh phẳng)\n$x_p \in [-W/2, W/2]$',
+            fontsize=7.5, fontweight='bold', ha='center', va='bottom', color=C_DARK_TEXT)
+            
+    # Mat tru (Cylindrical Surface)
+    theta_arc = np.linspace(-np.pi/3.8, np.pi/3.8, 100)
     arc_x = cam_x + f * np.cos(theta_arc)
     arc_y = cam_y + f * np.sin(theta_arc)
-    ax.plot(arc_x, arc_y, color='#1E40AF', lw=2.4, zorder=4)
-    ax.text(cam_x + f + 0.2, cam_y - 1.45, 'Mặt trụ bán kính f\n$x_{cyl} = f \\cdot \\theta$',
-            fontsize=7.8, fontweight='bold', ha='left', color=C_DARK_TEXT)
+    ax.plot(arc_x, arc_y, color='#1E40AF', lw=2.2, zorder=4)
+    ax.text(arc_x[0] + 0.15, arc_y[0] - 0.15, 'Mặt trụ bán kính f\n$x_{cyl} = f \cdot \theta$',
+            fontsize=7.5, fontweight='bold', ha='left', va='top', color='#1E40AF')
+            
+    # Ray 1: goc tren
+    theta1 = 0.42
+    ray1_len = f / np.cos(theta1) + 0.5
+    r1_end_x = cam_x + ray1_len * np.cos(theta1)
+    r1_end_y = cam_y + ray1_len * np.sin(theta1)
+    ax.plot([cam_x, r1_end_x], [cam_y, r1_end_y], color='#1E3A8A', lw=1.2, zorder=3)
     
-    # Rays
-    y_p1 = cam_y + 1.0
-    theta1 = np.arctan((y_p1 - cam_y) / f)
-    cyl_x1 = cam_x + f * np.cos(theta1)
-    cyl_y1 = cam_y + f * np.sin(theta1)
-    ax.plot([cam_x, cyl_x1 + 0.3], [cam_y, cyl_y1 + 0.3 * np.tan(theta1)], color='#1E3A8A', ls='-', lw=1.3, zorder=5)
-    ax.plot(sensor_x, y_p1, 'o', color='#1E3A8A', markersize=4.5, zorder=6)
-    ax.text(sensor_x - 0.15, y_p1 + 0.12, '$p(x_p, y_p)$', fontsize=8, fontweight='bold', color=C_DARK_TEXT, ha='right',
-            bbox=dict(boxstyle='round,pad=0.1', facecolor='#FFFFFF', edgecolor='none'))
-    ax.plot(cyl_x1, cyl_y1, 'o', color='#1E3A8A', markersize=5.5, zorder=6)
-    ax.text(cyl_x1 + 0.1, cyl_y1 + 0.1, '$p_{cyl}(x_{cyl}, y_{cyl})$', fontsize=8, fontweight='bold', color=C_DARK_TEXT,
-            bbox=dict(boxstyle='round,pad=0.1', facecolor='#FFFFFF', edgecolor='none'))
+    # Diem tren sensor
+    p1_x = sensor_x
+    p1_y = cam_y + f * np.tan(theta1)
+    ax.plot(p1_x, p1_y, 'o', color=C_LINE_DARK, markersize=5, zorder=6)
+    ax.text(p1_x - 0.15, p1_y + 0.18, '$p(x_p, y_p)$', fontsize=8.0, fontweight='bold', ha='right', color=C_DARK_TEXT,
+            bbox=dict(boxstyle='round,pad=0.1', facecolor='#FFFFFF', edgecolor='#CBD5E1', lw=0.6))
+            
+    # Diem tren mat tru
+    cyl1_x = cam_x + f * np.cos(theta1)
+    cyl1_y = cam_y + f * np.sin(theta1)
+    ax.plot(cyl1_x, cyl1_y, 'o', color='#1E40AF', markersize=6, zorder=6)
+    ax.text(cyl1_x + 0.15, cyl1_y + 0.18, '$p_{cyl}(x_{cyl}, y_{cyl})$', fontsize=8.0, fontweight='bold', ha='left', color='#1E40AF',
+            bbox=dict(boxstyle='round,pad=0.1', facecolor='#FFFFFF', edgecolor='#CBD5E1', lw=0.6))
+            
+    # Ray 2: goc duoi
+    theta2 = -0.38
+    ray2_len = f / np.cos(theta2) + 0.5
+    r2_end_x = cam_x + ray2_len * np.cos(theta2)
+    r2_end_y = cam_y + ray2_len * np.sin(theta2)
+    ax.plot([cam_x, r2_end_x], [cam_y, r2_end_y], color='#1E3A8A', lw=1.2, zorder=3)
     
-    y_p2 = cam_y - 0.8
-    theta2 = np.arctan((y_p2 - cam_y) / f)
-    cyl_x2 = cam_x + f * np.cos(theta2)
-    cyl_y2 = cam_y + f * np.sin(theta2)
-    ax.plot([cam_x, cyl_x2 + 0.3], [cam_y, cyl_y2 + 0.3 * np.tan(theta2)], color='#1E3A8A', ls='-', lw=1.3, zorder=5)
-    ax.plot(sensor_x, y_p2, 'o', color='#1E3A8A', markersize=4.5, zorder=6)
-    ax.plot(cyl_x2, cyl_y2, 'o', color='#1E3A8A', markersize=5.5, zorder=6)
+    p2_x = sensor_x
+    p2_y = cam_y + f * np.tan(theta2)
+    ax.plot(p2_x, p2_y, 'o', color=C_LINE_DARK, markersize=5, zorder=6)
     
-    arc_ang = patches.Arc((cam_x, cam_y), 1.2, 1.2, angle=0, theta1=0, theta2=np.degrees(theta1), color=C_LINE_DARK, lw=1.2)
+    cyl2_x = cam_x + f * np.cos(theta2)
+    cyl2_y = cam_y + f * np.sin(theta2)
+    ax.plot(cyl2_x, cyl2_y, 'o', color='#1E40AF', markersize=6, zorder=6)
+    
+    # Goc theta
+    arc_ang = patches.Arc((cam_x, cam_y), 1.4, 1.4, angle=0, theta1=0, theta2=np.degrees(theta1), color=C_LINE_DARK, lw=1.1)
     ax.add_patch(arc_ang)
-    ax.text(cam_x + 0.75, cam_y + 0.18, r'$\theta$', fontsize=8.5, fontweight='bold', color=C_DARK_TEXT,
-            bbox=dict(boxstyle='round,pad=0.1', facecolor='#FFFFFF', edgecolor='none'))
-    
-    # Right panel
-    fb = patches.FancyBboxPatch((6.0, 2.3), 4.2, 1.5, boxstyle='round,pad=0.03,rounding_size=0.06',
-                                facecolor='#EFF6FF', edgecolor='#1E3A8A', lw=1.3, zorder=3)
+    ax.text(cam_x + 0.85, cam_y + 0.16, r'$\theta$', fontsize=8.5, fontweight='bold', color=C_DARK_TEXT)
+
+    # Duong phan cach doc
+    ax.plot([5.5, 5.5], [0.3, 4.3], color='#CBD5E1', ls=':', lw=1.0)
+
+    # Right: Cong thuc & Minh hoa bien dang (5.8 to 10.6)
+    ax.text(8.2, 4.35, 'CÔNG THỨC TOÁN HỌC & HIỆU QUẢ TRIỆT TIÊU BIẾN DẠNG',
+            fontsize=8.0, fontweight='bold', ha='center', color=C_DARK_TEXT)
+            
+    # Khung cong thuc thanh lich (Nen trang, vien xam)
+    fb = patches.FancyBboxPatch((5.8, 2.7), 4.8, 1.4, boxstyle='round,pad=0.03,rounding_size=0.06',
+                                facecolor='#F8FAFC', edgecolor='#334155', lw=1.1, zorder=3)
     ax.add_patch(fb)
-    ax.text(8.1, 3.55, 'CÔNG THỨC BIẾN ĐỔI HÌNH HỌC (2.5 – 2.8)', fontsize=8.2, fontweight='bold', ha='center', color=C_DARK_TEXT)
-    ax.text(8.1, 3.15, r'$x_{cyl} = f \cdot \arctan\left(\frac{x_p}{f}\right) + \frac{W}{2}$', fontsize=8.5, ha='center', color=C_DARK_TEXT)
-    ax.text(8.1, 2.75, r'$y_{cyl} = f \cdot \frac{y_p}{\sqrt{x_p^2 + f^2}} + \frac{H}{2}$', fontsize=8.5, ha='center', color=C_DARK_TEXT)
-    ax.text(8.1, 2.45, 'Nội suy Bilinear trị số mức xám 4 điểm lân cận', fontsize=7.2, fontstyle='italic', ha='center', color=C_MUTED_TEXT)
-    
-    ax.text(7.0, 1.95, '1. Ảnh phẳng gốc (Góc rộng):', fontsize=7.5, fontweight='bold', color=C_DARK_TEXT, ha='center')
-    f1 = patches.Polygon([[6.2, 0.6], [7.8, 0.6], [8.0, 1.7], [6.0, 1.7]], facecolor='#F8FAFC', edgecolor='#64748B', lw=1.2)
+    ax.text(8.2, 3.85, 'HỆ PHÉP CHIẾU TOÁN HỌC (CÔNG THỨC 2.5 – 2.8)', fontsize=7.5, fontweight='bold', ha='center', color=C_DARK_TEXT)
+    ax.text(8.2, 3.42, r'$x_{cyl} = f \cdot \arctan(x_p / f) + W/2$', fontsize=8.2, ha='center', color=C_DARK_TEXT)
+    ax.text(8.2, 3.02, r'$y_{cyl} = f \cdot y_p / \sqrt{x_p^2 + f^2} + H/2$', fontsize=8.2, ha='center', color=C_DARK_TEXT)
+    ax.text(8.2, 2.78, '(Nội suy mức xám Bilinear 4 điểm lân cận để bảo toàn độ sắc nét)', fontsize=6.8, fontstyle='italic', ha='center', color='#475569')
+
+    # 2 hop so sanh anh phang vs anh nan tru
+    # Box 1: Anh phang goc
+    f1 = patches.Polygon([[6.0, 0.7], [7.8, 0.7], [8.0, 2.1], [5.8, 2.1]], facecolor='#FFFFFF', edgecolor='#475569', lw=1.2, zorder=4)
     ax.add_patch(f1)
-    ax.text(7.0, 1.15, 'Biến dạng mép\n(Cột bị choãi)', ha='center', va='center', fontsize=7.2, color=C_MUTED_TEXT)
-    
-    ax.text(9.2, 1.95, '2. Ảnh đã nắn trụ:', fontsize=7.5, fontweight='bold', color=C_DARK_TEXT, ha='center')
-    curve_x = np.linspace(8.4, 10.0, 40)
-    top_y = 1.7 - 0.12 * (1 - ((curve_x - 9.2)/0.8)**2)
-    bot_y = 0.6 + 0.12 * (1 - ((curve_x - 9.2)/0.8)**2)
+    ax.text(6.9, 2.3, '1. Ảnh phẳng gốc (Chưa nắn)', fontsize=7.2, fontweight='bold', ha='center', color=C_DARK_TEXT)
+    # Ve 2 cot bi choai
+    ax.plot([6.3, 6.1], [0.7, 2.1], color='#94A3B8', ls='--', lw=1.0)
+    ax.plot([7.5, 7.7], [0.7, 2.1], color='#94A3B8', ls='--', lw=1.0)
+    ax.text(6.9, 1.4, 'Biến dạng phối cảnh\n(Mép cột bị choãi xiên)', ha='center', va='center', fontsize=6.8, color='#475569')
+
+    # Box 2: Anh da nan tru
+    curve_x = np.linspace(8.6, 10.6, 40)
+    top_y = 2.1 - 0.10 * (1 - ((curve_x - 9.6)/1.0)**2)
+    bot_y = 0.7 + 0.10 * (1 - ((curve_x - 9.6)/1.0)**2)
     verts = list(zip(curve_x, top_y)) + list(zip(curve_x[::-1], bot_y[::-1]))
-    f2 = patches.Polygon(verts, facecolor='#F0FDF4', edgecolor='#166534', lw=1.4)
+    f2 = patches.Polygon(verts, facecolor='#FFFFFF', edgecolor='#0F172A', lw=1.4, zorder=4)
     ax.add_patch(f2)
-    ax.text(9.2, 1.15, 'Triệt tiêu mép cong\nGhép mí liên tục', ha='center', va='center', fontsize=7.2, fontweight='bold', color=C_DARK_TEXT)
-    
+    ax.text(9.6, 2.3, '2. Ảnh đã nắn mặt trụ', fontsize=7.2, fontweight='bold', ha='center', color=C_DARK_TEXT)
+    # Ve 2 cot thang dung
+    ax.plot([8.9, 8.9], [0.8, 2.0], color='#166534', ls='-', lw=1.2)
+    ax.plot([10.3, 10.3], [0.8, 2.0], color='#166534', ls='-', lw=1.2)
+    ax.text(9.6, 1.4, 'Cột bảo toàn 90° đứng\nSẵn sàng ghép mí', ha='center', va='center', fontsize=6.8, fontweight='bold', color=C_DARK_TEXT)
+
     fig.savefig(os.path.join(DIAGRAMS_DIR, "hinh_2_2_cylindrical_warping.png"), bbox_inches='tight')
     plt.close(fig)
-
 def gen_fig_2_3():
     """Hinh 2.3: Thap khong gian ty le Gauss, sai phan DoG va phat hien cuc tri 26 diem lan can"""
     fig, ax = plt.subplots(figsize=(10.5, 4.2), dpi=300)
@@ -985,72 +1023,82 @@ def gen_fig_4_1():
     plt.close(fig)
 
 def gen_fig_4_3():
-    """Hinh 4.3: Panorama Studio 4 Inputs Flow (Kien truc duong ong xu ly anh toan canh thuc te)"""
-    fig, ax = plt.subplots(figsize=(10.5, 4.2), dpi=300)
-    ax.set_xlim(0, 10.5); ax.set_ylim(0, 4.2); ax.axis('off')
-    
-    # Left: 4 input sources
-    ax.text(1.2, 4.05, 'NGUỒN DỮ LIỆU ĐẦU VÀO', fontsize=7.8, fontweight='bold', ha='center', color='#0F172A')
-    draw_device(ax, 1.2, 3.45, 1.0, 0.75, "1. Webcam Laptop", "Kiểm thử nhanh", kind="desktop")
-    draw_device(ax, 1.2, 2.45, 1.0, 0.75, "2. Chọn từ máy", "Ảnh DSLR 8K", kind="desktop")
-    draw_device(ax, 1.2, 1.45, 0.9, 0.75, "3. Video quét", "Smartphone / Cam", kind="mobile")
-    draw_device(ax, 1.2, 0.45, 0.9, 0.75, "4. Quét trực tiếp", "Gyroscope 360°", kind="mobile")
-    
-    # Middle: Pipeline Engine (3 stages)
-    ax.text(5.1, 4.05, 'ĐỘNG CƠ XỬ LÝ TOÁN HỌC & THỊ GIÁC MÁY TÍNH (PANORAMA ENGINE)', fontsize=7.8, fontweight='bold', ha='center', color='#0F172A')
-    
-    # Stage 1
-    p1 = patches.FancyBboxPatch((3.4, 2.65), 3.4, 1.05, boxstyle='round,pad=0.03,rounding_size=0.06',
-                                facecolor='#EFF6FF', edgecolor='#1E3A8A', lw=1.2, zorder=3)
-    ax.add_patch(p1)
-    ax.text(5.1, 3.35, 'BƯỚC 1: LỌC MỜ & NẮN TRỤ (WARPING)', fontsize=7.2, fontweight='bold', ha='center', color='#1E3A8A')
-    ax.text(5.1, 3.0, '• Lọc mờ Laplace (Var ≥ 100)\n• Phép chiếu trụ $f = W / (2\\tan(\\text{FOV}/2))$', fontsize=6.8, ha='center', color='#1E293B')
-    
-    # Arrow 1->2
-    ax.annotate('', xy=(5.1, 2.3), xytext=(5.1, 2.65), arrowprops=dict(arrowstyle='->', color='#1E3A8A', lw=1.4))
-    
-    # Stage 2
-    p2 = patches.FancyBboxPatch((3.4, 1.2), 3.4, 1.05, boxstyle='round,pad=0.03,rounding_size=0.06',
-                                facecolor='#F0FDF4', edgecolor='#166534', lw=1.2, zorder=3)
-    ax.add_patch(p2)
-    ax.text(5.1, 1.9, 'BƯỚC 2: KHỚP SIFT & CẮT MÍ TỐI ƯU', fontsize=7.2, fontweight='bold', ha='center', color='#166534')
-    ax.text(5.1, 1.55, '• Trích xuất đặc trưng & RANSAC\n• Tìm vết cắt Voronoi né tránh hiện vật', fontsize=6.8, ha='center', color='#1E293B')
-    
-    # Arrow 2->3
-    ax.annotate('', xy=(5.1, 0.85), xytext=(5.1, 1.2), arrowprops=dict(arrowstyle='->', color='#166534', lw=1.4))
-    
-    # Stage 3
-    p3 = patches.FancyBboxPatch((3.4, 0.15), 3.4, 0.68, boxstyle='round,pad=0.03,rounding_size=0.06',
-                                facecolor='#FEF3C7', edgecolor='#B45309', lw=1.2, zorder=3)
-    ax.add_patch(p3)
-    ax.text(5.1, 0.49, 'BƯỚC 3: HÒA TRỘN ĐA TẦN (MULTIBAND LAPLACIAN)', fontsize=7.0, fontweight='bold', ha='center', color='#B45309')
-    
-    # Arrows from 4 inputs to Stage 1
-    for y_in in [3.45, 2.45, 1.45, 0.45]:
-        ax.plot([1.8, 2.6], [y_in, y_in], color='#475569', lw=1.0)
-        ax.plot([2.6, 2.6], [y_in, 3.15], color='#475569', lw=1.0)
-    ax.annotate('', xy=(3.35, 3.15), xytext=(2.6, 3.15), arrowprops=dict(arrowstyle='->', color='#475569', lw=1.4))
-    
-    # Right: Equirectangular 2:1 Output
-    ax.text(8.8, 4.05, 'ẢNH TOÀN CẢNH ĐẦU RA', fontsize=7.8, fontweight='bold', ha='center', color='#0F172A')
-    
-    canvas = patches.Rectangle((7.4, 1.2), 2.8, 1.4, facecolor='#F8FAFC', edgecolor='#1E3A8A', lw=1.5, zorder=3)
+    """Hinh 4.3: Panorama Studio 4 Inputs Flow (Toi gian, khong hop mau me, thoang dang khong dinh chum)"""
+    fig, ax = plt.subplots(figsize=(11.0, 4.8), dpi=300)
+    ax.set_xlim(0, 11.0); ax.set_ylim(0, 4.8); ax.axis('off')
+
+    # Titles - Separated cleanly!
+    ax.text(1.5, 4.5, '1. NGUỒN ẢNH ĐẦU VÀO', fontsize=7.8, fontweight='bold', ha='center', color=C_DARK_TEXT)
+    ax.text(5.3, 4.5, '2. ĐỘNG CƠ XỬ LÝ PANORAMA STUDIO', fontsize=7.8, fontweight='bold', ha='center', color=C_DARK_TEXT)
+    ax.text(9.3, 4.5, '3. ẢNH TOÀN CẢNH ĐẦU RA', fontsize=7.8, fontweight='bold', ha='center', color=C_DARK_TEXT)
+
+    # 4 Input nodes (No clumsy laptop icons, clean technical cards)
+    inputs = [
+        ("Webcam Laptop", "Chụp kiểm thử góc phòng nhanh", 3.75),
+        ("Chọn ảnh từ máy", "Ảnh DSLR chất lượng cao 8K", 2.80),
+        ("Video quét phòng", "Trích xuất khung hình tự động", 1.85),
+        ("Quét trực tiếp", "Gyroscope xoay 360° thời gian thực", 0.90)
+    ]
+
+    for title, desc, y_pos in inputs:
+        box = patches.FancyBboxPatch((0.3, y_pos - 0.35), 2.4, 0.70, boxstyle='round,pad=0.03,rounding_size=0.06',
+                                    facecolor='#FFFFFF', edgecolor='#334155', lw=1.1, zorder=4)
+        ax.add_patch(box)
+        ax.text(1.5, y_pos + 0.12, title, fontsize=7.2, fontweight='bold', ha='center', va='center', color=C_DARK_TEXT, zorder=5)
+        ax.text(1.5, y_pos - 0.14, desc, fontsize=6.4, ha='center', va='center', color='#475569', zorder=5)
+
+    # Lines from 4 inputs to Stage 1
+    for _, _, y_in in inputs:
+        ax.plot([2.7, 3.2], [y_in, y_in], color='#64748B', lw=1.0)
+        ax.plot([3.2, 3.2], [y_in, 3.55], color='#64748B', lw=1.0)
+    ax.annotate('', xy=(3.7, 3.55), xytext=(3.2, 3.55),
+                arrowprops=dict(arrowstyle='->', color='#334155', lw=1.3))
+
+    # Middle Pipeline: 3 Stages
+    stages = [
+        ("BƯỚC 1: LỌC MỜ & NẮN TRỤ HÌNH HỌC",
+         "• Kiểm định phương sai Laplace: Var ≥ 100 (Loại ảnh rung lắc)\n• Nắn phẳng mặt trụ: $f = W / (2 \cdot \tan(\mathrm{FOV}/2))$, nội suy Bilinear",
+         3.55),
+        ("BƯỚC 2: KHỚP SIFT & CẮT MÍ VORONOI",
+         "• Trích xuất vector đặc trưng 128 chiều, khớp cặp tỷ lệ Lowe's ratio\n• Khử ngoại lai bằng RANSAC & Cắt mí Voronoi né cắt qua hiện vật",
+         2.35),
+        ("BƯỚC 3: HÒA TRỘN ĐA DẢI TẦN (LAPLACIAN PYRAMID)",
+         "• Phân rã tháp Laplacian đa tầng, hòa trộn riêng từng tần số\n• Vá mịn sàn Nadir Inpainting, khử triệt để vết mí nối và sai lệch sáng",
+         1.15)
+    ]
+
+    for title, desc, y_pos in stages:
+        box = patches.FancyBboxPatch((3.7, y_pos - 0.45), 3.4, 0.90, boxstyle='round,pad=0.03,rounding_size=0.06',
+                                    facecolor='#F8FAFC', edgecolor='#0F172A', lw=1.2, zorder=4)
+        ax.add_patch(box)
+        ax.text(5.4, y_pos + 0.22, title, fontsize=7.2, fontweight='bold', ha='center', va='center', color=C_DARK_TEXT, zorder=5)
+        ax.text(5.4, y_pos - 0.16, desc, fontsize=6.3, ha='center', va='center', color='#334155', linespacing=1.25, zorder=5)
+
+    # Downward arrows between stages
+    ax.annotate('', xy=(5.4, 2.85), xytext=(5.4, 3.10), arrowprops=dict(arrowstyle='->', color='#0F172A', lw=1.3))
+    ax.annotate('', xy=(5.4, 1.65), xytext=(5.4, 1.90), arrowprops=dict(arrowstyle='->', color='#0F172A', lw=1.3))
+
+    # Right: Equirectangular Output
+    canvas = patches.Rectangle((7.9, 1.3), 2.8, 1.6, facecolor='#FFFFFF', edgecolor='#0F172A', lw=1.4, zorder=4)
     ax.add_patch(canvas)
     for i in range(1, 4):
-        ax.plot([7.4, 10.2], [1.2 + i*0.35, 1.2 + i*0.35], color='#E2E8F0', lw=0.6, ls=':', zorder=4)
+        ax.plot([7.9, 10.7], [1.3 + i*0.4, 1.3 + i*0.4], color='#E2E8F0', lw=0.6, ls=':', zorder=5)
     for j in range(1, 6):
-        ax.plot([7.4 + j*0.46, 7.4 + j*0.46], [1.2, 2.6], color='#E2E8F0', lw=0.6, ls=':', zorder=4)
-    ax.text(8.8, 1.9, 'Ảnh Equirectangular (2:1)\nĐộ phân giải 8K (8192 × 4096)', fontsize=7.0, fontweight='bold', ha='center', va='center', color='#1E3A8A', zorder=5)
-    
-    ax.text(8.8, 0.8, '• Nén WebP Lossy (q=85) ~ 4.2 MB\n• Tối ưu VRAM WebGL 60 FPS mượt mà', fontsize=6.8, ha='center', color='#334155')
-    
-    # Arrow to Output
-    ax.annotate('', xy=(7.35, 1.9), xytext=(6.85, 0.5), arrowprops=dict(arrowstyle='->', color='#166534', lw=1.6))
-    ax.text(7.0, 1.1, 'Xuất file 8K', fontsize=6.8, fontweight='bold', color='#166534', rotation=45)
-    
+        ax.plot([7.9 + j*0.46, 7.9 + j*0.46], [1.3, 2.9], color='#E2E8F0', lw=0.6, ls=':', zorder=5)
+        
+    ax.text(9.3, 2.30, 'ẢNH TOÀN CẢNH (2:1)', fontsize=7.5, fontweight='bold', ha='center', color=C_DARK_TEXT, zorder=6)
+    ax.text(9.3, 1.95, 'Độ phân giải 8K (8192 × 4096)\nĐịnh dạng WebP Lossy (q=85)\nHiển thị 60 FPS trên Three.js',
+            fontsize=6.5, ha='center', color='#334155', linespacing=1.2, zorder=6)
+
+    # Arrow from Stage 3 to Output (Clean right-angle route, NO diagonal crossing!)
+    ax.plot([7.1, 7.5], [1.15, 1.15], color='#0F172A', lw=1.2)
+    ax.plot([7.5, 7.5], [1.15, 2.10], color='#0F172A', lw=1.2)
+    ax.annotate('', xy=(7.9, 2.10), xytext=(7.5, 2.10), arrowprops=dict(arrowstyle='->', color='#0F172A', lw=1.3))
+    ax.text(7.5, 2.30, 'Xuất file 8K', fontsize=6.8, fontweight='bold', ha='center', va='bottom', color='#0F172A',
+            bbox=dict(boxstyle='round,pad=0.12', facecolor='#FFFFFF', edgecolor='#CBD5E1', lw=0.6))
+
     fig.savefig(os.path.join(DIAGRAMS_DIR, "hinh_4_3_panorama_4inputs.png"), bbox_inches='tight')
     plt.close(fig)
-
 def gen_fig_4_5():
     """Hinh 4.5: So do tai tao 3D voi 2 dong co va Fallback"""
     fig, ax = plt.subplots(figsize=(10.5, 4.2), dpi=300)
@@ -1076,19 +1124,22 @@ def gen_fig_4_5():
     plt.close(fig)
 
 def gen_fig_4_7():
-    """Hinh 4.7: Dijkstra Route Flow trong Panorama Studio (Mo hinh Do thi Topo 18 phong & Luu do giai thuat chuan)"""
-    fig, ax = plt.subplots(figsize=(10.5, 4.2), dpi=300)
-    ax.set_xlim(0, 10.5); ax.set_ylim(0, 4.2); ax.axis('off')
-    
-    # Left side: Topological Graph (0.5 to 5.1)
-    ax.text(2.75, 4.0, 'MÔ HÌNH ĐỒ THỊ 18 PHÒNG TRƯNG BÀY (TOPOLOGICAL GRAPH)', 
-            fontsize=8.2, fontweight='bold', ha='center', color='#0F172A')
+    """Hinh 4.7: Dijkstra Route Flow trong Panorama Studio (Do thi Topo 18 phong & Luu do chuan, khong de chu)"""
+    fig, ax = plt.subplots(figsize=(11.0, 4.8), dpi=300)
+    ax.set_xlim(0, 11.0); ax.set_ylim(0, 4.8); ax.axis('off')
 
+    # Titles - Clean & separated
+    ax.text(2.75, 4.5, 'MÔ HÌNH ĐỒ THỊ 18 PHÒNG TRƯNG BÀY (TOPOLOGICAL GRAPH)', 
+            fontsize=7.8, fontweight='bold', ha='center', color=C_DARK_TEXT)
+    ax.text(8.2, 4.5, 'LƯU ĐỒ GIẢI THUẬT DIJKSTRA (MIN-HEAP)', 
+            fontsize=7.8, fontweight='bold', ha='center', color=C_DARK_TEXT)
+
+    # Left: Topological Graph (Nodes & Edges)
     nodes = {
-        'P01': (1.0, 1.2), 'P02': (1.9, 1.2), 'P03': (2.8, 1.2), 'P04': (3.7, 1.2),
-        'P05': (4.5, 1.2), 'P06': (4.5, 2.0), 'P07': (4.5, 2.8), 'P08': (4.5, 3.5),
-        'P09': (3.7, 3.5), 'P10': (2.8, 3.5), 'P11': (1.9, 3.5), 'P12': (1.0, 3.5),
-        'P13': (1.0, 2.8), 'P14': (1.0, 2.0), 'HV': (2.75, 2.35)
+        'P01': (1.0, 1.4), 'P02': (1.9, 1.4), 'P03': (2.8, 1.4), 'P04': (3.7, 1.4),
+        'P05': (4.5, 1.4), 'P06': (4.5, 2.2), 'P07': (4.5, 3.0), 'P08': (4.5, 3.7),
+        'P09': (3.7, 3.7), 'P10': (2.8, 3.7), 'P11': (1.9, 3.7), 'P12': (1.0, 3.7),
+        'P13': (1.0, 3.0), 'P14': (1.0, 2.2), 'HV': (2.75, 2.55)
     }
 
     edges = [
@@ -1101,88 +1152,114 @@ def gen_fig_4_7():
 
     optimal_path = [('P01', 'P02'), ('P02', 'P03'), ('P03', 'HV'), ('HV', 'P10')]
 
+    # Draw regular edges
     for u, v, w in edges:
-        x1, y1 = nodes[u]
-        x2, y2 = nodes[v]
-        is_opt = (u, v) in optimal_path or (v, u) in optimal_path
-        col = '#166534' if is_opt else '#94A3B8'
-        lw = 3.0 if is_opt else 1.2
-        ls = '-' if is_opt else '--'
-        ax.plot([x1, x2], [y1, y2], color=col, lw=lw, ls=ls, zorder=2)
-        mx, my = (x1 + x2)/2, (y1 + y2)/2
-        if is_opt:
-            ax.text(mx, my + 0.12, w, fontsize=6.5, fontweight='bold', color='#166534', ha='center',
-                    bbox=dict(boxstyle='round,pad=0.15', facecolor='#F0FDF4', edgecolor='#166534', lw=0.6), zorder=4)
+        p1, p2 = nodes[u], nodes[v]
+        ax.plot([p1[0], p2[0]], [p1[1], p2[1]], color='#94A3B8', ls='--', lw=1.2, zorder=2)
+        
+    # Draw optimal path edges
+    for u, v in optimal_path:
+        p1, p2 = nodes[u], nodes[v]
+        ax.plot([p1[0], p2[0]], [p1[1], p2[1]], color='#15803D', ls='-', lw=2.8, zorder=3)
 
+    # Edge weights on optimal path
+    for u, v, w in [('P01', 'P02', '12m'), ('P02', 'P03', '15m'), ('P03', 'HV', '20m'), ('HV', 'P10', '22m')]:
+        p1, p2 = nodes[u], nodes[v]
+        mx, my = (p1[0] + p2[0]) / 2, (p1[1] + p2[1]) / 2
+        offset_x = 0.18 if p1[0] == p2[0] else 0.0
+        offset_y = 0.16 if p1[1] == p2[1] else 0.0
+        ax.text(mx + offset_x, my + offset_y, w, fontsize=6.8, fontweight='bold', ha='center', va='center', color='#15803D',
+                bbox=dict(boxstyle='square,pad=0.1', facecolor='#FFFFFF', edgecolor='#15803D', lw=0.8), zorder=5)
+
+    # Draw nodes
     for name, (x, y) in nodes.items():
         if name == 'P01':
-            bg = '#1E3A8A'; text_col = 'white'; ec = '#0F172A'; r = 0.22
+            c_fill, c_border, text_col = '#1E3A8A', '#0F172A', 'white'
         elif name == 'P10':
-            bg = '#991B1B'; text_col = 'white'; ec = '#7F1D1D'; r = 0.22
+            c_fill, c_border, text_col = '#991B1B', '#0F172A', 'white'
         elif name in ['P02', 'P03', 'HV']:
-            bg = '#166534'; text_col = 'white'; ec = '#14532D'; r = 0.18
+            c_fill, c_border, text_col = '#15803D', '#0F172A', 'white'
         else:
-            bg = '#F8FAFC'; text_col = '#1E293B'; ec = '#64748B'; r = 0.16
-        
-        circle = patches.Circle((x, y), r, facecolor=bg, edgecolor=ec, lw=1.2, zorder=5)
+            c_fill, c_border, text_col = '#FFFFFF', '#475569', '#0F172A'
+            
+        circle = patches.Circle((x, y), 0.19, facecolor=c_fill, edgecolor=c_border, lw=1.2, zorder=4)
         ax.add_patch(circle)
-        ax.text(x, y, name, fontsize=6.5, fontweight='bold', color=text_col, ha='center', va='center', zorder=6)
+        ax.text(x, y, name, ha='center', va='center', fontsize=6.8, fontweight='bold', color=text_col, zorder=5)
 
-    ax.text(1.0, 0.78, 'Xuất phát (P01)', fontsize=7.2, fontweight='bold', ha='center', color='#1E3A8A')
-    ax.text(2.8, 3.9, 'Đích đến: P10 (Chăm Pa)', fontsize=7.2, fontweight='bold', ha='center', color='#991B1B')
-    ax.text(2.75, 0.55, '— Lộ trình tối ưu: P01 → P02 → P03 → HV → P10 (Tổng: 69m) —', 
-            fontsize=7.2, fontweight='bold', ha='center', color='#166534')
+    # Start and End labels - Separated clearly, NOT overlapping!
+    ax.text(1.0, 0.95, 'Xuất phát (P01)', fontsize=7.2, fontweight='bold', ha='center', color='#1E3A8A',
+            bbox=dict(boxstyle='round,pad=0.15', facecolor='#FFFFFF', edgecolor='#CBD5E1', lw=0.6))
+    ax.text(2.8, 4.15, 'Đích đến (P10: Chăm Pa)', fontsize=7.2, fontweight='bold', ha='center', color='#991B1B',
+            bbox=dict(boxstyle='round,pad=0.15', facecolor='#FFFFFF', edgecolor='#CBD5E1', lw=0.6))
+
+    # Bottom summary of optimal path
+    ax.text(2.75, 0.40, '— Lộ trình tối ưu: P01 → P02 → P03 → HV → P10 (Tổng khoảng cách: 69m) —',
+            fontsize=7.2, fontweight='bold', ha='center', color=C_DARK_TEXT)
 
     # Divider line
-    ax.plot([5.3, 5.3], [0.4, 4.0], color='#CBD5E1', lw=1.0, ls=':')
+    ax.plot([5.4, 5.4], [0.3, 4.5], color='#CBD5E1', ls=':', lw=1.0)
 
-    # Right side: Flowchart (5.6 to 10.2)
-    ax.text(7.9, 4.0, 'LƯU ĐỒ GIẢI THUẬT DIJKSTRA (MIN-HEAP)', 
-            fontsize=8.2, fontweight='bold', ha='center', color='#0F172A')
+    # Right: Dijkstra Flowchart (5.7 to 10.7)
+    # Box 1: Start
+    b1 = patches.FancyBboxPatch((6.0, 3.65), 4.2, 0.65, boxstyle='round,pad=0.03,rounding_size=0.06',
+                               facecolor='#FFFFFF', edgecolor='#0F172A', lw=1.2, zorder=4)
+    ax.add_patch(b1)
+    ax.text(8.1, 4.05, 'BẮT ĐẦU: Khởi tạo đồ thị G(V, E)', fontsize=7.2, fontweight='bold', ha='center', color=C_DARK_TEXT, zorder=5)
+    ax.text(8.1, 3.80, 'Đặt d[P01] = 0, d[v] = ∞; Đưa (0, P01) vào Min-Heap', fontsize=6.5, ha='center', color='#334155', zorder=5)
 
-    # Step 1: Start
-    ax.text(7.9, 3.5, 'BẮT ĐẦU: Khởi tạo đồ thị G(V, E)\nĐặt d[P01] = 0, d[v] = ∞; Push (0, P01) vào Min-Heap', 
-            fontsize=7.0, ha='center', va='center',
-            bbox=dict(boxstyle='round,pad=0.35', facecolor='#F1F5F9', edgecolor='#334155', lw=1.2))
+    # Arrow 1->2
+    ax.annotate('', xy=(8.1, 3.25), xytext=(8.1, 3.65), arrowprops=dict(arrowstyle='->', color='#0F172A', lw=1.2))
 
-    ax.annotate('', xy=(7.9, 2.95), xytext=(7.9, 3.25), arrowprops=dict(arrowstyle='->', color='#334155', lw=1.4))
+    # Box 2: Extract-Min
+    b2 = patches.FancyBboxPatch((6.2, 2.60), 3.8, 0.65, boxstyle='round,pad=0.03,rounding_size=0.06',
+                               facecolor='#FFFFFF', edgecolor='#0F172A', lw=1.2, zorder=4)
+    ax.add_patch(b2)
+    ax.text(8.1, 2.95, 'Lấy đỉnh u có d[u] nhỏ nhất từ Min-Heap', fontsize=7.2, fontweight='bold', ha='center', color=C_DARK_TEXT, zorder=5)
+    ax.text(8.1, 2.75, 'u = Extract-Min()', fontsize=6.8, ha='center', color='#334155', zorder=5)
 
-    # Step 2: Pop Min-Heap
-    ax.text(7.9, 2.7, 'Lấy đỉnh u có d[u] nhỏ nhất từ Min-Heap\nu = Extract-Min()', 
-            fontsize=7.0, ha='center', va='center',
-            bbox=dict(boxstyle='square,pad=0.35', facecolor='#EFF6FF', edgecolor='#1E3A8A', lw=1.2))
+    # Arrow 2->Diamond
+    ax.annotate('', xy=(8.1, 2.20), xytext=(8.1, 2.60), arrowprops=dict(arrowstyle='->', color='#0F172A', lw=1.2))
 
-    ax.annotate('', xy=(7.9, 2.15), xytext=(7.9, 2.45), arrowprops=dict(arrowstyle='->', color='#334155', lw=1.4))
-
-    # Step 3: Decision Diamond
-    diamond = patches.Polygon([[7.9, 2.05], [8.9, 1.7], [7.9, 1.35], [6.9, 1.7]], 
-                              facecolor='#FEF3C7', edgecolor='#B45309', lw=1.2)
+    # Diamond: u == P10?
+    dia_x, dia_y, dia_w, dia_h = 8.1, 1.70, 2.0, 0.90
+    diamond = patches.Polygon([[dia_x, dia_y + dia_h/2], [dia_x + dia_w/2, dia_y],
+                               [dia_x, dia_y - dia_h/2], [dia_x - dia_w/2, dia_y]],
+                              facecolor='#FFFFFF', edgecolor='#0F172A', lw=1.3, zorder=4)
     ax.add_patch(diamond)
-    ax.text(7.9, 1.7, 'Đã đến đích\nu == P10?', fontsize=7.2, fontweight='bold', ha='center', va='center')
+    ax.text(dia_x, dia_y + 0.08, 'Đã đến đích?', fontsize=7.0, fontweight='bold', ha='center', color=C_DARK_TEXT, zorder=5)
+    ax.text(dia_x, dia_y - 0.12, 'u == P10?', fontsize=6.8, ha='center', color='#334155', zorder=5)
 
-    # Branch YES
-    ax.annotate('', xy=(9.2, 1.7), xytext=(8.9, 1.7), arrowprops=dict(arrowstyle='->', color='#166534', lw=1.4))
-    ax.text(9.05, 1.85, 'Đúng', fontsize=7.0, fontweight='bold', color='#166534')
-    ax.text(9.65, 1.7, 'Truy vết đường đi\n(Path Reconstruct)\nP01 → ... → P10', fontsize=6.8, ha='center', va='center',
-            bbox=dict(boxstyle='round,pad=0.25', facecolor='#F0FDF4', edgecolor='#166534', lw=1.2))
-
-    # Branch NO
-    ax.annotate('', xy=(7.9, 0.95), xytext=(7.9, 1.35), arrowprops=dict(arrowstyle='->', color='#B45309', lw=1.4))
-    ax.text(8.05, 1.15, 'Sai', fontsize=7.0, fontweight='bold', color='#B45309')
-
-    ax.text(7.9, 0.65, 'Nới lỏng cạnh: d[v] = min(d[v], d[u] + w)\nCập nhật giá trị và giảm khóa Min-Heap', 
-            fontsize=6.8, ha='center', va='center',
-            bbox=dict(boxstyle='square,pad=0.25', facecolor='#EFF6FF', edgecolor='#1E3A8A', lw=1.0))
-
-    # Loop back
-    ax.plot([6.5, 6.5], [0.65, 2.7], color='#475569', lw=1.2, ls='--')
-    ax.plot([6.5, 7.1], [0.65, 0.65], color='#475569', lw=1.2, ls='--')
-    ax.annotate('', xy=(7.1, 2.7), xytext=(6.5, 2.7), arrowprops=dict(arrowstyle='->', color='#475569', lw=1.2, ls='--'))
-    ax.text(6.38, 1.7, 'Lặp lại', fontsize=6.5, color='#475569', rotation=90, va='center')
+    # Right branch: Yes -> Terminate
+    ax.annotate('', xy=(9.7, dia_y), xytext=(dia_x + dia_w/2, dia_y), arrowprops=dict(arrowstyle='->', color='#15803D', lw=1.3))
+    ax.text(9.4, dia_y + 0.15, 'Đúng', fontsize=6.8, fontweight='bold', ha='center', color='#15803D')
     
+    b_end = patches.FancyBboxPatch((9.7, dia_y - 0.35), 1.0, 0.70, boxstyle='round,pad=0.03,rounding_size=0.06',
+                                  facecolor='#FFFFFF', edgecolor='#15803D', lw=1.2, zorder=4)
+    ax.add_patch(b_end)
+    ax.text(10.2, dia_y + 0.08, 'Truy vết đường đi', fontsize=6.5, fontweight='bold', ha='center', color='#15803D', zorder=5)
+    ax.text(10.2, dia_y - 0.12, 'KẾT THÚC', fontsize=6.8, fontweight='bold', ha='center', color='#15803D', zorder=5)
+
+    # Down branch: No -> Edge Relaxation
+    ax.annotate('', xy=(dia_x, 0.95), xytext=(dia_x, dia_y - dia_h/2), arrowprops=dict(arrowstyle='->', color='#991B1B', lw=1.2))
+    ax.text(dia_x + 0.25, 1.10, 'Sai', fontsize=6.8, fontweight='bold', ha='left', color='#991B1B')
+
+    # Box 3: Edge Relaxation
+    b3 = patches.FancyBboxPatch((6.0, 0.35), 4.2, 0.60, boxstyle='round,pad=0.03,rounding_size=0.06',
+                               facecolor='#FFFFFF', edgecolor='#0F172A', lw=1.2, zorder=4)
+    ax.add_patch(b3)
+    ax.text(8.1, 0.72, 'Nới lỏng cạnh: d[v] = min(d[v], d[u] + w)', fontsize=7.0, fontweight='bold', ha='center', color=C_DARK_TEXT, zorder=5)
+    ax.text(8.1, 0.50, 'Cập nhật giá trị và giảm khóa trong Min-Heap', fontsize=6.4, ha='center', color='#334155', zorder=5)
+
+    # Loop back: from Box 3 back to Box 2
+    ax.plot([6.0, 5.7], [0.65, 0.65], color='#475569', ls='--', lw=1.1)
+    ax.plot([5.7, 5.7], [0.65, 2.92], color='#475569', ls='--', lw=1.1)
+    ax.annotate('', xy=(6.2, 2.92), xytext=(5.7, 2.92),
+                arrowprops=dict(arrowstyle='->', color='#475569', ls='--', lw=1.1))
+    ax.text(5.7, 1.75, 'Lặp lại', fontsize=6.5, fontweight='bold', ha='center', va='center', color='#475569',
+            bbox=dict(boxstyle='round,pad=0.15', facecolor='#FFFFFF', edgecolor='#CBD5E1', lw=0.6))
+
     fig.savefig(os.path.join(DIAGRAMS_DIR, "hinh_4_7_dijkstra_flow.png"), bbox_inches='tight')
     plt.close(fig)
-
 def gen_fig_4_8():
     """Hinh 4.8: Quy trinh thanh toan VietQR va soat ve Camera to mau sam tram"""
     fig, ax = plt.subplots(figsize=(11.0, 4.4), dpi=300)
