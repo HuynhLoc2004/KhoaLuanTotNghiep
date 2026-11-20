@@ -217,62 +217,72 @@ def add_front_matter(doc, helper):
     # -------------------------------------------------------------------------
     # 6. NHẬN XÉT CỦA GIÁO VIÊN HƯỚNG DẪN (Trang 9 theo đúng chuẩn mẫu Tiến Trần)
     # -------------------------------------------------------------------------
-    p_gvhd_h = helper.add_heading_1(doc, "NHẬN XÉT CỦA GIÁO VIÊN HƯỚNG DẪN")
-    p_gvhd_h.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    p_gvhd_h = doc.add_paragraph()
+    helper.format_paragraph(p_gvhd_h, space_before=0, space_after=4, line_spacing=1.0, align=WD_ALIGN_PARAGRAPH.CENTER, first_indent=0.0)
+    p_gvhd_h.paragraph_format.keep_with_next = True
+    r_gvhd_h = p_gvhd_h.add_run("NHẬN XÉT CỦA GIÁO VIÊN HƯỚNG DẪN")
+    helper.set_run_font(r_gvhd_h, "Times New Roman", 13, bold=True)
     
-    # Dòng chấm toàn chiều rộng (tab leader dots, 18 dòng thẳng tắp phủ kín đều trang chuẩn bài mẫu)
-    helper.add_full_width_dotted_line(doc, count=18, space_before=2.5, space_after=2.5, line_spacing=1.3)
+    # Dòng chấm phủ đều trang (20 dòng chấm chuẩn kích thước compact)
+    helper.add_full_width_dotted_line(doc, count=20, space_before=1.0, space_after=1.0, line_spacing=1.15, font_size=11)
     
     p_gvhd_bot = doc.add_paragraph()
-    helper.format_paragraph(p_gvhd_bot, space_before=16, space_after=0, line_spacing=1.3, align=WD_ALIGN_PARAGRAPH.RIGHT, first_indent=0.0)
+    helper.format_paragraph(p_gvhd_bot, space_before=8, space_after=0, line_spacing=1.15, align=WD_ALIGN_PARAGRAPH.RIGHT, first_indent=0.0)
     r_ghb = p_gvhd_bot.add_run(
         "Điểm đánh giá: .............. / 10\n"
         "Tp. Hồ Chí Minh, ngày... tháng ... năm 2026\n"
         "GIÁO VIÊN HƯỚNG DẪN\n"
-        "(Ký và ghi rõ họ tên)\n\n\n\n"
+        "(Ký và ghi rõ họ tên)\n\n\n"
         "TS. TRẦN THỊ MINH KHOA"
     )
-    helper.set_run_font(r_ghb, "Times New Roman", 13, bold=True)
+    helper.set_run_font(r_ghb, "Times New Roman", 12, bold=True)
     
     doc.add_page_break()
     
     # -------------------------------------------------------------------------
     # 7. NHẬN XÉT CỦA GIÁO VIÊN PHẢN BIỆN (TRANG 1) (Trang 10 theo đúng chuẩn mẫu Tiến Trần)
     # -------------------------------------------------------------------------
-    p_gvpb_h1 = helper.add_heading_1(doc, "NHẬN XÉT CỦA GIÁO VIÊN PHẢN BIỆN")
-    p_gvpb_h1.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    p_gvpb_h1 = doc.add_paragraph()
+    helper.format_paragraph(p_gvpb_h1, space_before=0, space_after=4, line_spacing=1.0, align=WD_ALIGN_PARAGRAPH.CENTER, first_indent=0.0)
+    p_gvpb_h1.paragraph_format.keep_with_next = True
+    r_gvpb_h1 = p_gvpb_h1.add_run("NHẬN XÉT CỦA GIÁO VIÊN PHẢN BIỆN")
+    helper.set_run_font(r_gvpb_h1, "Times New Roman", 13, bold=True)
     
-    # Dòng chấm toàn chiều rộng (tab leader dots, 21 dòng thẳng tắp phủ kín đều trang)
-    helper.add_full_width_dotted_line(doc, count=21, space_before=2.5, space_after=2.5, line_spacing=1.3)
+    # Dòng chấm toàn chiều rộng (22 dòng phủ kín trang 1 vừa vặn không tràn)
+    helper.add_full_width_dotted_line(doc, count=22, space_before=1.0, space_after=1.0, line_spacing=1.15, font_size=11)
     
     p_gvpb_bot1 = doc.add_paragraph()
-    helper.format_paragraph(p_gvpb_bot1, space_before=16, space_after=0, line_spacing=1.3, align=WD_ALIGN_PARAGRAPH.RIGHT, first_indent=0.0)
+    helper.format_paragraph(p_gvpb_bot1, space_before=8, space_after=0, line_spacing=1.15, align=WD_ALIGN_PARAGRAPH.RIGHT, first_indent=0.0)
     r_gpb1 = p_gvpb_bot1.add_run(
         "Tp. Hồ Chí Minh, ngày... tháng ... năm 2026\n"
         "GIÁO VIÊN PHẢN BIỆN\n"
         "(Ký và ghi rõ họ tên)"
     )
-    helper.set_run_font(r_gpb1, "Times New Roman", 13, bold=True)
+    helper.set_run_font(r_gpb1, "Times New Roman", 12, bold=True)
     
     doc.add_page_break()
     
     # -------------------------------------------------------------------------
     # 8. NHẬN XÉT CỦA GIÁO VIÊN PHẢN BIỆN (TRANG 2) (Trang 11 theo đúng chuẩn mẫu Tiến Trần)
     # -------------------------------------------------------------------------
-    p_gvpb_h2 = helper.add_heading_1(doc, "NHẬN XÉT CỦA GIÁO VIÊN PHẢN BIỆN")
-    p_gvpb_h2.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    p_gvpb_h2 = doc.add_paragraph()
+    helper.format_paragraph(p_gvpb_h2, space_before=0, space_after=4, line_spacing=1.0, align=WD_ALIGN_PARAGRAPH.CENTER, first_indent=0.0)
+    p_gvpb_h2.paragraph_format.keep_with_next = True
+    r_gvpb_h2 = p_gvpb_h2.add_run("NHẬN XÉT CỦA GIÁO VIÊN PHẢN BIỆN")
+    helper.set_run_font(r_gvpb_h2, "Times New Roman", 13, bold=True)
     
-    # Dòng chấm toàn chiều rộng (tab leader dots, 18 dòng thẳng tắp phủ kín đều trang)
-    helper.add_full_width_dotted_line(doc, count=18, space_before=2.5, space_after=2.5, line_spacing=1.3)
+    # Dòng chấm toàn chiều rộng (20 dòng phủ kín trang 2 vừa vặn)
+    helper.add_full_width_dotted_line(doc, count=20, space_before=1.0, space_after=1.0, line_spacing=1.15, font_size=11)
     
     p_gvpb_bot2 = doc.add_paragraph()
-    helper.format_paragraph(p_gvpb_bot2, space_before=16, space_after=0, line_spacing=1.3, align=WD_ALIGN_PARAGRAPH.RIGHT, first_indent=0.0)
+    helper.format_paragraph(p_gvpb_bot2, space_before=8, space_after=0, line_spacing=1.15, align=WD_ALIGN_PARAGRAPH.RIGHT, first_indent=0.0)
     r_gpb2 = p_gvpb_bot2.add_run(
         "Điểm đánh giá: .............. / 10\n"
         "Tp. Hồ Chí Minh, ngày... tháng ... năm 2026\n"
         "GIÁO VIÊN PHẢN BIỆN\n"
         "(Ký và ghi rõ họ tên)"
     )
+    helper.set_run_font(r_gpb2, "Times New Roman", 12, bold=True)
     helper.set_run_font(r_gpb2, "Times New Roman", 13, bold=True)
     
     doc.add_page_break()

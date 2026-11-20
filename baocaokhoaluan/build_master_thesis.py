@@ -512,7 +512,7 @@ def add_db_schema_table(doc, tbl_id, entity_name, columns_desc):
                 c.paragraphs[0].paragraph_format.space_before = Pt(2)
                 c.paragraphs[0].paragraph_format.space_after = Pt(2)
 
-def add_full_width_dotted_line(doc, count=1, space_before=2.5, space_after=2.5, line_spacing=1.3):
+def add_full_width_dotted_line(doc, count=1, space_before=1.0, space_after=1.0, line_spacing=1.15, font_size=11):
     """
     Tao dong cham cham cham (dot leader) thang tap tu le trai sang tan le phai 15.5cm.
     Dung tab stop voi w:leader='dot', KHONG BAO GIO BI XUONG DONG HAY WRAP CHU.
@@ -535,7 +535,7 @@ def add_full_width_dotted_line(doc, count=1, space_before=2.5, space_after=2.5, 
         pPr.append(tabs)
         
         run = p.add_run("\t")
-        set_run_font(run, "Times New Roman", 13, bold=False, color_rgb=(100, 116, 139))
+        set_run_font(run, "Times New Roman", font_size, bold=False, color_rgb=(100, 116, 139))
 
 def add_toc_line(doc, title, page_no, level=1):
     """Them dong muc luc voi tab leader cham cham (. . . . . . .) chuan dep."""
