@@ -252,6 +252,39 @@ def add_front_matter(doc, helper):
     doc.add_page_break()
     
     # -------------------------------------------------------------------------
+    # 5B. LỜI CAM KẾT (Mục 8 theo đúng Bảng 2.1.2 Hướng dẫn KLTN 01/2024)
+    # -------------------------------------------------------------------------
+    p_ck_h = helper.add_heading_1(doc, "LỜI CAM KẾT")
+    p_ck_h.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    
+    helper.add_body_p(doc,
+        "Nhóm sinh viên thực hiện chúng em xin cam đoan rằng:"
+    )
+    helper.add_body_p(doc,
+        "1. Khóa luận tốt nghiệp với đề tài \"Hệ thống tham quan thực tế ảo 360° & số hóa không gian di sản Bảo tàng Lịch sử Thành phố Hồ Chí Minh\" là công trình nghiên cứu, thiết kế và phát triển độc lập do chính hai sinh viên Huỳnh Tấn Lộc và Trịnh Vĩ Thành thực hiện dưới sự hướng dẫn khoa học của Tiến sĩ Trần Thị Minh Khoa."
+    )
+    helper.add_body_p(doc,
+        "2. Toàn bộ số liệu, thuật toán tính toán (phép chiếu mặt cầu Equirectangular, nắn chỉnh mặt trụ Cylindrical Warping, thuật toán tìm đường Dijkstra, nén ảnh 8K WebP, mô hình hóa 3D), mã nguồn phần mềm và kết quả kiểm thử chịu tải trong báo cáo là trung thực, minh bạch và chưa từng được công bố trong bất kỳ công trình nghiên cứu nào khác để lấy văn bằng hay học vị."
+    )
+    helper.add_body_p(doc,
+        "3. Tất cả các tài liệu tham khảo, nguồn trích dẫn, thư viện mã nguồn mở và nền tảng dịch vụ bên thứ ba (Three.js, Mapbox, PayOS VietQR, OpenSSL) được sử dụng trong khóa luận đều được trích dẫn tường minh theo chuẩn học thuật IEEE và Quy định kiểm tra độ trùng lặp bằng phần mềm Turnitin của Nhà trường (tổng mức trùng lặp dưới 35% và không vượt quá 10% trên mỗi tài liệu phát hiện trùng lặp)."
+    )
+    helper.add_body_p(doc,
+        "Nếu có bất kỳ sự gian lận hoặc vi phạm quy định liêm chính học thuật nào được phát hiện, chúng em xin hoàn toàn chịu mọi hình thức kỷ luật trước Hội đồng đánh giá, Khoa Công nghệ Thông tin và Trường Đại học Công nghiệp TP. Hồ Chí Minh."
+    )
+    
+    p_ck_sign = doc.add_paragraph()
+    helper.format_paragraph(p_ck_sign, space_before=20, space_after=0, line_spacing=1.3, align=WD_ALIGN_PARAGRAPH.RIGHT, first_indent=0.0)
+    r_ck_sign = p_ck_sign.add_run(
+        "TP. Hồ Chí Minh, ngày … tháng … năm 2026\n"
+        "SINH VIÊN THỰC HIỆN\n\n\n\n"
+        "Huỳnh Tấn Lộc         Trịnh Vĩ Thành"
+    )
+    helper.set_run_font(r_ck_sign, "Times New Roman", 13, bold=True)
+    
+    doc.add_page_break()
+    
+    # -------------------------------------------------------------------------
     # 6. NHẬN XÉT CỦA GIÁO VIÊN HƯỚNG DẪN (Trang 9 theo đúng chuẩn mẫu Tiến Trần)
     # -------------------------------------------------------------------------
     p_gvhd_h = doc.add_paragraph()
@@ -314,6 +347,82 @@ def add_front_matter(doc, helper):
         "GIÁO VIÊN PHẢN BIỆN"
     )
     helper.set_run_font(r_gpb2, "Times New Roman", 13, bold=False)
+    
+    doc.add_page_break()
+    
+    # -------------------------------------------------------------------------
+    # 8B. PHIẾU XÁC NHẬN CHỈNH SỬA KHÓA LUẬN TỐT NGHIỆP (Mục 6 trong Bảng 2.1.2 Hướng dẫn KLTN 01/2024)
+    # -------------------------------------------------------------------------
+    p_xn_hdr = doc.add_paragraph()
+    helper.format_paragraph(p_xn_hdr, space_before=0, space_after=4, line_spacing=1.15, align=WD_ALIGN_PARAGRAPH.CENTER, first_indent=0.0)
+    r_xn_h1 = p_xn_hdr.add_run("BỘ CÔNG THƯƠNG\nTRƯỜNG ĐẠI HỌC CÔNG NGHIỆP THÀNH PHỐ HỒ CHÍ MINH\nKHOA CÔNG NGHỆ THÔNG TIN\n\n")
+    helper.set_run_font(r_xn_h1, "Times New Roman", 13, bold=True)
+    r_xn_h2 = p_xn_hdr.add_run("PHIẾU XÁC NHẬN CHỈNH SỬA KHÓA LUẬN TỐT NGHIỆP")
+    helper.set_run_font(r_xn_h2, "Times New Roman", 14, bold=True)
+    
+    p_info = doc.add_paragraph()
+    helper.format_paragraph(p_info, space_before=6, space_after=4, line_spacing=1.2, align=WD_ALIGN_PARAGRAPH.LEFT, first_indent=0.0)
+    r_info = p_info.add_run(
+        "Tên đề tài: Hệ thống tham quan thực tế ảo 360° và số hóa không gian di sản Bảo tàng Lịch sử TP.HCM\n"
+        "Ngành: Công nghệ Thông tin                         Chuyên ngành: Kỹ thuật phần mềm\n"
+        "Sinh viên 1: Huỳnh Tấn Lộc                         MSSV: 22686171\n"
+        "Sinh viên 2: Trịnh Vĩ Thành                        MSSV: 22689411\n"
+        "Giảng viên hướng dẫn: TS. Trần Thị Minh Khoa\n"
+        "Hội đồng đánh giá: Hội đồng Chuyên môn Khoa Công nghệ Thông tin"
+    )
+    helper.set_run_font(r_info, "Times New Roman", 12, bold=False)
+    
+    p_tbl_lbl = doc.add_paragraph()
+    helper.format_paragraph(p_tbl_lbl, space_before=4, space_after=2, line_spacing=1.15, align=WD_ALIGN_PARAGRAPH.LEFT, first_indent=0.0)
+    r_tbl_lbl = p_tbl_lbl.add_run("Nội dung và kết quả chỉnh sửa hoàn thiện theo góp ý của Hội đồng:")
+    helper.set_run_font(r_tbl_lbl, "Times New Roman", 12, bold=True, italic=True)
+    
+    # Bang noi dung chinh sua theo mau
+    xn_headers = ["STT", "Nội dung góp ý của Hội đồng", "Nội dung & Kết quả đã chỉnh sửa hoàn thiện", "Xác nhận"]
+    xn_rows = [
+        ["1", "Chuẩn hóa định dạng văn bản, lề trang (3-2-2-2cm), giãn dòng 1.5 lines và thụt đầu dòng 0.76cm theo Quy định KLTN 01/2024.", "Đã rà soát toàn bộ 5 chương và phụ lục, áp dụng chuẩn xác lề trang, font Times New Roman 13pt và khoảng cách đoạn chuẩn.", "Đạt"],
+        ["2", "Bổ sung cơ sở lý thuyết, công thức toán học và sơ đồ nguyên lý cho các giải thuật nắn chỉnh ảnh trụ (Cylindrical Warping) và Dijkstra.", "Đã cập nhật chi tiết hệ công thức toán học (2.1 - 2.8), bảng biến thiên và 23 sơ đồ thiết kế kiến trúc chuẩn mực.", "Đạt"],
+        ["3", "Làm rõ phân hệ thanh toán VietQR (PayOS) và quy trình kiểm tra vé bằng camera thời gian thực.", "Đã phân tích chi tiết quy trình xác thực JWT, cơ chế webhook bất đồng bộ, mã hóa AES-256 và thuật toán quét QR.", "Đạt"],
+        ["4", "Hoàn thiện danh mục tài liệu tham khảo theo đúng chuẩn quy định của Nhà trường (không để URL trần, hanging indent 1.0cm).", "Đã chuẩn hóa 34 mục tài liệu tham khảo theo chuẩn IEEE/IUH, bổ sung đầy đủ tác giả, tên bài, tạp chí và thời gian truy cập.", "Đạt"]
+    ]
+    helper.add_custom_table(doc, xn_headers, xn_rows, [1.2, 5.0, 7.5, 1.8], [WD_ALIGN_PARAGRAPH.CENTER, WD_ALIGN_PARAGRAPH.LEFT, WD_ALIGN_PARAGRAPH.LEFT, WD_ALIGN_PARAGRAPH.CENTER])
+    
+    # 3 chu ky xac nhan
+    p_sign_tbl = doc.add_paragraph()
+    helper.format_paragraph(p_sign_tbl, space_before=10, space_after=0, line_spacing=1.15, align=WD_ALIGN_PARAGRAPH.CENTER, first_indent=0.0)
+    
+    tbl_sign = doc.add_table(rows=1, cols=3)
+    tbl_sign.alignment = WD_TABLE_ALIGNMENT.CENTER
+    tbl_sign.autofit = False
+    
+    borders_none = parse_xml(f'''
+        <w:tblBorders {nsdecls("w")}>
+            <w:top w:val="none"/><w:bottom w:val="none"/><w:left w:val="none"/><w:right w:val="none"/><w:insideH w:val="none"/><w:insideV w:val="none"/>
+        </w:tblBorders>
+    ''')
+    tbl_sign._tbl.tblPr.append(borders_none)
+    
+    col_w = Cm(5.1)
+    for c in tbl_sign.rows[0].cells:
+        c.width = col_w
+        
+    c0 = tbl_sign.rows[0].cells[0]
+    p0 = c0.paragraphs[0]
+    helper.format_paragraph(p0, space_before=0, space_after=0, line_spacing=1.15, align=WD_ALIGN_PARAGRAPH.CENTER, first_indent=0.0)
+    r0 = p0.add_run("GIẢNG VIÊN HƯỚNG DẪN\n\n\n\nTS. Trần Thị Minh Khoa")
+    helper.set_run_font(r0, "Times New Roman", 11, bold=True)
+    
+    c1 = tbl_sign.rows[0].cells[1]
+    p1 = c1.paragraphs[0]
+    helper.format_paragraph(p1, space_before=0, space_after=0, line_spacing=1.15, align=WD_ALIGN_PARAGRAPH.CENTER, first_indent=0.0)
+    r1 = p1.add_run("GIẢNG VIÊN PHẢN BIỆN\n\n\n\n.......................................")
+    helper.set_run_font(r1, "Times New Roman", 11, bold=True)
+    
+    c2 = tbl_sign.rows[0].cells[2]
+    p2 = c2.paragraphs[0]
+    helper.format_paragraph(p2, space_before=0, space_after=0, line_spacing=1.15, align=WD_ALIGN_PARAGRAPH.CENTER, first_indent=0.0)
+    r2 = p2.add_run("CHỦ TỊCH HỘI ĐỒNG\n\n\n\n.......................................")
+    helper.set_run_font(r2, "Times New Roman", 11, bold=True)
     
     doc.add_page_break()
     

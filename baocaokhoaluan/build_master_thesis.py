@@ -115,28 +115,28 @@ def add_bullet_item(doc, text, bold_prefix="", space_before=2, space_after=2):
 
 def add_heading_1(doc, text):
     p = doc.add_paragraph()
-    format_paragraph(p, space_before=14, space_after=6, line_spacing=1.5, align=WD_ALIGN_PARAGRAPH.CENTER, first_indent=0.0, left_indent=0.0)
+    format_paragraph(p, space_before=12, space_after=6, line_spacing=1.5, align=WD_ALIGN_PARAGRAPH.CENTER, first_indent=0.0, left_indent=0.0)
     p.paragraph_format.keep_with_next = True
-    set_run_font(p.add_run(text), "Times New Roman", 14, bold=True, italic=False, color_rgb=COLOR_BLACK)
+    set_run_font(p.add_run(text), "Times New Roman", 13, bold=True, italic=False, color_rgb=COLOR_BLACK)
     return p
 
 def add_heading_2(doc, text):
     p = doc.add_paragraph()
-    format_paragraph(p, space_before=10, space_after=3, line_spacing=1.5, align=WD_ALIGN_PARAGRAPH.LEFT, first_indent=0.0, left_indent=0.0)
+    format_paragraph(p, space_before=8, space_after=3, line_spacing=1.5, align=WD_ALIGN_PARAGRAPH.LEFT, first_indent=0.0, left_indent=0.0)
     p.paragraph_format.keep_with_next = True
     set_run_font(p.add_run(text), "Times New Roman", 13, bold=True, italic=False, color_rgb=COLOR_BLACK)
     return p
 
 def add_heading_3(doc, text):
     p = doc.add_paragraph()
-    format_paragraph(p, space_before=8, space_after=2, line_spacing=1.5, align=WD_ALIGN_PARAGRAPH.LEFT, first_indent=0.0, left_indent=0.0)
+    format_paragraph(p, space_before=6, space_after=2, line_spacing=1.5, align=WD_ALIGN_PARAGRAPH.LEFT, first_indent=0.0, left_indent=0.0)
     p.paragraph_format.keep_with_next = True
     set_run_font(p.add_run(text), "Times New Roman", 13, bold=True, italic=False, color_rgb=COLOR_BLACK)
     return p
 
 def add_heading_4(doc, text):
     p = doc.add_paragraph()
-    format_paragraph(p, space_before=6, space_after=2, line_spacing=1.5, align=WD_ALIGN_PARAGRAPH.LEFT, first_indent=0.0, left_indent=0.0)
+    format_paragraph(p, space_before=4, space_after=2, line_spacing=1.5, align=WD_ALIGN_PARAGRAPH.LEFT, first_indent=0.0, left_indent=0.0)
     p.paragraph_format.keep_with_next = True
     set_run_font(p.add_run(text), "Times New Roman", 13, bold=True, italic=True, color_rgb=COLOR_BLACK)
     return p
@@ -147,10 +147,10 @@ def add_heading_4(doc, text):
 
 def add_figure_caption(doc, fig_id, fig_title):
     p_cap = doc.add_paragraph()
-    format_paragraph(p_cap, space_before=4, space_after=8, line_spacing=1.5, align=WD_ALIGN_PARAGRAPH.CENTER, first_indent=0.0)
+    format_paragraph(p_cap, space_before=0, space_after=4, line_spacing=1.5, align=WD_ALIGN_PARAGRAPH.CENTER, first_indent=0.0)
     p_cap.paragraph_format.keep_with_next = False
-    r_cap = p_cap.add_run(f"Hình {fig_id}: {fig_title}")
-    set_run_font(r_cap, "Times New Roman", 13, bold=True, italic=True, color_rgb=COLOR_BLACK)
+    r_cap = p_cap.add_run(f"Hình {fig_id}. {fig_title}")
+    set_run_font(r_cap, "Times New Roman", 13, bold=False, italic=True, color_rgb=COLOR_BLACK)
     return p_cap
 
 def add_figure_placeholder(doc, fig_id, fig_title, description, width_cm=15.0, height_cm=7.5):
@@ -174,10 +174,10 @@ def add_figure_placeholder(doc, fig_id, fig_title, description, width_cm=15.0, h
         
         # Chu thich phia duoi
         p_cap = doc.add_paragraph()
-        format_paragraph(p_cap, space_before=4, space_after=8, line_spacing=1.5, align=WD_ALIGN_PARAGRAPH.CENTER, first_indent=0.0)
+        format_paragraph(p_cap, space_before=0, space_after=4, line_spacing=1.5, align=WD_ALIGN_PARAGRAPH.CENTER, first_indent=0.0)
         p_cap.paragraph_format.keep_with_next = False
-        r_cap = p_cap.add_run(f"Hình {fig_id}: {fig_title}")
-        set_run_font(r_cap, "Times New Roman", 13, bold=True, italic=True, color_rgb=COLOR_BLACK)
+        r_cap = p_cap.add_run(f"Hình {fig_id}. {fig_title}")
+        set_run_font(r_cap, "Times New Roman", 13, bold=False, italic=True, color_rgb=COLOR_BLACK)
         return
         
     p_box = doc.add_paragraph()
@@ -214,12 +214,12 @@ def add_figure_placeholder(doc, fig_id, fig_title, description, width_cm=15.0, h
     r2 = cp.add_run(f"({description} — Kích thước khuyến nghị: Rộng 14–15.5cm, Cao {height_cm}cm)")
     set_run_font(r2, "Times New Roman", 10, bold=False, italic=True, color_rgb=COLOR_GRAY_TEXT)
     
-    # Chu thich phia duoi hinh theo dung quy dinh: Can giua, co 13, in dam, in nghieng
+    # Chu thich phia duoi hinh theo dung quy dinh: Can giua, co 13, in nghieng
     p_cap = doc.add_paragraph()
-    format_paragraph(p_cap, space_before=4, space_after=8, line_spacing=1.5, align=WD_ALIGN_PARAGRAPH.CENTER, first_indent=0.0)
+    format_paragraph(p_cap, space_before=0, space_after=4, line_spacing=1.5, align=WD_ALIGN_PARAGRAPH.CENTER, first_indent=0.0)
     p_cap.paragraph_format.keep_with_next = False
-    r_cap = p_cap.add_run(f"Hình {fig_id}: {fig_title}")
-    set_run_font(r_cap, "Times New Roman", 13, bold=True, italic=True, color_rgb=COLOR_BLACK)
+    r_cap = p_cap.add_run(f"Hình {fig_id}. {fig_title}")
+    set_run_font(r_cap, "Times New Roman", 13, bold=False, italic=True, color_rgb=COLOR_BLACK)
 
 def add_equation(doc, math_expr, eq_no):
     """
@@ -272,10 +272,10 @@ def add_custom_table(doc, headers, rows, col_widths, alignments, table_caption=N
     if table_caption:
         # Neu caption da co dang 'Bang X.Y: ...' thi in truc tiep
         p_cap = doc.add_paragraph()
-        format_paragraph(p_cap, space_before=8, space_after=3, line_spacing=1.5, align=WD_ALIGN_PARAGRAPH.CENTER, first_indent=0.0)
+        format_paragraph(p_cap, space_before=4, space_after=2, line_spacing=1.5, align=WD_ALIGN_PARAGRAPH.CENTER, first_indent=0.0)
         p_cap.paragraph_format.keep_with_next = True
         r_cap = p_cap.add_run(table_caption)
-        set_run_font(r_cap, "Times New Roman", 13, bold=True, italic=True, color_rgb=COLOR_BLACK)
+        set_run_font(r_cap, "Times New Roman", 13, bold=False, italic=True, color_rgb=COLOR_BLACK)
 
     tbl = doc.add_table(rows=1 + len(rows), cols=len(headers))
     tbl.alignment = WD_TABLE_ALIGNMENT.CENTER
@@ -319,10 +319,10 @@ def add_custom_table(doc, headers, rows, col_widths, alignments, table_caption=N
 
 def add_table_caption(doc, tbl_id, tbl_title):
     p_cap = doc.add_paragraph()
-    format_paragraph(p_cap, space_before=8, space_after=3, line_spacing=1.5, align=WD_ALIGN_PARAGRAPH.CENTER, first_indent=0.0)
+    format_paragraph(p_cap, space_before=4, space_after=2, line_spacing=1.5, align=WD_ALIGN_PARAGRAPH.CENTER, first_indent=0.0)
     p_cap.paragraph_format.keep_with_next = True
-    r_cap = p_cap.add_run(f"Bảng {tbl_id}: {tbl_title}")
-    set_run_font(r_cap, "Times New Roman", 13, bold=True, italic=True, color_rgb=COLOR_BLACK)
+    r_cap = p_cap.add_run(f"Bảng {tbl_id}. {tbl_title}")
+    set_run_font(r_cap, "Times New Roman", 13, bold=False, italic=True, color_rgb=COLOR_BLACK)
 
 
 
@@ -670,7 +670,7 @@ def build_full_document():
     pgNumType.set(qn('w:start'), '1')
     sectPr.append(pgNumType)
 
-    # Thiet lap Header Section 2: Chuan mau theo quy dinh IUH & yeu cau giang vien
+    # Thiet lap Header Section 2: Chuan mau theo quy dinh IUH 01/2024
     header = section_body.header
     for p in header.paragraphs:
         p.text = ""
@@ -687,7 +687,7 @@ def build_full_document():
     borders_h = parse_xml(f'''
         <w:tblBorders {nsdecls("w")}>
             <w:top w:val="none"/>
-            <w:bottom w:val="single" w:sz="6" w:space="0" w:color="94A3B8"/>
+            <w:bottom w:val="double" w:sz="12" w:space="0" w:color="475569"/>
             <w:left w:val="none"/>
             <w:right w:val="none"/>
             <w:insideH w:val="none"/>
@@ -696,13 +696,13 @@ def build_full_document():
     ''')
     tbl_h._tbl.tblPr.append(borders_h)
 
-    # Header Trai: KHOÁ LUẬN TỐT NGHIỆP - IUH
+    # Header Trai: KHÓA LUẬN TỐT NGHIỆP (Times New Roman 12, chu thuong/khong dam theo Muc 2.3.2)
     c_h0 = tbl_h.rows[0].cells[0]
     set_cell_margins(c_h0, top=0, bottom=40, left=0, right=20)
     p_h0 = c_h0.paragraphs[0]
     format_paragraph(p_h0, space_before=0, space_after=2, line_spacing=1.0, align=WD_ALIGN_PARAGRAPH.LEFT, first_indent=0.0)
-    r_h0 = p_h0.add_run("KHOÁ LUẬN TỐT NGHIỆP - IUH")
-    set_run_font(r_h0, "Times New Roman", 10, bold=False, italic=True, color_rgb=(100, 116, 139))
+    r_h0 = p_h0.add_run("KHÓA LUẬN TỐT NGHIỆP")
+    set_run_font(r_h0, "Times New Roman", 12, bold=False, italic=False, color_rgb=(71, 85, 105))
 
     # Header Phai: GVHD: TS. TRẦN THỊ MINH KHOA
     c_h1 = tbl_h.rows[0].cells[1]
@@ -710,9 +710,9 @@ def build_full_document():
     p_h1 = c_h1.paragraphs[0]
     format_paragraph(p_h1, space_before=0, space_after=2, line_spacing=1.0, align=WD_ALIGN_PARAGRAPH.RIGHT, first_indent=0.0)
     r_h1 = p_h1.add_run("GVHD: TS. TRẦN THỊ MINH KHOA")
-    set_run_font(r_h1, "Times New Roman", 10, bold=False, italic=True, color_rgb=(100, 116, 139))
+    set_run_font(r_h1, "Times New Roman", 12, bold=False, italic=False, color_rgb=(71, 85, 105))
 
-    # Thiet lap Footer Section 2: Chuan mau theo quy dinh IUH & yeu cau giang vien
+    # Thiet lap Footer Section 2: Chuan mau theo quy dinh IUH 01/2024
     footer = section_body.footer
     for p in footer.paragraphs:
         p.text = ""
@@ -723,8 +723,8 @@ def build_full_document():
     tbl_f = footer.add_table(rows=1, cols=2, width=Cm(15.5))
     tbl_f.alignment = WD_TABLE_ALIGNMENT.CENTER
     tbl_f.autofit = False
-    tbl_f.rows[0].cells[0].width = Cm(13.0)
-    tbl_f.rows[0].cells[1].width = Cm(2.5)
+    tbl_f.rows[0].cells[0].width = Cm(13.2)
+    tbl_f.rows[0].cells[1].width = Cm(2.3)
 
     borders_f = parse_xml(f'''
         <w:tblBorders {nsdecls("w")}>
@@ -738,22 +738,22 @@ def build_full_document():
     ''')
     tbl_f._tbl.tblPr.append(borders_f)
 
-    # Footer Trai: SVTH: Huỳnh Tấn Lộc (22686171) - Trịnh Vĩ Thành (22689411)
+    # Footer Trai: Ten de tai in dam, chu thuong (Mục 2.3.3)
     c_f0 = tbl_f.rows[0].cells[0]
     set_cell_margins(c_f0, top=40, bottom=0, left=0, right=20)
     p_f0 = c_f0.paragraphs[0]
     format_paragraph(p_f0, space_before=2, space_after=0, line_spacing=1.0, align=WD_ALIGN_PARAGRAPH.LEFT, first_indent=0.0)
-    r_f0 = p_f0.add_run("SVTH: Huỳnh Tấn Lộc (22686171) - Trịnh Vĩ Thành (22689411)")
-    set_run_font(r_f0, "Times New Roman", 10, bold=False, italic=True, color_rgb=(100, 116, 139))
+    r_f0 = p_f0.add_run("Hệ thống tham quan thực tế ảo 360° và số hóa không gian di sản Bảo tàng Lịch sử TP.HCM")
+    set_run_font(r_f0, "Times New Roman", 10.5, bold=True, italic=False, color_rgb=(30, 41, 59))
 
-    # Footer Phai: So trang tu dong
+    # Footer Phai: So trang tu dong (12pt chu thuong can phai)
     c_f1 = tbl_f.rows[0].cells[1]
     set_cell_margins(c_f1, top=40, bottom=0, left=20, right=0)
     set_cell_vertical_alignment(c_f1, "center")
     p_f1 = c_f1.paragraphs[0]
     format_paragraph(p_f1, space_before=2, space_after=0, line_spacing=1.0, align=WD_ALIGN_PARAGRAPH.RIGHT, first_indent=0.0)
     r_f1 = p_f1.add_run()
-    set_run_font(r_f1, "Times New Roman", 11, bold=True, italic=False, color_rgb=(15, 23, 42))
+    set_run_font(r_f1, "Times New Roman", 12, bold=False, italic=False, color_rgb=(30, 41, 59))
     add_page_number_to_run(r_f1)
 
     # 3. NAP CAC CHUONG NOI DUNG (Moi chuong da co doc.add_page_break() o cuoi)
