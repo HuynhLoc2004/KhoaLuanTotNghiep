@@ -26,99 +26,136 @@ def add_front_matter(doc, helper):
     """Xây dựng toàn bộ phần đầu báo cáo chuẩn 100% như mẫu Tiến Trần."""
     
     # -------------------------------------------------------------------------
-    # 1. TRANG BÌA TIẾNG VIỆT (Trang 4 trong mẫu Tiến Trần)
+    # 1. TRANG BÌA TIẾNG VIỆT (Trang 4 trong mẫu Tiến Trần - CÓ KHUNG VIỀN XANH)
     # -------------------------------------------------------------------------
+    s0 = doc.sections[0]
+    helper.setup_page_layout(s0, top_cm=3.0, bottom_cm=3.0, left_cm=3.5, right_cm=2.0)
+    
+    # Khung viền xanh học thuật đóng quanh bìa tiếng Việt trong Header Section 0
+    h0 = s0.header
+    h0.is_linked_to_previous = False
+    hp0 = h0.paragraphs[0]
+    hrun0 = hp0.add_run()
+    border_path = os.path.join(os.path.dirname(__file__), "assets", "iuh_cover_border_clean.png")
+    if os.path.exists(border_path):
+        pic = hrun0.add_picture(border_path, width=Cm(16.2), height=Cm(25.4))
+        inline = pic._inline
+        drawing = inline.getparent()
+        extent = inline.find('{http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing}extent')
+        graphic = inline.find('{http://schemas.openxmlformats.org/drawingml/2006/main}graphic')
+        cx = extent.get('cx')
+        cy = extent.get('cy')
+        
+        anchor_xml = f'''
+        <wp:anchor {nsdecls('wp')} distT="0" distB="0" distL="0" distR="0" simplePos="0" relativeHeight="0" behindDoc="1" locked="0" layoutInCell="1" allowOverlap="1">
+            <wp:simplePos x="0" y="0"/>
+            <wp:positionH relativeFrom="page">
+                <wp:align>center</wp:align>
+            </wp:positionH>
+            <wp:positionV relativeFrom="page">
+                <wp:align>center</wp:align>
+            </wp:positionV>
+            <wp:extent cx="{cx}" cy="{cy}"/>
+            <wp:effectExtent l="0" t="0" r="0" b="0"/>
+            <wp:wrapNone/>
+            <wp:docPr id="1001" name="CoverBorder"/>
+            <wp:cNvGraphicFramePr/>
+        </wp:anchor>
+        '''
+        anchor = parse_xml(anchor_xml)
+        anchor.append(graphic)
+        drawing.replace(inline, anchor)
+
     p_inst = doc.add_paragraph()
     helper.format_paragraph(p_inst, space_before=0, space_after=2, line_spacing=1.15, align=WD_ALIGN_PARAGRAPH.CENTER, first_indent=0.0)
     r_inst = p_inst.add_run("BỘ CÔNG THƯƠNG\nTRƯỜNG ĐẠI HỌC CÔNG NGHIỆP THÀNH PHỐ HỒ CHÍ MINH\nKHOA CÔNG NGHỆ THÔNG TIN")
-    helper.set_run_font(r_inst, "Times New Roman", 13, bold=True)
+    helper.set_run_font(r_inst, "Times New Roman", 14, bold=True)
     
     # Logo IUH
     if os.path.exists(helper.LOGO_PATH):
         p_logo = doc.add_paragraph()
-        helper.format_paragraph(p_logo, space_before=14, space_after=14, line_spacing=1.0, align=WD_ALIGN_PARAGRAPH.CENTER, first_indent=0.0)
+        helper.format_paragraph(p_logo, space_before=16, space_after=18, line_spacing=1.0, align=WD_ALIGN_PARAGRAPH.CENTER, first_indent=0.0)
         p_logo.add_run().add_picture(helper.LOGO_PATH, width=Inches(2.3))
     else:
         p_sp = doc.add_paragraph()
         helper.format_paragraph(p_sp, space_before=20, space_after=20, line_spacing=1.0)
         
     p_sv = doc.add_paragraph()
-    helper.format_paragraph(p_sv, space_before=12, space_after=14, line_spacing=1.2, align=WD_ALIGN_PARAGRAPH.CENTER, first_indent=0.0)
+    helper.format_paragraph(p_sv, space_before=14, space_after=18, line_spacing=1.2, align=WD_ALIGN_PARAGRAPH.CENTER, first_indent=0.0)
     r_sv = p_sv.add_run("HUỲNH TẤN LỘC\nTRỊNH VĨ THÀNH")
-    helper.set_run_font(r_sv, "Times New Roman", 14, bold=True)
+    helper.set_run_font(r_sv, "Times New Roman", 16, bold=True)
     
     p_title = doc.add_paragraph()
-    helper.format_paragraph(p_title, space_before=14, space_after=16, line_spacing=1.25, align=WD_ALIGN_PARAGRAPH.CENTER, first_indent=0.0)
+    helper.format_paragraph(p_title, space_before=16, space_after=26, line_spacing=1.25, align=WD_ALIGN_PARAGRAPH.CENTER, first_indent=0.0)
     r_title = p_title.add_run("HỆ THỐNG THAM QUAN THỰC TẾ ẢO 360°\nVÀ SỐ HÓA KHÔNG GIAN DI SẢN BẢO TÀNG LỊCH SỬ THÀNH PHỐ HỒ CHÍ MINH")
-    helper.set_run_font(r_title, "Times New Roman", 17, bold=True)
-    
-    p_kltn = doc.add_paragraph()
-    helper.format_paragraph(p_kltn, space_before=12, space_after=8, line_spacing=1.15, align=WD_ALIGN_PARAGRAPH.CENTER, first_indent=0.0)
-    r_kltn = p_kltn.add_run("KHÓA LUẬN TỐT NGHIỆP")
-    helper.set_run_font(r_kltn, "Times New Roman", 15, bold=True)
+    helper.set_run_font(r_title, "Times New Roman", 18, bold=True)
     
     p_major = doc.add_paragraph()
-    helper.format_paragraph(p_major, space_before=6, space_after=20, line_spacing=1.15, align=WD_ALIGN_PARAGRAPH.CENTER, first_indent=0.0)
+    helper.format_paragraph(p_major, space_before=14, space_after=20, line_spacing=1.15, align=WD_ALIGN_PARAGRAPH.CENTER, first_indent=0.0)
     r_maj = p_major.add_run("Ngành: Công Nghệ Thông Tin")
-    helper.set_run_font(r_maj, "Times New Roman", 13, bold=False)
+    helper.set_run_font(r_maj, "Times New Roman", 14, bold=True)
     
     p_gvhd = doc.add_paragraph()
-    helper.format_paragraph(p_gvhd, space_before=16, space_after=28, line_spacing=1.15, align=WD_ALIGN_PARAGRAPH.CENTER, first_indent=0.0)
+    helper.format_paragraph(p_gvhd, space_before=20, space_after=36, line_spacing=1.15, align=WD_ALIGN_PARAGRAPH.CENTER, first_indent=0.0)
     r_gv = p_gvhd.add_run("Giảng viên hướng dẫn: TS. Trần Thị Minh Khoa")
-    helper.set_run_font(r_gv, "Times New Roman", 13, bold=True)
+    helper.set_run_font(r_gv, "Times New Roman", 14, bold=True)
     
     p_date = doc.add_paragraph()
     helper.format_paragraph(p_date, space_before=24, space_after=0, line_spacing=1.15, align=WD_ALIGN_PARAGRAPH.CENTER, first_indent=0.0)
     r_date = p_date.add_run("THÀNH PHỐ HỒ CHÍ MINH, THÁNG 12 NĂM 2026")
-    helper.set_run_font(r_date, "Times New Roman", 13, bold=True)
+    helper.set_run_font(r_date, "Times New Roman", 12, bold=True)
     
-    doc.add_page_break()
+    # Chuyển sang Section 1 cho Trang bìa tiếng Anh và các phần đầu tiếp theo (KHÔNG KHUNG)
+    import docx
+    s1 = doc.add_section(docx.enum.section.WD_SECTION.NEW_PAGE)
+    helper.setup_page_layout(s1, top_cm=3.0, bottom_cm=3.0, left_cm=3.5, right_cm=2.0)
+    s1.header.is_linked_to_previous = False
+    s1.footer.is_linked_to_previous = False
+    for p in s1.header.paragraphs:
+        p.text = ""
+    for p in s1.footer.paragraphs:
+        p.text = ""
     
     # -------------------------------------------------------------------------
-    # 2. TRANG BÌA TIẾNG ANH (Trang 5 trong mẫu Tiến Trần)
+    # 2. TRANG BÌA TIẾNG ANH (Trang 5 trong mẫu Tiến Trần - KHÔNG KHUNG VIỀN)
     # -------------------------------------------------------------------------
     p_einst = doc.add_paragraph()
     helper.format_paragraph(p_einst, space_before=0, space_after=2, line_spacing=1.15, align=WD_ALIGN_PARAGRAPH.CENTER, first_indent=0.0)
     r_e = p_einst.add_run("MINISTRY OF INDUSTRY AND TRADE\nINDUSTRIAL UNIVERSITY OF HO CHI MINH CITY\nFACULTY OF INFORMATION TECHNOLOGY")
-    helper.set_run_font(r_e, "Times New Roman", 13, bold=True)
+    helper.set_run_font(r_e, "Times New Roman", 14, bold=True)
     
     if os.path.exists(helper.LOGO_PATH):
         p_elogo = doc.add_paragraph()
-        helper.format_paragraph(p_elogo, space_before=14, space_after=14, line_spacing=1.0, align=WD_ALIGN_PARAGRAPH.CENTER, first_indent=0.0)
+        helper.format_paragraph(p_elogo, space_before=16, space_after=18, line_spacing=1.0, align=WD_ALIGN_PARAGRAPH.CENTER, first_indent=0.0)
         p_elogo.add_run().add_picture(helper.LOGO_PATH, width=Inches(2.3))
     else:
         p_esp = doc.add_paragraph()
         helper.format_paragraph(p_esp, space_before=20, space_after=20, line_spacing=1.0)
         
     p_esv = doc.add_paragraph()
-    helper.format_paragraph(p_esv, space_before=12, space_after=14, line_spacing=1.2, align=WD_ALIGN_PARAGRAPH.CENTER, first_indent=0.0)
+    helper.format_paragraph(p_esv, space_before=14, space_after=18, line_spacing=1.2, align=WD_ALIGN_PARAGRAPH.CENTER, first_indent=0.0)
     r_esv = p_esv.add_run("HUYNH TAN LOC\nTRINH VI THANH")
-    helper.set_run_font(r_esv, "Times New Roman", 14, bold=True)
+    helper.set_run_font(r_esv, "Times New Roman", 16, bold=True)
     
     p_etitle = doc.add_paragraph()
-    helper.format_paragraph(p_etitle, space_before=14, space_after=16, line_spacing=1.25, align=WD_ALIGN_PARAGRAPH.CENTER, first_indent=0.0)
+    helper.format_paragraph(p_etitle, space_before=16, space_after=26, line_spacing=1.25, align=WD_ALIGN_PARAGRAPH.CENTER, first_indent=0.0)
     r_etitle = p_etitle.add_run("360° VIRTUAL REALITY TOUR AND HERITAGE SPACE\nDIGITALIZATION SYSTEM FOR HISTORICAL MUSEUM OF HO CHI MINH CITY")
-    helper.set_run_font(r_etitle, "Times New Roman", 17, bold=True)
-    
-    p_ekltn = doc.add_paragraph()
-    helper.format_paragraph(p_ekltn, space_before=12, space_after=8, line_spacing=1.15, align=WD_ALIGN_PARAGRAPH.CENTER, first_indent=0.0)
-    r_ekltn = p_ekltn.add_run("GRADUATION THESIS")
-    helper.set_run_font(r_ekltn, "Times New Roman", 15, bold=True)
+    helper.set_run_font(r_etitle, "Times New Roman", 18, bold=True)
     
     p_emajor = doc.add_paragraph()
-    helper.format_paragraph(p_emajor, space_before=6, space_after=20, line_spacing=1.15, align=WD_ALIGN_PARAGRAPH.CENTER, first_indent=0.0)
+    helper.format_paragraph(p_emajor, space_before=14, space_after=20, line_spacing=1.15, align=WD_ALIGN_PARAGRAPH.CENTER, first_indent=0.0)
     r_emaj = p_emajor.add_run("Major: Information Technology")
-    helper.set_run_font(r_emaj, "Times New Roman", 13, bold=False)
+    helper.set_run_font(r_emaj, "Times New Roman", 14, bold=True)
     
     p_einstruc = doc.add_paragraph()
-    helper.format_paragraph(p_einstruc, space_before=16, space_after=28, line_spacing=1.15, align=WD_ALIGN_PARAGRAPH.CENTER, first_indent=0.0)
+    helper.format_paragraph(p_einstruc, space_before=20, space_after=36, line_spacing=1.15, align=WD_ALIGN_PARAGRAPH.CENTER, first_indent=0.0)
     r_ei = p_einstruc.add_run("Instructor: Ph.D Tran Thi Minh Khoa")
-    helper.set_run_font(r_ei, "Times New Roman", 13, bold=True)
+    helper.set_run_font(r_ei, "Times New Roman", 14, bold=True)
     
     p_edate = doc.add_paragraph()
     helper.format_paragraph(p_edate, space_before=24, space_after=0, line_spacing=1.15, align=WD_ALIGN_PARAGRAPH.CENTER, first_indent=0.0)
     r_edate = p_edate.add_run("HO CHI MINH CITY, DECEMBER 2026")
-    helper.set_run_font(r_edate, "Times New Roman", 13, bold=True)
+    helper.set_run_font(r_edate, "Times New Roman", 12, bold=True)
     
     doc.add_page_break()
     
@@ -223,19 +260,16 @@ def add_front_matter(doc, helper):
     r_gvhd_h = p_gvhd_h.add_run("NHẬN XÉT CỦA GIÁO VIÊN HƯỚNG DẪN")
     helper.set_run_font(r_gvhd_h, "Times New Roman", 13, bold=True)
     
-    # Dòng chấm phủ đều trang (20 dòng chấm chuẩn kích thước compact)
-    helper.add_full_width_dotted_line(doc, count=20, space_before=1.0, space_after=1.0, line_spacing=1.15, font_size=11)
+    # Dòng chấm phủ đều trang (23 dòng chấm chuẩn kích thước compact theo mẫu Tiến Trần)
+    helper.add_full_width_dotted_line(doc, count=23, space_before=1.0, space_after=1.0, line_spacing=1.15, font_size=11)
     
     p_gvhd_bot = doc.add_paragraph()
-    helper.format_paragraph(p_gvhd_bot, space_before=8, space_after=0, line_spacing=1.15, align=WD_ALIGN_PARAGRAPH.RIGHT, first_indent=0.0)
+    helper.format_paragraph(p_gvhd_bot, space_before=10, space_after=0, line_spacing=1.15, align=WD_ALIGN_PARAGRAPH.RIGHT, first_indent=0.0)
     r_ghb = p_gvhd_bot.add_run(
-        "Điểm đánh giá: .............. / 10\n"
         "Tp. Hồ Chí Minh, ngày... tháng ... năm 2026\n"
-        "GIÁO VIÊN HƯỚNG DẪN\n"
-        "(Ký và ghi rõ họ tên)\n\n\n"
-        "TS. TRẦN THỊ MINH KHOA"
+        "GIÁO VIÊN HƯỚNG DẪN"
     )
-    helper.set_run_font(r_ghb, "Times New Roman", 12, bold=True)
+    helper.set_run_font(r_ghb, "Times New Roman", 13, bold=False)
     
     doc.add_page_break()
     
@@ -248,17 +282,16 @@ def add_front_matter(doc, helper):
     r_gvpb_h1 = p_gvpb_h1.add_run("NHẬN XÉT CỦA GIÁO VIÊN PHẢN BIỆN")
     helper.set_run_font(r_gvpb_h1, "Times New Roman", 13, bold=True)
     
-    # Dòng chấm toàn chiều rộng (22 dòng phủ kín trang 1 vừa vặn không tràn)
-    helper.add_full_width_dotted_line(doc, count=22, space_before=1.0, space_after=1.0, line_spacing=1.15, font_size=11)
+    # Dòng chấm toàn chiều rộng (23 dòng phủ kín trang 1 vừa vặn không tràn)
+    helper.add_full_width_dotted_line(doc, count=23, space_before=1.0, space_after=1.0, line_spacing=1.15, font_size=11)
     
     p_gvpb_bot1 = doc.add_paragraph()
-    helper.format_paragraph(p_gvpb_bot1, space_before=8, space_after=0, line_spacing=1.15, align=WD_ALIGN_PARAGRAPH.RIGHT, first_indent=0.0)
+    helper.format_paragraph(p_gvpb_bot1, space_before=10, space_after=0, line_spacing=1.15, align=WD_ALIGN_PARAGRAPH.RIGHT, first_indent=0.0)
     r_gpb1 = p_gvpb_bot1.add_run(
         "Tp. Hồ Chí Minh, ngày... tháng ... năm 2026\n"
-        "GIÁO VIÊN PHẢN BIỆN\n"
-        "(Ký và ghi rõ họ tên)"
+        "GIÁO VIÊN PHẢN BIỆN"
     )
-    helper.set_run_font(r_gpb1, "Times New Roman", 12, bold=True)
+    helper.set_run_font(r_gpb1, "Times New Roman", 13, bold=False)
     
     doc.add_page_break()
     
@@ -271,19 +304,16 @@ def add_front_matter(doc, helper):
     r_gvpb_h2 = p_gvpb_h2.add_run("NHẬN XÉT CỦA GIÁO VIÊN PHẢN BIỆN")
     helper.set_run_font(r_gvpb_h2, "Times New Roman", 13, bold=True)
     
-    # Dòng chấm toàn chiều rộng (20 dòng phủ kín trang 2 vừa vặn)
-    helper.add_full_width_dotted_line(doc, count=20, space_before=1.0, space_after=1.0, line_spacing=1.15, font_size=11)
+    # Dòng chấm toàn chiều rộng (23 dòng phủ kín trang 2 vừa vặn)
+    helper.add_full_width_dotted_line(doc, count=23, space_before=1.0, space_after=1.0, line_spacing=1.15, font_size=11)
     
     p_gvpb_bot2 = doc.add_paragraph()
-    helper.format_paragraph(p_gvpb_bot2, space_before=8, space_after=0, line_spacing=1.15, align=WD_ALIGN_PARAGRAPH.RIGHT, first_indent=0.0)
+    helper.format_paragraph(p_gvpb_bot2, space_before=10, space_after=0, line_spacing=1.15, align=WD_ALIGN_PARAGRAPH.RIGHT, first_indent=0.0)
     r_gpb2 = p_gvpb_bot2.add_run(
-        "Điểm đánh giá: .............. / 10\n"
         "Tp. Hồ Chí Minh, ngày... tháng ... năm 2026\n"
-        "GIÁO VIÊN PHẢN BIỆN\n"
-        "(Ký và ghi rõ họ tên)"
+        "GIÁO VIÊN PHẢN BIỆN"
     )
-    helper.set_run_font(r_gpb2, "Times New Roman", 12, bold=True)
-    helper.set_run_font(r_gpb2, "Times New Roman", 13, bold=True)
+    helper.set_run_font(r_gpb2, "Times New Roman", 13, bold=False)
     
     doc.add_page_break()
     
