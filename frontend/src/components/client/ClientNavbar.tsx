@@ -175,11 +175,19 @@ export const ClientNavbar: React.FC<ClientNavbarProps> = ({
     return false;
   };
 
-  const currentLangObj = activeLanguages.find((l) => l.code === currentLang) || {
-    code: 'vi',
-    name: 'Tiếng Việt',
-    flagIcon: '🇻🇳'
+  const DEFAULT_LANG_MAP: Record<string, { code: string; name: string; flagIcon: string }> = {
+    vi: { code: 'vi', name: 'Tiếng Việt', flagIcon: '🇻🇳' },
+    en: { code: 'en', name: 'English', flagIcon: '🇬🇧' },
+    fr: { code: 'fr', name: 'Français', flagIcon: '🇫🇷' },
+    zh: { code: 'zh', name: '中文', flagIcon: '🇨🇳' }
   };
+
+  const currentLangObj = activeLanguages.find((l) => l.code === currentLang) ||
+    DEFAULT_LANG_MAP[currentLang] || {
+      code: currentLang || 'vi',
+      name: currentLang?.toUpperCase() || 'VI',
+      flagIcon: '🌐'
+    };
 
   // Lấy danh sách menu động từ branding, fallback về mặc định nếu chưa cấu hình
   const menuItems: HeaderMenuItem[] = (branding.headerMenuItems && branding.headerMenuItems.length > 0)
@@ -346,7 +354,7 @@ export const ClientNavbar: React.FC<ClientNavbarProps> = ({
               aria-label="Chọn ngôn ngữ"
               title={`Ngôn ngữ: ${currentLangObj.name || 'Tiếng Việt'}`}
             >
-              <span className="client-nav-lang-code">{currentLangObj.code ? currentLangObj.code.toUpperCase() : 'VI'}</span>
+              <span className="client-nav-lang-code">{(currentLang || 'vi').toUpperCase()}</span>
             </button>
 
             {isLangDropdownOpen && (
@@ -367,7 +375,12 @@ export const ClientNavbar: React.FC<ClientNavbarProps> = ({
                   gap: 3
                 }}
               >
-                {activeLanguages.map((lang) => (
+                {(activeLanguages.length > 0 ? activeLanguages : [
+                  { code: 'vi', name: 'Tiếng Việt', nativeName: 'Tiếng Việt', flagIcon: '🇻🇳', isDefault: true, isActive: true, order: 1 },
+                  { code: 'en', name: 'English', nativeName: 'English', flagIcon: '🇬🇧', isDefault: false, isActive: true, order: 2 },
+                  { code: 'fr', name: 'French', nativeName: 'Français', flagIcon: '🇫🇷', isDefault: false, isActive: true, order: 3 },
+                  { code: 'zh', name: 'Chinese', nativeName: '中文', flagIcon: '🇨🇳', isDefault: false, isActive: true, order: 4 }
+                ]).map((lang) => (
                   <button
                     key={lang.code}
                     type="button"

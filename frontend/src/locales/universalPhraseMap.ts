@@ -7773,5 +7773,65 @@ export const UNIVERSAL_PHRASE_MAP: Record<string, UniversalPhraseItem> = {
     de: "Hinweis",
     es: "Aviso",
     ru: "Уведомление"
+  },
+  "Khối hoa sen": {
+    en: "Lotus Pedestal Block",
+    fr: "Bloc de piédestal en lotus",
+    zh: "莲花座构件",
+    ja: "蓮華台座部材"
+  },
+  "Mô hình nhà đất nung": {
+    en: "Terracotta House Architectural Model",
+    fr: "Modèle de maison en terre cuite",
+    zh: "陶制房屋建筑模型",
+    ja: "素焼き家形建築模型"
+  },
+  "Bát": {
+    en: "Celadon Glazed Lotus Bowl",
+    fr: "Bol en céramique céladon",
+    zh: "青瓷刻花莲瓣碗",
+    ja: "青磁蓮弁文碗"
+  },
+  "Tượng phật Thời Lý": {
+    en: "Ly Dynasty Buddha Statue",
+    fr: "Statue de Bouddha de la dynastie Ly",
+    zh: "李朝佛像",
+    ja: "李朝仏像"
+  },
+  "Đầu sư tử": {
+    en: "Lion head",
+    fr: "Tête de lion",
+    zh: "狮头雕像",
+    ja: "獅子頭"
+  },
+  "Tượng sư tử": {
+    en: "Lion statue",
+    fr: "Statue de lion",
+    zh: "狮子雕像",
+    ja: "獅子像"
+  },
+  "Chim thần Garuda và rắn thần Naga": {
+    en: "The divine bird Garuda and the divine snake Naga",
+    fr: "Oiseau divin Garuda et serpent divin Naga",
+    zh: "迦楼罗神鸟与那迦神蛇",
+    ja: "神鳥ガルダと神蛇ナーガ"
+  },
+  "Tượng người cầu nguyện": {
+    en: "Statue of a praying man",
+    fr: "Statue d'un homme en prière",
+    zh: "祈祷者雕像",
+    ja: "祈祷する人物像"
+  },
+  "Bát gốm trắng ngà": {
+    en: "Ivory white ceramic bowl",
+    fr: "Bol en céramique blanc ivoire",
+    zh: "象牙白瓷碗",
+    ja: "象牙白磁碗"
+  },
+  "Mô hình tháp đất nung": {
+    en: "Terracotta church tower model",
+    fr: "Modèle de tour en terre cuite",
+    zh: "陶制塔楼模型",
+    ja: "素焼き仏塔模型"
   }
 };

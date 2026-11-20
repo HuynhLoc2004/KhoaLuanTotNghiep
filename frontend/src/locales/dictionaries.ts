@@ -2830,3 +2830,78 @@ export const ROOM_PRESET_TRANSLATIONS: Record<string, Record<string, { name: str
     }
   }
 };
+
+/**
+ * Bản dịch chuẩn học thuật di sản cho các cổ vật tiêu biểu
+ * Đảm bảo 100% tên, niên đại và thuyết minh hiển thị chuẩn xác sang mọi ngôn ngữ
+ */
+export const ARTIFACT_PRESET_TRANSLATIONS: Record<string, Record<string, { name: string; period: string; description: string }>> = {
+  'HV-901': {
+    en: {
+      name: 'Lotus Pedestal Block',
+      period: 'Ly Dynasty (11th - 13th Century)',
+      description: 'Ly Dynasty terracotta architectural lotus pedestal (11th - 13th century), featuring three undulating tiers of sculpted lotus petals adorned with double borders, Ly-era dragons, and S-curved floral tendrils. The central hollow accommodates column mortises or statue mountings, demonstrating exquisite royal craftsmanship of ancient Thang Long.'
+    },
+    fr: {
+      name: 'Bloc de piédestal en lotus',
+      period: 'Dynastie Ly (XIe - XIIIe siècle)',
+      description: 'Piédestal architectural en terre cuite de la dynastie Ly (XIe - XIIIe siècle) en forme de fleur de lotus avec trois niveaux de pétales sculptés.'
+    },
+    zh: {
+      name: '李朝莲花座构件',
+      period: '李朝（11-13世纪）',
+      description: '李朝陶制建筑莲花座构件（11-13世纪），雕刻三层层叠舒展的莲瓣，纹饰精美典雅，充分展示了升龙皇宫工匠的高超技艺。'
+    }
+  },
+  'HV-158': {
+    en: {
+      name: 'Terracotta House Architectural Model',
+      period: 'Ly Dynasty (11th - 13th Century)',
+      description: 'Ly Dynasty terracotta architectural house model (11th - 13th century), a precious archaeological artifact providing authentic physical documentation of Dai Viet traditional architecture.'
+    },
+    fr: {
+      name: 'Modèle architectural de maison en terre cuite',
+      period: 'Dynastie Ly (XIe - XIIIe siècle)',
+      description: 'Modèle architectural en terre cuite de la dynastie Ly (XIe - XIIIe siècle) reproduisant l’architecture traditionnelle du Dai Viet.'
+    },
+    zh: {
+      name: '李朝陶制房屋建筑模型',
+      period: '李朝（11-13世纪）',
+      description: '李朝陶制房屋建筑模型（11-13世纪），真实再现了大越时期的传统庭院建筑空间与屋脊莲瓣雕饰。'
+    }
+  },
+  'HV-661': {
+    en: {
+      name: 'Celadon Glazed Lotus Bowl',
+      period: 'Ly Dynasty (11th - 13th Century)',
+      description: 'Ly Dynasty celadon-glazed ceramic bowl with carved and molded lotus blossom motifs (11th - 13th century). A prime example of aristocratic royal ceramics with jade-green glaze.'
+    },
+    fr: {
+      name: 'Bol en céramique céladon à décor de lotus',
+      period: 'Dynastie Ly (XIe - XIIIe siècle)',
+      description: 'Bol en céramique céladon de la dynastie Ly (XIe - XIIIe siècle) orné de délicats motifs de lotus gravés sous une glaçure vert jade translucide.'
+    },
+    zh: {
+      name: '李朝青瓷刻花莲瓣碗',
+      period: '李朝（11-13世纪）',
+      description: '李朝青瓷刻花莲瓣碗（11-13世纪），胎质细腻轻盈，釉面温润如玉，为大越李朝宫廷御用青瓷巅峰之作。'
+    }
+  },
+  'HV-749': {
+    en: {
+      name: 'Ly Dynasty Buddha Statue',
+      period: 'Ly Dynasty (11th - 13th Century)',
+      description: 'Ly Dynasty stone Buddha sculpture (11th - 13th century), a monumental masterpiece of Dai Viet Buddhist sacred art depicting the Buddha in serene meditation (Dhyana Mudra).'
+    },
+    fr: {
+      name: 'Statue de Bouddha de la dynastie Ly',
+      period: 'Dynastie Ly (XIe - XIIIe siècle)',
+      description: 'Sculpture bouddhique en pierre de la dynastie Ly (XIe - XIIIe siècle), représentant le Bouddha en méditation sereine sur un trône de lotus.'
+    },
+    zh: {
+      name: '李朝石雕佛像',
+      period: '李朝（11-13世纪）',
+      description: '李朝石雕佛像（11-13世纪），结跏趺坐于莲花宝座上，法相庄严慈祥，为大越李朝佛教圣像艺术杰作。'
+    }
+  }
+};

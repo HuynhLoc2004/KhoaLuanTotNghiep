@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { API_BASE } from '../services/api';
 import { LanguageItem } from '../types';
-import { BUILTIN_DICTIONARIES, DICTIONARY_VI, LocaleDictionary, ROOM_PRESET_TRANSLATIONS } from '../locales/dictionaries';
+import { BUILTIN_DICTIONARIES, DICTIONARY_VI, LocaleDictionary, ROOM_PRESET_TRANSLATIONS, ARTIFACT_PRESET_TRANSLATIONS } from '../locales/dictionaries';
 import { UNIVERSAL_PHRASE_MAP } from '../locales/universalPhraseMap';
 
 export interface ClientTranslationContextType {
@@ -1047,11 +1047,7 @@ export const ClientTranslationProvider: React.FC<{ children: React.ReactNode }> 
   // Bản địa hóa nội dung động từ Database (Phòng, Hiện vật, Điểm neo)
   const localize = useCallback((item: any, field: string, fallback?: string): string => {
     if (!item) return fallback || '';
-    if (currentLang === 'vi') {
-      return item[field] || fallback || '';
-    }
 
-    // 1. Ưu tiên đọc bản dịch đã lưu trong Document của phòng/hiện vật trong MongoDB / PostgreSQL
     let transObj: any = item.translations;
     if (typeof transObj === 'string') {
       try { transObj = JSON.parse(transObj); } catch { transObj = {}; }
@@ -1059,20 +1055,36 @@ export const ClientTranslationProvider: React.FC<{ children: React.ReactNode }> 
       transObj = {};
     }
 
+    if (currentLang === 'vi') {
+      if (transObj?.vi?.[field] && typeof transObj.vi[field] === 'string' && transObj.vi[field].trim()) {
+        return transObj.vi[field];
+      }
+      return item[field] || fallback || '';
+    }
+
+    // 1. Ưu tiên đọc bản dịch đã lưu trong Document của phòng/hiện vật trong MongoDB / PostgreSQL
     const translatedVal = transObj?.[currentLang]?.[field];
     if (translatedVal && typeof translatedVal === 'string' && translatedVal.trim()) {
       return translatedVal;
     }
 
-    // 2. Tra cứu kho bản dịch chuẩn học thuật di sản theo mã phòng (P-101, P-102, P-103...)
+    // 2. Tra cứu kho bản dịch chuẩn học thuật di sản theo mã hiện vật (HV-901, HV-158...) hoặc mã phòng (P-101...)
     if (item.code) {
       const codeClean = String(item.code).trim();
+      const artPreset = ARTIFACT_PRESET_TRANSLATIONS[codeClean]?.[currentLang]?.[field as 'name' | 'period' | 'description'];
+      if (artPreset && typeof artPreset === 'string' && artPreset.trim()) {
+        return artPreset;
+      }
       const presetTrans = ROOM_PRESET_TRANSLATIONS[codeClean]?.[currentLang]?.[field as 'name' | 'period' | 'description'];
       if (presetTrans && typeof presetTrans === 'string' && presetTrans.trim()) {
         return presetTrans;
       }
       // Fallback sang tiếng Anh của preset CHỈ NẾU currentLang === 'en'
       if (currentLang === 'en') {
+        const artEn = ARTIFACT_PRESET_TRANSLATIONS[codeClean]?.en?.[field as 'name' | 'period' | 'description'];
+        if (artEn && typeof artEn === 'string' && artEn.trim()) {
+          return artEn;
+        }
         const presetEn = ROOM_PRESET_TRANSLATIONS[codeClean]?.en?.[field as 'name' | 'period' | 'description'];
         if (presetEn && typeof presetEn === 'string' && presetEn.trim()) {
           return presetEn;

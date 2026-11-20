@@ -26,6 +26,7 @@ import { Artifact, LanguageItem } from '../../types';
 import { Turntable360Viewer } from '../../components/Turntable360Viewer';
 import { useSystemBranding } from '../../context/SystemBrandingContext';
 import { useClientTranslation } from '../../context/ClientTranslationContext';
+import { ARTIFACT_PRESET_TRANSLATIONS } from '../../locales/dictionaries';
 import '../../styles/artifacts.css';
 
 interface PublicArtifactViewProps {
@@ -239,19 +240,32 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
     });
   }, [artifact, displayLanguages, safeTranslations]);
 
-  // Bản dịch hiện tại của hiện vật từ DB
+  // Bản dịch hiện tại của hiện vật từ DB hoặc Preset
   const activeTranslation = React.useMemo(() => {
     if (!artifact || currentLang === 'vi') return null;
-    return safeTranslations[currentLang] || null;
+    const fromSafe = safeTranslations[currentLang];
+    if (fromSafe && (fromSafe.name || fromSafe.description)) {
+      return fromSafe;
+    }
+    const code = artifact.code || '';
+    if (code && ARTIFACT_PRESET_TRANSLATIONS[code]?.[currentLang]) {
+      return ARTIFACT_PRESET_TRANSLATIONS[code][currentLang];
+    }
+    return null;
   }, [artifact, currentLang, safeTranslations]);
 
-  const displayName = activeTranslation?.name || artifact?.name || '';
-  const displayPeriod = activeTranslation?.period || (artifact?.period ? t(artifact.period, artifact.period) : '');
+  const displayName =
+    activeTranslation?.name ||
+    (artifact?.name ? (currentLang === 'vi' ? artifact.name : t(artifact.name, artifact.name)) : '');
+
+  const displayPeriod =
+    activeTranslation?.period ||
+    (artifact?.period ? (currentLang === 'vi' ? artifact.period : t(artifact.period, artifact.period)) : '');
+
   const displayDescription =
     (activeTranslation as any)?.narrationScript ||
     activeTranslation?.description ||
-    artifact?.description ||
-    '';
+    (artifact?.description ? (currentLang === 'vi' ? artifact.description : t(artifact.description, artifact.description)) : '');
 
   // Định nghĩa cấu trúc lựa chọn giọng đọc Voice AI
   interface VoiceOption {
@@ -537,15 +551,15 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
           </button>
           <div className="divider-vertical" />
           <div className="brand-group">
-            <span className="museum-name">{branding.museumName || 'BẢO TÀNG LỊCH SỬ TP. HỒ CHÍ MINH'}</span>
+            <span className="museum-name">{t('nav.museumTitle', branding.museumName || 'BẢO TÀNG LỊCH SỬ TP. HỒ CHÍ MINH')}</span>
             <span className="artifact-code-badge" data-no-auto-translate="true">{artifact.code}</span>
           </div>
         </div>
 
         <div className="header-right">
-          {/* Language Switcher (Chọn ngôn ngữ hiển thị trang - Chỉ hiện ngôn ngữ hiện vật có hỗ trợ) */}
+          {/* Language Switcher (Chọn ngôn ngữ hiển thị trang web) */}
           <div className="lang-selector-group" data-no-auto-translate="true">
-            {artifactSupportedLanguages.map((lang) => {
+            {displayLanguages.map((lang) => {
               const isCurrent = currentLang === lang.code;
 
               return (
@@ -598,6 +612,7 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
                   undefined
                 }
                 artifactName={displayName}
+                artifactPeriod={displayPeriod || t('nav.museumTitle', 'Bảo tàng Lịch sử TP.HCM')}
                 autoRotateSpeed={0.8}
                 audioNarrationUrl={undefined}
                 translations={undefined}
@@ -680,6 +695,11 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
                         <strong className="lang-highlight">
                           {activeVoice.flag} {activeVoice.label}
                         </strong>
+                        {activeVoice.code !== currentLang && (
+                          <span style={{ opacity: 0.8, fontSize: '0.78rem', marginLeft: 6 }}>
+                            ({t('artifact.fallbackVoiceNote', 'Bản thu mặc định')})
+                          </span>
+                        )}
                       </span>
                     </div>
 
@@ -1015,20 +1035,20 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
 
             <div className="qr-artifact-meta">
               <strong>{displayName}</strong>
-              <span data-no-auto-translate="true">Mã: {artifact.code}</span>
+              <span data-no-auto-translate="true">{t('artifact.identifier', 'Mã')}: {artifact.code}</span>
             </div>
 
             <div className="qr-modal-actions">
               <button className="btn btn-secondary" onClick={handleCopyLink}>
                 {copiedLink ? <Check size={16} /> : <Share2 size={16} />}
-                {copiedLink ? 'Đã sao chép' : 'Sao chép liên kết'}
+                {copiedLink ? t('common.copied', 'Đã sao chép') : t('common.copyLink', 'Sao chép liên kết')}
               </button>
               <a
                 href={api.getArtifactQRDownloadUrl(artifact.code || artifact.id)}
                 download={`QR_${artifact.code}.png`}
                 className="btn btn-primary"
               >
-                Tải ảnh mã QR
+                {t('rooms.downloadQR', 'Tải ảnh mã QR')}
               </a>
             </div>
           </div>
