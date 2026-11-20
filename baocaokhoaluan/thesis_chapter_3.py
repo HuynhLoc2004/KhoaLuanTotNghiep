@@ -31,7 +31,7 @@ def add_chapter_3(doc, helper):
     # 3.1.2. Bảng phân loại yêu cầu phi chức năng chi tiết
     helper.add_heading_3(doc, "3.1.2. Bảng phân loại yêu cầu phi chức năng chi tiết")
     helper.add_body_p(doc,
-        "Các yêu cầu phi chức năng tập trung vào độ tin cậy dịch vụ, khả năng phục vụ tải cao trong các đợt cao điểm lễ hội, tính toàn vẹn dữ liệu giao dịch ngân hàng và tốc độ hiển thị hình ảnh không gian 3D trên thiết bị di động."
+        "Các yêu cầu phi chức năng tập trung vào độ tin cậy dịch vụ, khả năng phục vụ tải cao trong các đợt cao điểm lễ hội, tính toàn vẹn dữ liệu giao dịch ngân hàng và tốc độ hiển thị hình ảnh không gian 3D trên thiết bị di động theo các tiêu chuẩn kỹ thuật Web Vitals hiện đại [24]."
     )
     
     # 3.2. Mô hình hóa chức năng bằng Use Case
@@ -66,7 +66,7 @@ def add_chapter_3(doc, helper):
         ("1", "Khách tham quan (Visitor)", "Người dùng đại chúng truy cập website để tham quan không gian 360°, chiêm ngưỡng cổ vật 3D, nghe thuyết minh âm thanh, tìm đường di chuyển và đặt mua vé trực tuyến."),
         ("2", "Quản trị viên (Admin)", "Cán bộ quản lý bảo tàng có toàn quyền quản trị nội dung CMS: biên tập thông tin 18 gian phòng, cấu hình Hotspot, quản lý kho cổ vật, phát hành vé, theo dõi doanh thu và cấu hình bảo trì hệ thống."),
         ("3", "Nhân viên soát vé (Staff / Ticket Checker)", "Nhân viên bảo tàng tại cổng kiểm soát, sử dụng camera trên điện thoại di động để quét và xác thực mã vé QR của khách tham quan theo thời gian thực."),
-        ("4", "Hệ thống thanh toán PayOS (External System)", "Hệ thống ngân hàng thanh toán tự động, phát sinh mã VietQR và gửi tín hiệu Webhook xác nhận giao dịch thành công về máy chủ bảo tàng.")
+        ("4", "Hệ thống thanh toán PayOS (External System)", "Hệ thống ngân hàng thanh toán tự động, phát sinh mã VietQR và gửi tín hiệu Webhook xác nhận giao dịch thành công về máy chủ bảo tàng [16], [17].")
     ]
     for idx, (stt, act, dsc) in enumerate(act_data):
         row = tbl_act.rows[idx + 1]
@@ -555,7 +555,7 @@ def add_chapter_3(doc, helper):
         "Bức ảnh cầu Equirectangular 360° x 180° hoàn chỉnh được xuất ra và lưu trữ an toàn.",
         [
             ("1. Người dùng tải video quét phòng định dạng MP4 hoặc kéo thả 20-30 bức ảnh góc rộng.", "2. Bấm 'Bắt đầu xử lý ghép ảnh'."),
-            ("3. Hệ thống tiến hành trích xuất khung hình, nắn trụ Cylindrical, trích SIFT, khớp RANSAC và hòa trộn đa dải tần.", "4. Hiển thị ảnh kết quả xem trước 360° và cung cấp nút 'Đồng bộ ảnh vào gian phòng trưng bày'.")
+            ("3. Hệ thống tiến hành trích xuất khung hình, nắn trụ Cylindrical, trích SIFT [3], khớp RANSAC [5] và hòa trộn đa dải tần [6].", "4. Hiển thị ảnh kết quả xem trước 360° và cung cấp nút 'Đồng bộ ảnh vào gian phòng trưng bày'.")
         ],
         [
             ("Video quay quá nhanh, độ chồng lấn giữa các khung hình < 30%:", "Hệ thống dừng ghép mí và thông báo 'Không đủ điểm đặc trưng để ghép, vui lòng quét lại với tốc độ lia máy chậm hơn'.")
@@ -568,7 +568,7 @@ def add_chapter_3(doc, helper):
     # 3.3.1. Mô hình quan hệ thực thể (ERD) và chiến lược lưu trữ lai
     helper.add_heading_3(doc, "3.3.1. Mô hình quan hệ thực thể (ERD) và chiến lược lưu trữ lai")
     helper.add_body_p(doc,
-        "Hệ thống triển khai mô hình kiến trúc cơ sở dữ liệu lai (Hybrid Architecture) kết hợp giữa hai hệ quản trị CSDL hàng đầu: PostgreSQL chịu trách nhiệm quản lý dữ liệu có cấu trúc quan hệ chặt chẽ và giao dịch tài chính (Users, Tickets, Orders, TicketValidationLogs), trong khi MongoDB chịu trách nhiệm quản lý dữ liệu phân cấp không gian (Rooms, Hotspots, Artifacts, MediaAssets). Sơ đồ thực thể liên kết tổng thể được mô tả trong Hình 3.5:"
+        "Hệ thống triển khai mô hình kiến trúc cơ sở dữ liệu lai (Hybrid Architecture) kết hợp giữa hai hệ quản trị CSDL hàng đầu: PostgreSQL [13] chịu trách nhiệm quản lý dữ liệu có cấu trúc quan hệ chặt chẽ và giao dịch tài chính (Users, Tickets, Orders, TicketValidationLogs), trong khi MongoDB [14] chịu trách nhiệm quản lý dữ liệu phân cấp không gian (Rooms, Hotspots, Artifacts, MediaAssets). Sơ đồ thực thể liên kết tổng thể được mô tả trong Hình 3.5:"
     )
     
     # Placeholder Hình 3.5
@@ -683,17 +683,17 @@ def add_chapter_3(doc, helper):
     # Placeholders Hình 3.6 -> 3.8
     helper.add_figure_placeholder(doc, "3.6",
         "Sơ đồ tuần tự quy trình đặt vé và thanh toán VietQR PayOS",
-        "Luồng gọi API từ Client -> Server Bảo tàng -> Cổng PayOS -> Webhook ngân hàng cập nhật trạng thái đơn hàng",
+        "Luồng gọi API từ Client -> Server Bảo tàng -> Cổng PayOS [17] -> Webhook ngân hàng cập nhật trạng thái đơn hàng [16]",
         width_cm=15.0, height_cm=8.0
     )
     helper.add_figure_placeholder(doc, "3.7",
         "Sơ đồ tuần tự quy trình soát vé QR bằng camera trực tiếp",
-        "Luồng quét mã vé tại cổng từ Mobile Browser Staff -> API đối soát -> Xác thực chữ ký SHA-256 -> Hủy vé",
+        "Luồng quét mã vé tại cổng từ Mobile Browser Staff -> API đối soát -> Xác thực chữ ký SHA-256 -> Hủy vé qua thư viện HTML5-QRCode [22]",
         width_cm=15.0, height_cm=8.0
     )
     helper.add_figure_placeholder(doc, "3.8",
         "Sơ đồ tuần tự quy trình tương tác không gian 360° và chuyển phòng qua Hotspot",
-        "Luồng sự kiện Three.js Raycaster bắt sự kiện click -> Chuyển đổi trạng thái phòng -> Nạp Texture mới mượt mà",
+        "Luồng sự kiện Three.js [7], [8] Raycaster bắt sự kiện click -> Chuyển đổi trạng thái phòng -> Nạp Texture mới mượt mà",
         width_cm=15.0, height_cm=8.0
     )
     

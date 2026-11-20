@@ -38,7 +38,7 @@ def add_chapter_2(doc, helper):
     helper.add_equation(doc, "x = W · (arctan2(X, Z) / (2π) + 0.5)", "2.3")
     helper.add_equation(doc, "y = H · (0.5 - arcsin(Y) / π)", "2.4")
     helper.add_body_p(doc,
-        "Đặc điểm cốt lõi của phép chiếu Equirectangular là các đường kinh tuyến là những đường thẳng đứng song song cách đều nhau, trong khi các cực cầu (Zenith - đỉnh đầu và Nadir - đáy sàn) bị kéo giãn biến dạng tối đa theo phương ngang. Do đó, việc xử lý ảnh Panorama đòi hỏi các phép chiếu trung gian để tránh hiện tượng méo hình khi ghép nối [5]."
+        "Đặc điểm cốt lõi của phép chiếu Equirectangular là các đường kinh tuyến là những đường thẳng đứng song song cách đều nhau, trong khi các cực cầu (Zenith - đỉnh đầu và Nadir - đáy sàn) bị kéo giãn biến dạng tối đa theo phương ngang. Do đó, việc xử lý ảnh Panorama đòi hỏi các phép chiếu trung gian để tránh hiện tượng méo hình khi ghép nối [4], [11]."
     )
     
     # Placeholder Hình 2.1
@@ -52,7 +52,7 @@ def add_chapter_2(doc, helper):
     helper.add_heading_3(doc, "2.1.2. Phép chiếu trụ (Cylindrical Projection & Warping)")
     helper.add_body_p(doc,
         "Khi người quay phim cầm máy quay quét phòng theo phương ngang quanh một trục thẳng đứng cố định, các bức ảnh chụp phẳng (Planar Perspective Images) từ camera điện thoại thông thường sẽ xuất hiện biến dạng phối cảnh nếu xếp cạnh nhau đơn thuần. "
-        "Để các bức ảnh liên tiếp có thể ghép nối mượt mà và chuyển đổi thuần túy thành chuyển động tịnh tiến tịnh tiến (Pure Translation), kỹ thuật nắn ảnh lên bề mặt hình trụ (Cylindrical Warping) bắt buộc phải được áp dụng [6]."
+        "Để các bức ảnh liên tiếp có thể ghép nối mượt mà và chuyển đổi thuần túy thành chuyển động tịnh tiến tịnh tiến (Pure Translation), kỹ thuật nắn ảnh lên bề mặt hình trụ (Cylindrical Warping) bắt buộc phải được áp dụng [4], [11]."
     )
     helper.add_body_p(doc,
         "Giả sử camera có tiêu cự f (được chuẩn hóa theo kích thước pixel) và tâm quang học nằm tại gốc tọa độ ảnh (x_c, y_c). Một điểm ảnh phẳng có tọa độ (x_p, y_p) khi được chiếu uốn cong lên mặt trụ có bán kính bằng tiêu cự f sẽ có tọa độ trụ (x_cyl, y_cyl) được tính theo công thức:"
@@ -79,7 +79,7 @@ def add_chapter_2(doc, helper):
     helper.add_heading_3(doc, "2.1.3. Thuật toán trích xuất đặc trưng điểm SIFT (Scale-Invariant Feature Transform)")
     helper.add_body_p(doc,
         "Để tìm được các vùng chồng lấn (Overlapping Area) giữa các bức ảnh liên tiếp trong điều kiện ánh sáng trong phòng bảo tàng thay đổi hoặc góc quay hơi nghiêng nhẹ, hệ thống cần một thuật toán trích xuất đặc trưng mạnh mẽ. "
-        "Thuật toán SIFT (do David Lowe đề xuất năm 2004) là giải pháp tiêu chuẩn vàng nhờ khả năng bất biến hoàn hảo đối với phép quay, biến đổi tỷ lệ co giãn (Scale-invariance), biến đổi độ sáng và tương đối bất biến với sự biến dạng góc nhìn 3D [7]."
+        "Thuật toán SIFT (do David Lowe đề xuất năm 2004) là giải pháp tiêu chuẩn vàng nhờ khả năng bất biến hoàn hảo đối với phép quay, biến đổi tỷ lệ co giãn (Scale-invariance), biến đổi độ sáng và tương đối bất biến với sự biến dạng góc nhìn 3D [3]."
     )
     helper.add_body_p(doc,
         "Quy trình thuật toán SIFT gồm 4 giai đoạn toán học chính:"
@@ -157,7 +157,7 @@ def add_chapter_2(doc, helper):
     helper.add_equation(doc, "d(f_A, f_B1) / d(f_A, f_B2) < threshold_ratio  (0.7 - 0.75)", "2.9")
     helper.add_body_p(doc,
         "Tuy nhiên, do hoa văn lặp lại trên tường bảo tàng hoặc bóng phản chiếu trên kính tủ hiện vật, tập hợp điểm khớp vẫn chứa nhiều cặp điểm ngoại lai (Outliers). "
-        "Thuật toán RANSAC (Random Sample Consensus) được áp dụng để ước lượng ma trận chuyển vị hình học chính xác (Affine hoặc Homography Matrix) [8]."
+        "Thuật toán RANSAC (Random Sample Consensus) được áp dụng để ước lượng ma trận chuyển vị hình học chính xác (Affine hoặc Homography Matrix) [5]."
     )
     helper.add_body_p(doc,
         "Quy trình RANSAC lặp lại N lần qua các bước:"
@@ -185,7 +185,7 @@ def add_chapter_2(doc, helper):
     )
     helper.add_equation(doc, "E(p) = ||I₁(p) - I₂(p)||² + ||∇(I₁(p)) - ∇(I₂(p))||²", "2.10")
     helper.add_body_p(doc,
-        "2. Hòa trộn đa dải tần (Multiband Laplacian Pyramid Blending): Thuật toán phân rã mỗi ảnh thành một tháp ảnh Laplace gồm nhiều dải tần số không gian khác nhau (từ tần số cao thể hiện chi tiết cạnh sắc nét đến tần số thấp thể hiện tông màu nền) [9]. "
+        "2. Hòa trộn đa dải tần (Multiband Laplacian Pyramid Blending): Thuật toán phân rã mỗi ảnh thành một tháp ảnh Laplace gồm nhiều dải tần số không gian khác nhau (từ tần số cao thể hiện chi tiết cạnh sắc nét đến tần số thấp thể hiện tông màu nền) [6]. "
         "Ở mỗi tầng k, ảnh được hòa trộn thông qua trọng số mặt nạ mượt mà (Gaussian Weight Mask W_k):"
     )
     helper.add_equation(doc, "L_out^k = W_k · L₁^k + (1 - W_k) · L₂^k", "2.11")
@@ -205,7 +205,7 @@ def add_chapter_2(doc, helper):
     helper.add_heading_3(doc, "2.1.6. Công nghệ hiển thị không gian cầu 360° với WebGL và Three.js")
     helper.add_body_p(doc,
         "WebGL (Web Graphics Library) là chuẩn giao tiếp lập trình đồ họa JavaScript cho phép kết xuất hình ảnh đồ họa 3D tương tác tăng tốc phần cứng ngay trên trình duyệt mà không cần cài đặt plug-in phụ trợ. "
-        "Three.js là một thư viện bậc cao được xây dựng trên nền WebGL, đóng gói các ma trận phép biến đổi phức tạp, thuật toán đổ bóng (Shaders) và hệ thống camera 3D thành các đối tượng hướng module trực quan [10]."
+        "Three.js là một thư viện bậc cao được xây dựng trên nền WebGL, đóng gói các ma trận phép biến đổi phức tạp, thuật toán đổ bóng (Shaders) và hệ thống camera 3D thành các đối tượng hướng module trực quan [7], [8]."
     )
     helper.add_body_p(doc,
         "Để tái tạo trải nghiệm thực tế ảo 360°, hệ thống sử dụng một đối tượng hình cầu rỗng (Inverted Sphere Geometry) có bán kính quy ước R = 500 đơn vị không gian 3D. "
@@ -230,7 +230,7 @@ def add_chapter_2(doc, helper):
     helper.add_heading_3(doc, "2.1.7. Thuật toán tìm đường đi ngắn nhất Dijkstra ứng dụng định tuyến bảo tàng")
     helper.add_body_p(doc,
         "Bảo tàng Lịch sử TP.HCM có kiến trúc gồm 18 gian phòng trưng bày liên hoàn bao bọc quanh sân vườn nội viện. "
-        "Khách tham quan thường gặp khó khăn khi muốn tìm đường ngắn nhất từ phòng hiện tại đến một phòng chuyên đề cụ thể (ví dụ: từ Phòng Tiền sử số 1 đến Phòng Cổ vật Champa số 7) [11]."
+        "Khách tham quan thường gặp khó khăn khi muốn tìm đường ngắn nhất từ phòng hiện tại đến một phòng chuyên đề cụ thể (ví dụ: từ Phòng Tiền sử số 1 đến Phòng Cổ vật Champa số 7) [9], [10]."
     )
     helper.add_body_p(doc,
         "Đề tài mô hình hóa mặt bằng bảo tàng thành một đồ thị vô hướng có trọng số G = (V, E, W), trong đó tập đỉnh V = {1, 2, ..., 18} đại diện cho 18 phòng trưng bày; tập cạnh E là các cửa thông phòng thực tế được ghi nhận trong Đợt khảo sát 1; và trọng số W(u, v) là khoảng cách bước chân thực tế giữa hai tâm phòng."
@@ -254,7 +254,7 @@ def add_chapter_2(doc, helper):
     # 2.1.8. Kỹ thuật tái tạo và hiển thị mô hình cổ vật 3D
     helper.add_heading_3(doc, "2.1.8. Kỹ thuật tái tạo và hiển thị mô hình cổ vật 3D")
     helper.add_body_p(doc,
-        "Để mang lại trải nghiệm chiêm ngưỡng chân thực cho các cổ vật quý hiếm mà khách tham quan không thể cầm nắm trực tiếp tại bảo tàng, đề tài kết hợp phương pháp chụp ảnh đa góc (Photogrammetry) và tái tạo mô hình lưới tam giác 3D (Textured 3D Mesh) [12]."
+        "Để mang lại trải nghiệm chiêm ngưỡng chân thực cho các cổ vật quý hiếm mà khách tham quan không thể cầm nắm trực tiếp tại bảo tàng, đề tài kết hợp phương pháp chụp ảnh đa góc (Photogrammetry) và tái tạo mô hình lưới tam giác 3D (Textured 3D Mesh) [8], [27], [29]."
     )
     helper.add_body_p(doc,
         "Quy trình số hóa cổ vật bao gồm:"
@@ -318,7 +318,7 @@ def add_chapter_2(doc, helper):
     # 2.2.1. Phân hệ Backend và dịch vụ nền tảng
     helper.add_heading_3(doc, "2.2.1. Phân hệ Backend và dịch vụ nền tảng")
     helper.add_body_p(doc,
-        "Hệ thống Backend được thiết kế theo mô hình kiến trúc phân tầng 3 lớp (3-Tier Architecture) nhằm đảm bảo tính toàn vẹn dữ liệu, dễ dàng mở rộng module và bảo trì dài hạn (Hình 2.9) [13]."
+        "Hệ thống Backend được thiết kế theo mô hình kiến trúc phân tầng 3 lớp (3-Tier Architecture) nhằm đảm bảo tính toàn vẹn dữ liệu, dễ dàng mở rộng module và bảo trì dài hạn (Hình 2.9) [12], [18]."
     )
     
     # Placeholder Hình 2.9
@@ -332,18 +332,18 @@ def add_chapter_2(doc, helper):
     helper.add_heading_4(doc, "2.2.1.1. Môi trường thực thi Node.js và ngôn ngữ TypeScript")
     helper.add_body_p(doc,
         "Node.js là một môi trường thực thi mã nguồn JavaScript phía máy chủ được xây dựng trên bộ máy V8 JavaScript Engine của Google Chrome. "
-        "Với mô hình đơn luồng hướng sự kiện bất đồng bộ (Single-threaded Event-driven Non-blocking I/O), Node.js có khả năng xử lý đồng thời hàng ngàn kết nối I/O với chi phí tài nguyên bộ nhớ rất thấp, đặc biệt tối ưu cho các tác vụ streaming ảnh 360° dung lượng lớn và xử lý giao dịch thanh toán vé trực tuyến [14]."
+        "Với mô hình đơn luồng hướng sự kiện bất đồng bộ (Single-threaded Event-driven Non-blocking I/O), Node.js có khả năng xử lý đồng thời hàng ngàn kết nối I/O với chi phí tài nguyên bộ nhớ rất thấp, đặc biệt tối ưu cho các tác vụ streaming ảnh 360° dung lượng lớn và xử lý giao dịch thanh toán vé trực tuyến [12]."
     )
     helper.add_body_p(doc,
         "Ngôn ngữ TypeScript là một phần mở rộng có định kiểu tĩnh mạnh mẽ (Strongly Typed Superset) của JavaScript do Microsoft phát triển. "
-        "Việc sử dụng TypeScript xuyên suốt từ Backend đến Frontend giúp phát hiện sớm các lỗi cú pháp và kiểu dữ liệu ngay trong quá trình biên dịch (Compile-time), chuẩn hóa các giao diện Interface cho thực thể dữ liệu (Room, Hotspot, Ticket, Order) và tăng cường đáng kể tính cộng tác trong dự án [15]."
+        "Việc sử dụng TypeScript xuyên suốt từ Backend đến Frontend giúp phát hiện sớm các lỗi cú pháp và kiểu dữ liệu ngay trong quá trình biên dịch (Compile-time), chuẩn hóa các giao diện Interface cho thực thể dữ liệu (Room, Hotspot, Ticket, Order) và tăng cường đáng kể tính cộng tác trong dự án [12]."
     )
     
     # 2.2.1.2. Express.js và RESTful API
     helper.add_heading_4(doc, "2.2.1.2. Web Framework Express.js và thiết kế kiến trúc RESTful API")
     helper.add_body_p(doc,
         "Express.js là một framework web tối giản và linh hoạt dành cho Node.js, cung cấp hệ thống định tuyến (Routing) mạnh mẽ và cơ chế Middleware phân lớp chuyên nghiệp. "
-        "Các API của hệ thống được chuẩn hóa theo chuẩn kiến trúc REST (Representational State Transfer) với các nguyên tắc định danh tài nguyên bằng danh từ, sử dụng đúng các phương thức HTTP chuẩn (GET, POST, PUT, DELETE) và trả về định dạng dữ liệu chuẩn JSON kèm mã trạng thái HTTP (200 OK, 201 Created, 400 Bad Request, 401 Unauthorized, 404 Not Found, 500 Internal Error) [16]."
+        "Các API của hệ thống được chuẩn hóa theo chuẩn kiến trúc REST (Representational State Transfer) với các nguyên tắc định danh tài nguyên bằng danh từ, sử dụng đúng các phương thức HTTP chuẩn (GET, POST, PUT, DELETE) và trả về định dạng dữ liệu chuẩn JSON kèm mã trạng thái HTTP (200 OK, 201 Created, 400 Bad Request, 401 Unauthorized, 404 Not Found, 500 Internal Error) [12]."
     )
     
     # 2.2.1.3 & 2.2.1.4: PostgreSQL & MongoDB
@@ -352,11 +352,11 @@ def add_chapter_2(doc, helper):
         "Một trong những điểm sáng tạo nổi bật trong kiến trúc dữ liệu của đề tài là việc áp dụng chiến lược lưu trữ dữ liệu lai (Polyglot Persistence):"
     )
     helper.add_bullet_item(doc,
-        "PostgreSQL là hệ quản trị cơ sở dữ liệu quan hệ nguồn mở mạnh mẽ nhất hiện nay, tuân thủ tuyệt đối các thuộc tính ACID (Atomicity, Consistency, Isolation, Durability). Hệ thống sử dụng PostgreSQL kết hợp Prisma ORM để quản lý các dữ liệu nhạy cảm đòi hỏi tính toàn vẹn cao: thông tin tài khoản người dùng, bảng giá vé, mã đơn hàng, lịch sử giao dịch thanh toán PayOS và nhật ký soát vé ra vào.",
+        "PostgreSQL là hệ quản trị cơ sở dữ liệu quan hệ nguồn mở mạnh mẽ nhất hiện nay, tuân thủ tuyệt đối các thuộc tính ACID (Atomicity, Consistency, Isolation, Durability). Hệ thống sử dụng PostgreSQL kết hợp Prisma ORM để quản lý các dữ liệu nhạy cảm đòi hỏi tính toàn vẹn cao: thông tin tài khoản người dùng, bảng giá vé, mã đơn hàng, lịch sử giao dịch thanh toán PayOS và nhật ký soát vé ra vào [13].",
         bold_prefix="PostgreSQL (RDBMS) — Quản lý giao dịch và bán vé: "
     )
     helper.add_bullet_item(doc,
-        "MongoDB là cơ sở dữ liệu NoSQL dạng tài liệu (Document-oriented JSON/BSON) với cấu trúc lược đồ linh hoạt (Schema-less). Hệ thống sử dụng MongoDB kết hợp Mongoose ODM để lưu trữ toàn bộ cấu trúc không gian di sản có tính phân cấp phức tạp: tọa độ các điểm Hotspots, danh mục 18 gian phòng trưng bày, danh sách các hiện vật 3D liên kết trong phòng và dữ liệu thuyết minh âm thanh đa ngôn ngữ.",
+        "MongoDB là cơ sở dữ liệu NoSQL dạng tài liệu (Document-oriented JSON/BSON) với cấu trúc lược đồ linh hoạt (Schema-less). Hệ thống sử dụng MongoDB kết hợp Mongoose ODM để lưu trữ toàn bộ cấu trúc không gian di sản có tính phân cấp phức tạp: tọa độ các điểm Hotspots, danh mục 18 gian phòng trưng bày, danh sách các hiện vật 3D liên kết trong phòng và dữ liệu thuyết minh âm thanh đa ngôn ngữ [14].",
         bold_prefix="MongoDB (NoSQL Document) — Quản lý không gian 360° và cổ vật: "
     )
     
@@ -406,12 +406,12 @@ def add_chapter_2(doc, helper):
     helper.add_body_p(doc,
         "Redis Server được sử dụng làm bộ nhớ đệm (Cache Layer) đặt trước các truy vấn cơ sở dữ liệu. "
         "Dữ liệu danh mục 18 phòng và sơ đồ liên kết Hotspot ít khi thay đổi sẽ được lưu đệm trong Redis với thời gian sống (TTL = 3600 giây). "
-        "Nhờ đó, 90% các truy vấn tải trang của khách tham quan được phục hồi trực tiếp từ bộ nhớ RAM với độ trễ dưới 2ms, giảm thiểu tối đa tải cho máy chủ cơ sở dữ liệu [17]."
+        "Nhờ đó, 90% các truy vấn tải trang của khách tham quan được phục hồi trực tiếp từ bộ nhớ RAM với độ trễ dưới 2ms, giảm thiểu tối đa tải cho máy chủ cơ sở dữ liệu [15]."
     )
     helper.add_body_p(doc,
         "Về mặt xác thực và an toàn thông tin, hệ thống áp dụng cơ chế xác thực phi trạng thái (Stateless Authentication) dựa trên chuẩn JSON Web Token (JWT) theo tiêu chuẩn RFC 7519. "
         "Token gồm 3 phần tách biệt: Header (thuật toán mã hóa HS256), Payload (thông tin định danh userId, vai trò role và thời hạn hết hạn exp) và Signature (chữ ký số tạo từ bí mật máy chủ secret_key). "
-        "Đặc biệt, hệ thống cung cấp phương thức đăng nhập hiện đại thông qua mã xác thực một lần (Email OTP) gửi tới hộp thư người dùng, loại bỏ hoàn toàn nguy cơ lộ mật khẩu hoặc tấn công vét cạn (Brute-force) [18]."
+        "Đặc biệt, hệ thống cung cấp phương thức đăng nhập hiện đại thông qua mã xác thực một lần (Email OTP) gửi tới hộp thư người dùng, loại bỏ hoàn toàn nguy cơ lộ mật khẩu hoặc tấn công vét cạn (Brute-force) [12]."
     )
     
     # Placeholder Hình 2.10
@@ -424,21 +424,21 @@ def add_chapter_2(doc, helper):
     # 2.2.2. Phân hệ Frontend và trải nghiệm người dùng
     helper.add_heading_3(doc, "2.2.2. Phân hệ Frontend và trải nghiệm người dùng")
     helper.add_body_p(doc,
-        "Frontend được xây dựng bằng thư viện React 18, khai thác tối đa sức mạnh của Virtual DOM, React Hooks (useState, useEffect, useMemo, useRef) và kiến trúc Component hóa để tái sử dụng giao diện. "
+        "Frontend được xây dựng bằng thư viện React 18 [20] và Vite [21], khai thác tối đa sức mạnh của Virtual DOM, React Hooks (useState, useEffect, useMemo, useRef) và kiến trúc Component hóa để tái sử dụng giao diện. "
         "Giao diện tuân thủ ngôn ngữ thiết kế di sản văn hóa với hệ màu chủ đạo: Đỏ Đền Cổ (#8C2D19), Vàng Hoàng Gia (#D4AF37) và Nền Đen Huyền Bí (#0A0D14), mang lại cảm giác trang nghiêm, cổ kính nhưng vô cùng sang trọng và hiện đại."
     )
     helper.add_body_p(doc,
-        "Phân hệ soát vé tại cổng bảo tàng tích hợp thư viện HTML5-QRCode, cho phép nhân viên sử dụng trực tiếp camera trên trình duyệt điện thoại để quét mã vé QR của khách với tốc độ giải mã cực nhanh (dưới 100ms) mà không cần cài đặt ứng dụng chuyên dụng hoặc máy quét mã vạch cồng kềnh."
+        "Phân hệ soát vé tại cổng bảo tàng tích hợp thư viện HTML5-QRCode [22], cho phép nhân viên sử dụng trực tiếp camera trên trình duyệt điện thoại để quét mã vé QR của khách với tốc độ giải mã cực nhanh (dưới 100ms) mà không cần cài đặt ứng dụng chuyên dụng hoặc máy quét mã vạch cồng kềnh."
     )
     
     # 2.2.3. Tích hợp thanh toán trực tuyến VietQR qua PayOS
     helper.add_heading_3(doc, "2.2.3. Tích hợp thanh toán trực tuyến VietQR qua cổng PayOS")
     helper.add_body_p(doc,
-        "VietQR là chuẩn nhận diện thanh toán bằng mã QR của mạng lưới thanh toán quốc gia NAPAS, cho phép khách hàng sử dụng bất kỳ ứng dụng ngân hàng số (Mobile Banking) hoặc ví điện tử nào tại Việt Nam để quét và chuyển khoản trực tiếp [19]."
+        "VietQR là chuẩn nhận diện thanh toán bằng mã QR của mạng lưới thanh toán quốc gia NAPAS, cho phép khách hàng sử dụng bất kỳ ứng dụng ngân hàng số (Mobile Banking) hoặc ví điện tử nào tại Việt Nam để quét và chuyển khoản trực tiếp [16], [17]."
     )
     helper.add_body_p(doc,
         "Cổng thanh toán PayOS cung cấp API tạo mã VietQR động chứa đầy đủ thông tin: Mã ngân hàng, Số tài khoản thụ hưởng, Số tiền thanh toán chính xác và Mã đơn hàng duy nhất trong nội dung chuyển khoản. "
-        "Khi khách hàng quét mã và xác nhận chuyển tiền thành công, hệ thống ngân hàng sẽ phát tín hiệu Webhook tức thời về máy chủ bảo tàng. Máy chủ kiểm tra tính hợp lệ của chữ ký điện tử HMAC-SHA256, tự động cập nhật trạng thái đơn hàng sang 'PAID' và phát hành vé điện tử có mã QR bảo mật gửi vào email của khách mà không cần sự can thiệp thủ công của nhân viên thu ngân."
+        "Khi khách hàng quét mã và xác nhận chuyển tiền thành công, hệ thống ngân hàng sẽ phát tín hiệu Webhook tức thời về máy chủ bảo tàng. Máy chủ kiểm tra tính hợp lệ của chữ ký điện tử HMAC-SHA256, tự động cập nhật trạng thái đơn hàng sang 'PAID' và phát hành vé điện tử có mã QR bảo mật gửi vào email của khách mà không cần sự can thiệp thủ công của nhân viên thu ngân [17]."
     )
     
     # Placeholder Hình 2.11 & 2.12
@@ -456,10 +456,10 @@ def add_chapter_2(doc, helper):
     # 2.2.4. Hạ tầng máy chủ và ảo hóa Docker
     helper.add_heading_3(doc, "2.2.4. Hạ tầng máy chủ và ảo hóa Docker")
     helper.add_body_p(doc,
-        "Hệ thống được đóng gói hoàn chỉnh bằng công nghệ ảo hóa cấp hệ điều hành Docker và điều phối dịch vụ qua Docker Compose [20]. Toàn bộ các thành phần (Nginx Web Server, Node.js Backend, PostgreSQL, MongoDB, Redis) được cô lập trong các container riêng biệt nhưng liên kết chặt chẽ qua mạng ảo nội bộ (Bridge Network)."
+        "Hệ thống được đóng gói hoàn chỉnh bằng công nghệ ảo hóa cấp hệ điều hành Docker và điều phối dịch vụ qua Docker Compose [18], [19]. Toàn bộ các thành phần (Nginx Web Server, Node.js Backend, PostgreSQL, MongoDB, Redis) được cô lập trong các container riêng biệt nhưng liên kết chặt chẽ qua mạng ảo nội bộ (Bridge Network)."
     )
     helper.add_body_p(doc,
-        "Nginx đóng vai trò là Reverse Proxy và Web Server hiệu năng cao tại cổng 80/443, thực hiện cân bằng tải, nén dữ liệu tĩnh Gzip/Brotli, giải mã SSL/TLS an toàn và điều hướng thông minh: các yêu cầu tĩnh được phân phối trực tiếp từ thư mục build, trong khi các yêu cầu API được chuyển tiếp an toàn tới cụm máy chủ Node.js backend."
+        "Nginx đóng vai trò là Reverse Proxy và Web Server hiệu năng cao tại cổng 80/443, thực hiện cân bằng tải, nén dữ liệu tĩnh Gzip/Brotli, giải mã SSL/TLS an toàn và điều hướng thông minh: các yêu cầu tĩnh được phân phối trực tiếp từ thư mục build, trong khi các yêu cầu API được chuyển tiếp an toàn tới cụm máy chủ Node.js backend [18]."
     )
     
     # Placeholder Hình 2.13

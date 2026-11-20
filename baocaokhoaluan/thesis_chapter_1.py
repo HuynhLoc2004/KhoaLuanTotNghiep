@@ -47,7 +47,7 @@ def add_chapter_1(doc, helper):
         bold_prefix="Phương thức phát hành và kiểm soát vé thủ công: "
     )
     helper.add_body_p(doc,
-        "Trước thực tiễn đó, việc nghiên cứu và phát triển một giải pháp toàn diện mang tên “Hệ thống tham quan thực tế ảo 360° & số hóa không gian di sản Bảo tàng Lịch sử TP. Hồ Chí Minh” là một nhiệm vụ cấp thiết, mang tính thời sự cao, nhằm đưa bảo tàng bước vào không gian số, phục vụ đông đảo công chúng một cách trực quan, hiện đại và tiện lợi [3]."
+        "Trước thực tiễn đó, việc nghiên cứu và phát triển một giải pháp toàn diện mang tên “Hệ thống tham quan thực tế ảo 360° & số hóa không gian di sản Bảo tàng Lịch sử TP. Hồ Chí Minh” là một nhiệm vụ cấp thiết, mang tính thời sự cao, nhằm đưa bảo tàng bước vào không gian số, phục vụ đông đảo công chúng một cách trực quan, hiện đại và tiện lợi [1], [28]."
     )
     
     # 1.1.2. Mục tiêu nghiên cứu và phát triển
@@ -128,15 +128,15 @@ def add_chapter_1(doc, helper):
         "Đối tượng nghiên cứu của đề tài bao gồm:"
     )
     helper.add_bullet_item(doc,
-        "Không gian kiến trúc, bố cục ánh sáng và hiện vật lịch sử tại 18 phòng trưng bày của Bảo tàng Lịch sử TP.HCM.",
+        "Không gian kiến trúc, bố cục ánh sáng và hiện vật lịch sử tại 18 phòng trưng bày của Bảo tàng Lịch sử TP.HCM [2].",
         bold_prefix="Không gian vật lý và cổ vật: "
     )
     helper.add_bullet_item(doc,
-        "Các thuật toán trích xuất đặc trưng (SIFT, ORB), thuật toán tối ưu đường biên ghép mí và các mô hình biểu diễn ảnh toàn cảnh cầu (Equirectangular Projection).",
+        "Các thuật toán trích xuất đặc trưng (SIFT [3], ORB), thuật toán lọc nhiễu RANSAC [5], kỹ thuật hòa trộn đa dải tần [6] và mô hình biểu diễn ảnh toàn cảnh cầu (Equirectangular Projection [4]).",
         bold_prefix="Mô hình toán học và thuật toán xử lý ảnh: "
     )
     helper.add_bullet_item(doc,
-        "Các công nghệ phát triển ứng dụng web thời gian thực: WebGL, Three.js, React, Node.js, Express, PostgreSQL, MongoDB, Redis, PayOS VietQR và chuẩn bảo mật JWT.",
+        "Các công nghệ phát triển ứng dụng web thời gian thực: WebGL/Three.js [7], [8], React [20], Node.js [12], PostgreSQL [13], MongoDB [14], Redis [15], cổng thanh toán VietQR PayOS [16], [17] và kiểm soát vé HTML5-QRCode [22].",
         bold_prefix="Công nghệ phần mềm và kiến trúc phân tán: "
     )
     
