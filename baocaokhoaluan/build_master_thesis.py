@@ -13,6 +13,7 @@ Tuan thu nghiem ngat:
 
 import os
 import sys
+import re
 import docx
 from docx.shared import Inches, Pt, RGBColor, Cm
 from docx.enum.text import WD_ALIGN_PARAGRAPH
@@ -113,32 +114,127 @@ def add_bullet_item(doc, text, bold_prefix="", space_before=2, space_after=2):
     set_run_font(p.add_run(text), "Times New Roman", 13, bold=False, italic=False, color_rgb=COLOR_BLACK)
     return p
 
+def xml_escape(text):
+    return (str(text)
+            .replace('&', '&amp;')
+            .replace('<', '&lt;')
+            .replace('>', '&gt;')
+            .replace('"', '&quot;')
+            .replace("'", '&apos;'))
+
+_bookmark_id_counter = 100
+
+def get_heading_anchor(text):
+    text_clean = text.strip()
+    m_ch = re.match(r'^CHƯƠNG\s+(\d+)', text_clean, re.IGNORECASE)
+    if m_ch:
+        return f"bm_chuong_{m_ch.group(1)}"
+    m_sec = re.match(r'^(\d+(\.\d+)*)', text_clean)
+    if m_sec:
+        digits = m_sec.group(1).replace('.', '_')
+        return f"bm_sec_{digits}"
+    m_app = re.match(r'^Phụ\s+lục\s+([A-D])', text_clean, re.IGNORECASE)
+    if m_app:
+        return f"bm_phuluc_{m_app.group(1).lower()}"
+    m_fig = re.match(r'^Hình\s+(\d+(\.\d+)*)', text_clean, re.IGNORECASE)
+    if m_fig:
+        return f"bm_fig_{m_fig.group(1).replace('.', '_')}"
+    m_tbl = re.match(r'^Bảng\s+([A-D\d]+(\.[A-D\d]+)*)', text_clean, re.IGNORECASE)
+    if m_tbl:
+        return f"bm_tbl_{m_tbl.group(1).replace('.', '_')}"
+    if "TÀI LIỆU THAM KHẢO" in text_clean.upper():
+        return "bm_tailieu_thamkhao"
+    if "PHỤ LỤC" in text_clean.upper():
+        return "bm_phuluc"
+    ascii_clean = re.sub(r'[^a-zA-Z0-9_]', '_', text_clean)[:25].strip('_').lower()
+    return f"bm_{ascii_clean}"
+
 def add_heading_1(doc, text):
-    p = doc.add_paragraph()
+    global _bookmark_id_counter
+    _bookmark_id_counter += 1
+    bm_id = str(_bookmark_id_counter)
+    bm_name = get_heading_anchor(text)
+    
+    p = doc.add_paragraph(style='Heading 1')
     format_paragraph(p, space_before=12, space_after=6, line_spacing=1.5, align=WD_ALIGN_PARAGRAPH.CENTER, first_indent=0.0, left_indent=0.0)
     p.paragraph_format.keep_with_next = True
-    set_run_font(p.add_run(text), "Times New Roman", 13, bold=True, italic=False, color_rgb=COLOR_BLACK)
+    
+    pPr = p._p.get_or_add_pPr()
+    outline = parse_xml(f'<w:outlineLvl {nsdecls("w")} w:val="0"/>')
+    pPr.append(outline)
+    
+    bm_start = parse_xml(f'<w:bookmarkStart {nsdecls("w")} w:id="{bm_id}" w:name="{bm_name}"/>')
+    bm_end = parse_xml(f'<w:bookmarkEnd {nsdecls("w")} w:id="{bm_id}"/>')
+    p._p.append(bm_start)
+    run = p.add_run(text)
+    set_run_font(run, "Times New Roman", 13, bold=True, italic=False, color_rgb=COLOR_BLACK)
+    p._p.append(bm_end)
     return p
 
 def add_heading_2(doc, text):
-    p = doc.add_paragraph()
+    global _bookmark_id_counter
+    _bookmark_id_counter += 1
+    bm_id = str(_bookmark_id_counter)
+    bm_name = get_heading_anchor(text)
+    
+    p = doc.add_paragraph(style='Heading 2')
     format_paragraph(p, space_before=8, space_after=3, line_spacing=1.5, align=WD_ALIGN_PARAGRAPH.LEFT, first_indent=0.0, left_indent=0.0)
     p.paragraph_format.keep_with_next = True
-    set_run_font(p.add_run(text), "Times New Roman", 13, bold=True, italic=False, color_rgb=COLOR_BLACK)
+    
+    pPr = p._p.get_or_add_pPr()
+    outline = parse_xml(f'<w:outlineLvl {nsdecls("w")} w:val="1"/>')
+    pPr.append(outline)
+    
+    bm_start = parse_xml(f'<w:bookmarkStart {nsdecls("w")} w:id="{bm_id}" w:name="{bm_name}"/>')
+    bm_end = parse_xml(f'<w:bookmarkEnd {nsdecls("w")} w:id="{bm_id}"/>')
+    p._p.append(bm_start)
+    run = p.add_run(text)
+    set_run_font(run, "Times New Roman", 13, bold=True, italic=False, color_rgb=COLOR_BLACK)
+    p._p.append(bm_end)
     return p
 
 def add_heading_3(doc, text):
-    p = doc.add_paragraph()
+    global _bookmark_id_counter
+    _bookmark_id_counter += 1
+    bm_id = str(_bookmark_id_counter)
+    bm_name = get_heading_anchor(text)
+    
+    p = doc.add_paragraph(style='Heading 3')
     format_paragraph(p, space_before=6, space_after=2, line_spacing=1.5, align=WD_ALIGN_PARAGRAPH.LEFT, first_indent=0.0, left_indent=0.0)
     p.paragraph_format.keep_with_next = True
-    set_run_font(p.add_run(text), "Times New Roman", 13, bold=True, italic=False, color_rgb=COLOR_BLACK)
+    
+    pPr = p._p.get_or_add_pPr()
+    outline = parse_xml(f'<w:outlineLvl {nsdecls("w")} w:val="2"/>')
+    pPr.append(outline)
+    
+    bm_start = parse_xml(f'<w:bookmarkStart {nsdecls("w")} w:id="{bm_id}" w:name="{bm_name}"/>')
+    bm_end = parse_xml(f'<w:bookmarkEnd {nsdecls("w")} w:id="{bm_id}"/>')
+    p._p.append(bm_start)
+    run = p.add_run(text)
+    set_run_font(run, "Times New Roman", 13, bold=True, italic=False, color_rgb=COLOR_BLACK)
+    p._p.append(bm_end)
     return p
 
 def add_heading_4(doc, text):
-    p = doc.add_paragraph()
+    global _bookmark_id_counter
+    _bookmark_id_counter += 1
+    bm_id = str(_bookmark_id_counter)
+    bm_name = get_heading_anchor(text)
+    
+    p = doc.add_paragraph(style='Heading 4')
     format_paragraph(p, space_before=4, space_after=2, line_spacing=1.5, align=WD_ALIGN_PARAGRAPH.LEFT, first_indent=0.0, left_indent=0.0)
     p.paragraph_format.keep_with_next = True
-    set_run_font(p.add_run(text), "Times New Roman", 13, bold=True, italic=True, color_rgb=COLOR_BLACK)
+    
+    pPr = p._p.get_or_add_pPr()
+    outline = parse_xml(f'<w:outlineLvl {nsdecls("w")} w:val="3"/>')
+    pPr.append(outline)
+    
+    bm_start = parse_xml(f'<w:bookmarkStart {nsdecls("w")} w:id="{bm_id}" w:name="{bm_name}"/>')
+    bm_end = parse_xml(f'<w:bookmarkEnd {nsdecls("w")} w:id="{bm_id}"/>')
+    p._p.append(bm_start)
+    run = p.add_run(text)
+    set_run_font(run, "Times New Roman", 13, bold=True, italic=True, color_rgb=COLOR_BLACK)
+    p._p.append(bm_end)
     return p
 
 # =============================================================================
@@ -146,7 +242,22 @@ def add_heading_4(doc, text):
 # =============================================================================
 
 def add_figure_caption(doc, fig_id, fig_title):
+    global _bookmark_id_counter
+    _bookmark_id_counter += 1
+    bm_id = str(_bookmark_id_counter)
+    bm_name = f"bm_fig_{str(fig_id).replace('.', '_')}"
+    
     p_cap = doc.add_paragraph()
+    format_paragraph(p_cap, space_before=0, space_after=4, line_spacing=1.5, align=WD_ALIGN_PARAGRAPH.CENTER, first_indent=0.0)
+    p_cap.paragraph_format.keep_with_next = False
+    
+    bm_start = parse_xml(f'<w:bookmarkStart {nsdecls("w")} w:id="{bm_id}" w:name="{bm_name}"/>')
+    bm_end = parse_xml(f'<w:bookmarkEnd {nsdecls("w")} w:id="{bm_id}"/>')
+    p_cap._p.append(bm_start)
+    r_cap = p_cap.add_run(f"Hình {fig_id}. {fig_title}")
+    set_run_font(r_cap, "Times New Roman", 13, bold=False, italic=True, color_rgb=COLOR_BLACK)
+    p_cap._p.append(bm_end)
+    return p_cap
     format_paragraph(p_cap, space_before=0, space_after=4, line_spacing=1.5, align=WD_ALIGN_PARAGRAPH.CENTER, first_indent=0.0)
     p_cap.paragraph_format.keep_with_next = False
     r_cap = p_cap.add_run(f"Hình {fig_id}. {fig_title}")
@@ -369,11 +480,22 @@ def add_custom_table(doc, headers, rows, col_widths, alignments, table_caption=N
     return tbl
 
 def add_table_caption(doc, tbl_id, tbl_title):
+    global _bookmark_id_counter
+    _bookmark_id_counter += 1
+    bm_id = str(_bookmark_id_counter)
+    bm_name = f"bm_tbl_{str(tbl_id).replace('.', '_')}"
+    
     p_cap = doc.add_paragraph()
     format_paragraph(p_cap, space_before=4, space_after=2, line_spacing=1.5, align=WD_ALIGN_PARAGRAPH.CENTER, first_indent=0.0)
     p_cap.paragraph_format.keep_with_next = True
+    
+    bm_start = parse_xml(f'<w:bookmarkStart {nsdecls("w")} w:id="{bm_id}" w:name="{bm_name}"/>')
+    bm_end = parse_xml(f'<w:bookmarkEnd {nsdecls("w")} w:id="{bm_id}"/>')
+    p_cap._p.append(bm_start)
     r_cap = p_cap.add_run(f"Bảng {tbl_id}. {tbl_title}")
     set_run_font(r_cap, "Times New Roman", 13, bold=False, italic=True, color_rgb=COLOR_BLACK)
+    p_cap._p.append(bm_end)
+    return p_cap
 
 
 
@@ -589,7 +711,7 @@ def add_full_width_dotted_line(doc, count=1, space_before=1.0, space_after=1.0, 
         set_run_font(run, "Times New Roman", font_size, bold=False, color_rgb=(100, 116, 139))
 
 def add_toc_line(doc, title, page_no, level=1):
-    """Them dong muc luc voi tab leader cham cham (. . . . . . .) chuan dep."""
+    """Them dong muc luc voi tab leader cham cham (. . . . . . .) va hyperlink dieu huong."""
     p = doc.add_paragraph()
     p.paragraph_format.space_before = Pt(2)
     p.paragraph_format.space_after = Pt(2)
@@ -602,13 +724,16 @@ def add_toc_line(doc, title, page_no, level=1):
     # Thut le theo cap
     if level == 1:
         p.paragraph_format.left_indent = Cm(0.0)
-        bold = True
+        bold_val = "1"
+        font_sz = "26" # 13pt
     elif level == 2:
         p.paragraph_format.left_indent = Cm(0.7)
-        bold = False
+        bold_val = "0"
+        font_sz = "24" # 12pt
     else:
         p.paragraph_format.left_indent = Cm(1.4)
-        bold = False
+        bold_val = "0"
+        font_sz = "24" # 12pt
         
     # Thiet lap tab stop sat mep phai 15.5cm voi dot leader
     pPr = p._p.get_or_add_pPr()
@@ -620,14 +745,43 @@ def add_toc_line(doc, title, page_no, level=1):
     tabs.append(tab)
     pPr.append(tabs)
     
-    r_title = p.add_run(title)
-    set_run_font(r_title, "Times New Roman", 12 if level > 1 else 13, bold=bold)
+    anchor = get_heading_anchor(title)
     
-    r_tab = p.add_run("\t")
-    set_run_font(r_tab, "Times New Roman", 12, bold=False)
-    
-    r_page = p.add_run(str(page_no))
-    set_run_font(r_page, "Times New Roman", 12, bold=bold)
+    # Chen hyperlink de nguoi dung co the click / Ctrl+Click vao muc luc de nhay ngay den trang do
+    hl_xml = f'''
+    <w:hyperlink {nsdecls("w")} w:anchor="{anchor}" w:history="1">
+        <w:r>
+            <w:rPr>
+                <w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:cs="Times New Roman"/>
+                <w:b w:val="{bold_val}"/>
+                <w:sz w:val="{font_sz}"/>
+                <w:color w:val="000000"/>
+                <w:u w:val="none"/>
+            </w:rPr>
+            <w:t xml:space="preserve">{xml_escape(title)}</w:t>
+        </w:r>
+        <w:r>
+            <w:rPr>
+                <w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:cs="Times New Roman"/>
+                <w:sz w:val="24"/>
+                <w:color w:val="000000"/>
+                <w:u w:val="none"/>
+            </w:rPr>
+            <w:tab/>
+        </w:r>
+        <w:r>
+            <w:rPr>
+                <w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:cs="Times New Roman"/>
+                <w:b w:val="{bold_val}"/>
+                <w:sz w:val="24"/>
+                <w:color w:val="000000"/>
+                <w:u w:val="none"/>
+            </w:rPr>
+            <w:t>{page_no}</w:t>
+        </w:r>
+    </w:hyperlink>
+    '''
+    p._p.append(parse_xml(hl_xml))
 
 def add_reference_entry(doc, ref_id, citation_text):
     """Them muc Tai lieu tham khao theo chuan Hanging Indent 1.0cm, can trai de tranh gian khoang trang."""
@@ -671,6 +825,17 @@ def build_full_document():
     style_normal.font.name = 'Times New Roman'
     style_normal.font.size = Pt(13)
     style_normal.font.color.rgb = RGBColor(*COLOR_BLACK)
+
+    # Dinh dang cac style Heading de dong bo Times New Roman 13pt va Navigation Pane
+    for lvl in range(1, 5):
+        s = doc.styles[f'Heading {lvl}']
+        s.font.name = 'Times New Roman'
+        s.font.size = Pt(13)
+        s.font.bold = True
+        s.font.italic = (lvl == 4)
+        s.font.color.rgb = RGBColor(*COLOR_BLACK)
+        s.paragraph_format.keep_with_next = True
+        s.paragraph_format.line_spacing = 1.5
 
     # 1. SECTION 1: PHAN DAU (BIA, NHAN XET, MUC LUC, DANH MUC HINH/BANG/VIET TAT)
     section_front = doc.sections[0]
