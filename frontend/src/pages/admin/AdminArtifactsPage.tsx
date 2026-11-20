@@ -1026,7 +1026,13 @@ export const AdminArtifactsPage: React.FC = () => {
     setVoiceName(trans?.name || artifact.name || '');
     setVoicePeriod(trans?.period || artifact.period || '');
     setVoiceScript(trans?.narrationScript || trans?.description || artifact.description || '');
-    const viAudio = trans?.audioNarrationUrl || artifact.audioNarrationUrl || null;
+    let viAudio = trans?.audioNarrationUrl || '';
+    if (!viAudio && artifact.audioNarrationUrl) {
+      const lower = artifact.audioNarrationUrl.toLowerCase();
+      if (!lower.includes('_en_') && !lower.includes('_fr_') && !lower.includes('_zh_')) {
+        viAudio = artifact.audioNarrationUrl;
+      }
+    }
     setPreviewAudioUrl(viAudio ? (viAudio.startsWith('http') ? viAudio : `${API_ROOT}${viAudio}`) : null);
 
     setIsVoiceModalOpen(true);
@@ -1078,7 +1084,13 @@ export const AdminArtifactsPage: React.FC = () => {
       const vName = targetData?.name ?? activeVoiceArtifact.name ?? '';
       const vPeriod = targetData?.period ?? activeVoiceArtifact.period ?? '';
       const vScript = targetData?.narrationScript ?? targetData?.description ?? activeVoiceArtifact.description ?? '';
-      const vAudio = targetData?.audioNarrationUrl ?? activeVoiceArtifact.audioNarrationUrl ?? null;
+      let vAudio = targetData?.audioNarrationUrl || '';
+      if (!vAudio && activeVoiceArtifact.audioNarrationUrl) {
+        const lower = activeVoiceArtifact.audioNarrationUrl.toLowerCase();
+        if (!lower.includes('_en_') && !lower.includes('_fr_') && !lower.includes('_zh_')) {
+          vAudio = activeVoiceArtifact.audioNarrationUrl;
+        }
+      }
 
       setVoiceName(vName);
       setVoicePeriod(vPeriod);
@@ -1424,7 +1436,8 @@ export const AdminArtifactsPage: React.FC = () => {
         translations: mergedTranslations
       };
 
-      if ((selectedVoiceLang === 'vi' || !activeVoiceArtifact.audioNarrationUrl) && currentAudio) {
+      // Chỉ cập nhật audioNarrationUrl cấp gốc NẾU là tiếng Việt ('vi')
+      if (selectedVoiceLang === 'vi' && currentAudio) {
         patchPayload.audioNarrationUrl = currentAudio;
       }
 

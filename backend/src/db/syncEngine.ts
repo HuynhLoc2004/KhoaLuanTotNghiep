@@ -1183,7 +1183,15 @@ export async function runStartupDataSync() {
           }
         }
 
-        const effectiveAudio = mongoDoc?.audioNarrationUrl || row.audio_narration_url || '';
+        let effectiveAudio = mongoDoc?.audioNarrationUrl || row.audio_narration_url || '';
+        // Tự động phân tách an toàn: Nếu audio chứa mã ngoại ngữ (_en_), di chuyển vào đúng translations.en và không gán cho tiếng Việt
+        if (effectiveAudio && effectiveAudio.toLowerCase().includes('_en_')) {
+          if (!mergedTrans.en) mergedTrans.en = {};
+          if (!mergedTrans.en.audioNarrationUrl) {
+            mergedTrans.en.audioNarrationUrl = effectiveAudio;
+          }
+          effectiveAudio = mergedTrans.vi?.audioNarrationUrl || '';
+        }
 
         await ArtifactModel.updateOne({ $or: [{ id: artId }, { code: row.code }] }, {
           $set: {
@@ -2208,6 +2216,16 @@ export async function enrichLyArtifactsData() {
 
         const viTrans = currentTrans.vi || {};
         const enTrans = currentTrans.en || {};
+
+        // Sửa lỗi audio tiếng Anh bị gán nhầm sang tiếng Việt:
+        if (art.audioNarrationUrl && art.audioNarrationUrl.toLowerCase().includes('_en_')) {
+          enTrans.audioNarrationUrl = art.audioNarrationUrl;
+          art.audioNarrationUrl = viTrans.audioNarrationUrl || '';
+        }
+        if (viTrans.audioNarrationUrl && viTrans.audioNarrationUrl.toLowerCase().includes('_en_')) {
+          enTrans.audioNarrationUrl = viTrans.audioNarrationUrl;
+          delete viTrans.audioNarrationUrl;
+        }
 
         art.translations = {
           ...currentTrans,
