@@ -333,10 +333,14 @@ def add_chapter_4(doc, helper):
         width_cm=15.0, height_cm=8.5
     )
     
-    helper.add_figure_placeholder(doc, "4.6",
+    helper.add_comparison_figure_placeholder(
+        doc, "4.6",
         "So sánh trực quan kết quả tái tạo hiện vật 3D thực tế giữa Động cơ Máy chủ nội bộ (Local CPU) và Động cơ Đám mây AI (TRELLIS ZeroGPU)",
-        "Minh chứng thực nghiệm trực quan: (a) Kết quả Local CPU (Tượng abca - 95.404 mặt lưới) bị ép đối xứng trục xoay nên phồng tròn nhẵn thín như bóng nước, mất toàn bộ góc cạnh khối phía sau; (b) Kết quả Đám mây AI TRELLIS (Tượng phật Thời Lý - 25.619 mặt lưới) tái hiện sắc nét nếp áo cà sa, đài sen bát giác và khối 3D đa hướng chân thực chuẩn studio",
-        width_cm=15.2, height_cm=7.5
+        label_a="A. ĐỘNG CƠ LOCAL CPU (MÁY CHỦ NỘI BỘ)",
+        guide_a="[KHUNG CHỜ CHÈN ẢNH THỰC TẾ A]\n(Dán ảnh chụp góc nghiêng 3/4 của Tượng cổ vật tạo từ CPU nội bộ — minh chứng mô hình bị ép đối xứng trục xoay phồng tròn nhẵn thín, mất góc cạnh)",
+        label_b="B. ĐỘNG CƠ CLOUD AI TRELLIS (ZEROGPU A100)",
+        guide_b="[KHUNG CHỜ CHÈN ẢNH THỰC TẾ B]\n(Dán ảnh chụp góc nghiêng 3/4 của Tượng cổ vật tạo từ Cloud AI TRELLIS — minh chứng mô hình 3D đa hướng sắc nét nếp áo cà sa, đài sen bát giác)",
+        col_width_cm=7.5
     )
     
     # Bảng 4.2: So sánh chi tiết 2 động cơ tái tạo 3D

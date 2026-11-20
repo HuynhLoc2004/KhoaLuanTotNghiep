@@ -221,6 +221,57 @@ def add_figure_placeholder(doc, fig_id, fig_title, description, width_cm=15.0, h
     r_cap = p_cap.add_run(f"Hình {fig_id}. {fig_title}")
     set_run_font(r_cap, "Times New Roman", 13, bold=False, italic=True, color_rgb=COLOR_BLACK)
 
+def add_comparison_figure_placeholder(doc, fig_id, fig_title, label_a, guide_a, label_b, guide_b, col_width_cm=7.5, height_cm=6.5):
+    """
+    Tao bang 2 cot doi xung voi vien net dut trang nha de nguoi dung tu chen 2 anh thuc te so sanh (A va B).
+    """
+    p_box = doc.add_paragraph()
+    format_paragraph(p_box, space_before=6, space_after=0, line_spacing=1.0, align=WD_ALIGN_PARAGRAPH.CENTER, first_indent=0.0)
+    
+    tbl = doc.add_table(rows=1, cols=2)
+    tbl.alignment = WD_TABLE_ALIGNMENT.CENTER
+    tbl.autofit = False
+    
+    row = tbl.rows[0]
+    make_row_cant_split(row)
+    
+    items = [
+        (row.cells[0], label_a, guide_a),
+        (row.cells[1], label_b, guide_b)
+    ]
+    
+    for cell, label, guide in items:
+        cell.width = Cm(col_width_cm)
+        set_cell_background(cell, "F8FAFC")
+        set_cell_margins(cell, top=260, bottom=260, left=180, right=180)
+        set_cell_vertical_alignment(cell, "center")
+        
+        tcPr = cell._tc.get_or_add_tcPr()
+        borders = parse_xml(f'''
+            <w:tcBorders {nsdecls("w")}>
+                <w:top w:val="dashed" w:sz="6" w:space="0" w:color="94A3B8"/>
+                <w:bottom w:val="dashed" w:sz="6" w:space="0" w:color="94A3B8"/>
+                <w:left w:val="dashed" w:sz="6" w:space="0" w:color="94A3B8"/>
+                <w:right w:val="dashed" w:sz="6" w:space="0" w:color="94A3B8"/>
+            </w:tcBorders>
+        ''')
+        tcPr.append(borders)
+        
+        cp = cell.paragraphs[0]
+        format_paragraph(cp, space_before=6, space_after=4, line_spacing=1.15, align=WD_ALIGN_PARAGRAPH.CENTER, first_indent=0.0)
+        
+        r1 = cp.add_run(f"{label}\n")
+        set_run_font(r1, "Times New Roman", 10.5, bold=True, color_rgb=(30, 58, 138))
+        
+        r2 = cp.add_run(f"{guide}")
+        set_run_font(r2, "Times New Roman", 9.5, italic=True, color_rgb=COLOR_GRAY_TEXT)
+        
+    p_cap = doc.add_paragraph()
+    format_paragraph(p_cap, space_before=0, space_after=4, line_spacing=1.5, align=WD_ALIGN_PARAGRAPH.CENTER, first_indent=0.0)
+    p_cap.paragraph_format.keep_with_next = False
+    r_cap = p_cap.add_run(f"Hình {fig_id}. {fig_title}")
+    set_run_font(r_cap, "Times New Roman", 13, bold=False, italic=True, color_rgb=COLOR_BLACK)
+
 def add_equation(doc, math_expr, eq_no):
     """
     Dinh dang cong thuc toan hoc tren bang 1 hang 2 cot khong vien.
@@ -644,6 +695,7 @@ def build_full_document():
         'add_figure_caption': add_figure_caption,
         'add_table_caption': add_table_caption,
         'add_figure_placeholder': add_figure_placeholder,
+        'add_comparison_figure_placeholder': add_comparison_figure_placeholder,
         'add_equation': add_equation,
         'add_custom_table': add_custom_table,
         'add_use_case_table': add_use_case_table,

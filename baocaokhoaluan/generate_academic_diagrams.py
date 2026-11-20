@@ -55,25 +55,18 @@ def draw_actor(ax, x, y, label, sub='', scale=1.0, color=C_FILL_ACTOR):
         ax.text(x, y - 0.44 * scale, sub, ha='center', va='top', fontsize=7.2, color=C_MUTED_TEXT, zorder=7)
 
 def draw_server(ax, x, y, w=1.3, h=1.4, title='', sub=''):
-    """Ve bieu tuong Server Rack co header slate sam va den LED trang nha."""
+    """Ve bieu tuong Server Node toi gian thanh lich, header slate sam, khong de slot trong."""
     rect = patches.FancyBboxPatch((x - w/2, y - h/2), w, h, boxstyle='round,pad=0.02,rounding_size=0.08',
-                                  facecolor='#F1F5F9', edgecolor=C_LINE_DARK, lw=1.5, zorder=4)
+                                  facecolor='#F8FAFC', edgecolor=C_LINE_DARK, lw=1.5, zorder=4)
     ax.add_patch(rect)
     # Header bar
     s_hdr = patches.Rectangle((x - w/2, y + h/2 - 0.26), w, 0.26, facecolor=C_FILL_SERVER, edgecolor=C_LINE_DARK, lw=1.0, zorder=5)
     ax.add_patch(s_hdr)
-    ax.text(x, y + h/2 - 0.13, 'SERVER RACK', ha='center', va='center', fontsize=6.8, fontweight='bold', color='white', zorder=6)
+    ax.text(x, y + h/2 - 0.13, 'SERVER NODE', ha='center', va='center', fontsize=6.8, fontweight='bold', color='white', zorder=6)
 
-    # Slots
-    slot_w = w * 0.8
-    for dy in [0.08, -0.22, -0.52]:
-        s = patches.Rectangle((x - slot_w/2, y + dy), slot_w, 0.20, facecolor='#E2E8F0', edgecolor='#64748B', lw=0.9, zorder=5)
-        ax.add_patch(s)
-        led = patches.Circle((x + slot_w/2 - 0.08, y + dy + 0.10), 0.03, facecolor='#15803D', edgecolor='none', zorder=6)
-        ax.add_patch(led)
-    ax.text(x, y - h/2 - 0.14, title, ha='center', va='top', fontsize=8.2, fontweight='bold', color=C_DARK_TEXT, zorder=7)
+    ax.text(x, y - 0.02, title, ha='center', va='center', fontsize=8.0, fontweight='bold', color=C_DARK_TEXT, zorder=7)
     if sub:
-        ax.text(x, y - h/2 - 0.34, sub, ha='center', va='top', fontsize=7.2, color=C_MUTED_TEXT, zorder=7)
+        ax.text(x, y - 0.38, sub, ha='center', va='top', fontsize=7.0, color=C_MUTED_TEXT, zorder=7)
 
 def draw_database(ax, x, y, w=1.0, h=1.1, title='', sub='', color=C_FILL_DB):
     """Ve bieu tuong CSDL dang hinh tru dia chong to mau burgundy sam."""
@@ -555,73 +548,85 @@ def gen_fig_2_5():
     plt.close(fig)
 
 def gen_fig_2_6():
-    """Hinh 2.6: Nguyen ly anh xa Texture Panorama len mat cau 3D va Hotspot trong Three.js"""
-    fig, ax = plt.subplots(figsize=(10.5, 3.8), dpi=300)
-    ax.set_xlim(0, 10.5); ax.set_ylim(0, 3.8); ax.axis('off')
+    """Hinh 2.6: Nguyen ly anh xa Texture Panorama len mat cau 3D va Hotspot trong Three.js (Pipeline toi gian)"""
+    fig, ax = plt.subplots(figsize=(10.5, 4.0), dpi=300)
+    ax.set_xlim(0, 10.5); ax.set_ylim(0, 4.0); ax.axis('off')
 
-    cx, cy, R = 3.2, 1.9, 1.45
-    # Mat cau to mau slate sam tram (#1E293B) tao cam giac khong gian 3D Three.js
+    cx, cy, R = 2.7, 2.0, 1.55
+    # Mat cau slate sam tram (#1E293B)
     sphere = patches.Circle((cx, cy), R, facecolor='#1E293B', edgecolor=C_LINE_DARK, lw=1.8, zorder=2)
     ax.add_patch(sphere)
 
-    for y_off in [-0.8, -0.4, 0.0, 0.4, 0.8]:
+    for y_off in [-0.85, -0.45, 0.0, 0.45, 0.85]:
         r_lat = np.sqrt(max(0.05, R**2 - y_off**2))
         ls = '-' if y_off == 0.0 else '--'
         lw = 1.3 if y_off == 0.0 else 0.8
-        col = '#60A5FA' if y_off == 0.0 else '#64748B'
+        col = '#38BDF8' if y_off == 0.0 else '#64748B'
         arc = patches.Arc((cx, cy + y_off), 2*r_lat, 0.45, angle=0, theta1=0, theta2=360,
                           color=col, lw=lw, ls=ls, zorder=3)
         ax.add_patch(arc)
 
-    for w_mer in [0.6, 1.4, 2.2]:
+    for w_mer in [0.7, 1.5, 2.3]:
         arc = patches.Arc((cx, cy), w_mer, 2*R, angle=0, theta1=0, theta2=360,
                           color='#475569', lw=0.8, ls=':', zorder=3)
         ax.add_patch(arc)
 
+    # Camera tai goc toa do
     ax.plot(cx, cy, 'o', color='#F59E0B', markersize=6.5, zorder=6)
-    ax.annotate('Camera O(0,0,0)\n(PerspectiveCamera)', xy=(cx, cy), xytext=(cx - 1.8, cy + 0.9),
-                arrowprops=dict(arrowstyle='->', color='#334155', lw=1.2),
+    ax.annotate('Camera O(0,0,0)\nPerspectiveCamera', xy=(cx, cy), xytext=(cx - 1.5, cy + 1.1),
+                arrowprops=dict(arrowstyle='->', color='#94A3B8', lw=1.2),
                 fontsize=7.8, fontweight='bold', color=C_DARK_TEXT, ha='right', va='center',
                 bbox=dict(boxstyle='round,pad=0.2', facecolor='#F8FAFC', edgecolor='#CBD5E1', lw=0.8), zorder=7)
 
-    cone_target_x, cone_target_y = cx + R*0.75, cy + R*0.55
-    cone_pts = [[cx, cy], [cx + 1.45, cy + 0.25], [cx + 1.15, cy + 1.25]]
-    cone = patches.Polygon(cone_pts, facecolor='#FEF3C7', edgecolor='#D97706', lw=1.0, alpha=0.45, zorder=4)
+    # Vung nhin va Hotspot
+    cone_target_x, cone_target_y = cx + R*0.72, cy + R*0.58
+    cone_pts = [[cx, cy], [cx + 1.45, cy + 0.35], [cx + 1.15, cy + 1.35]]
+    cone = patches.Polygon(cone_pts, facecolor='#FEF3C7', edgecolor='#D97706', lw=1.0, alpha=0.35, zorder=4)
     ax.add_patch(cone)
 
     ax.annotate('', xy=(cone_target_x, cone_target_y), xytext=(cx, cy),
                 arrowprops=dict(arrowstyle='->', color='#DC2626', lw=1.6), zorder=5)
 
     ax.plot(cone_target_x, cone_target_y, 'o', color='#DC2626', markersize=7, zorder=7)
-    hotspot_ring = patches.Circle((cone_target_x, cone_target_y), 0.18, facecolor='none', edgecolor='#DC2626', lw=1.4, ls='--', zorder=7)
+    hotspot_ring = patches.Circle((cone_target_x, cone_target_y), 0.16, facecolor='none', edgecolor='#DC2626', lw=1.4, ls='--', zorder=7)
     ax.add_patch(hotspot_ring)
 
-    ax.annotate('Điểm Hotspot Cổ vật\nTọa độ 3D (X_h, Y_h, Z_h)', xy=(cone_target_x, cone_target_y), xytext=(cx + 1.7, cy + 1.4),
+    ax.annotate('Hotspot Cổ vật\n$P_h(X_h, Y_h, Z_h)$', xy=(cone_target_x, cone_target_y), xytext=(cx + 1.6, cy + 1.3),
                 arrowprops=dict(arrowstyle='->', color='#DC2626', lw=1.2),
                 fontsize=7.8, fontweight='bold', color=C_DARK_TEXT, ha='left', va='center',
-                bbox=dict(boxstyle='round,pad=0.2', facecolor='#F8FAFC', edgecolor='#CBD5E1', lw=0.8), zorder=8)
+                bbox=dict(boxstyle='round,pad=0.2', facecolor='#FFFFFF', edgecolor='#CBD5E1', lw=0.8), zorder=8)
 
-    ax.annotate('', xy=(cx + 0.8, cy - 1.0), xytext=(cx - 0.8, cy - 1.0),
+    ax.annotate('', xy=(cx + 0.9, cy - 1.1), xytext=(cx - 0.9, cy - 1.1),
                 arrowprops=dict(arrowstyle='<->', color='#10B981', lw=1.5, connectionstyle='arc3,rad=-0.25'), zorder=5)
-    ax.text(cx, cy - 1.38, 'Góc xoay người dùng (Yaw θ & Pitch φ) qua OrbitControls',
+    ax.text(cx, cy - 1.5, 'Điều khiển góc xoay (Yaw θ & Pitch φ) qua OrbitControls',
             fontsize=7.5, ha='center', color=C_DARK_TEXT,
             bbox=dict(boxstyle='round,pad=0.15', facecolor='#FFFFFF', edgecolor='none'), zorder=6)
 
-    cards = [
-        ('MẶT CẦU INVERTED THREE.JS',
-         'MeshSphereGeometry(R=500, 60, 40)\ngeometry.scale(-1, 1, 1) lật mặt pháp tuyến vào trong', 2.9, '#EFF6FF', '#1E3A8A'),
-        ('QUẢN LÝ VÀ GIẢI PHÓNG VRAM',
-         'Nạp ảnh Equirectangular 8K định dạng WebP\nGọi texture.dispose() khi chuyển phòng tránh rò rỉ RAM', 1.8, '#F0FDF4', '#166534'),
-        ('TƯƠNG TÁC TIA NHÌN RAYCASTING',
-         'Raycaster tính giao điểm chuột với mặt cầu 3D\nKích hoạt Pop-up xem chi tiết cổ vật và thuyết minh', 0.7, '#FFF7ED', '#C2410C')
+    # Right side: WebGL Pipeline (Clean minimal technical workflow)
+    ax.text(7.6, 3.8, 'QUY TRÌNH KẾT XUẤT ĐỒ HỌA THREE.JS', fontsize=8.2, fontweight='bold', ha='center', color='#0F172A')
+
+    steps = [
+        ('1. KHỞI TẠO LƯỚI CẦU NGHỊCH ĐẢO',
+         '• MeshSphereGeometry(R=500, wSeg=60, hSeg=40)\n• geometry.scale(-1, 1, 1) lật mặt pháp tuyến vào trong',
+         3.05, '#F8FAFC', '#1E3A8A'),
+        ('2. NẠP TEXTURE VÀ QUẢN LÝ BỘ NHỚ',
+         '• TextureLoader nạp ảnh toàn cảnh 8K (WebP)\n• texture.dispose() khi đổi phòng triệt tiêu rò rỉ VRAM',
+         1.95, '#F8FAFC', '#166534'),
+        ('3. BẮT TƯƠNG TÁC TIA NHÌN (RAYCASTING)',
+         '• Raycaster tính giao điểm tọa độ chuột với mặt cầu\n• Kích hoạt Pop-up cổ vật 3D & giọng đọc Voice AI',
+         0.85, '#F8FAFC', '#C2410C')
     ]
 
-    for title, sub, y_pos, bg, border in cards:
-        box = patches.FancyBboxPatch((6.3, y_pos - 0.45), 3.9, 0.9, boxstyle='round,pad=0.03,rounding_size=0.06',
+    for title, desc, y_p, bg, border in steps:
+        box = patches.FancyBboxPatch((5.2, y_p - 0.42), 4.8, 0.84, boxstyle='round,pad=0.03,rounding_size=0.06',
                                     facecolor=bg, edgecolor=border, lw=1.3, zorder=4)
         ax.add_patch(box)
-        ax.text(8.25, y_pos + 0.18, title, ha='center', va='center', fontsize=8.2, fontweight='bold', color=C_DARK_TEXT, zorder=5)
-        ax.text(8.25, y_pos - 0.15, sub, ha='center', va='center', fontsize=7.2, color=C_MUTED_TEXT, linespacing=1.25, zorder=5)
+        ax.text(5.4, y_p + 0.22, title, fontsize=7.8, fontweight='bold', color=border, zorder=5)
+        ax.text(5.4, y_p - 0.18, desc, fontsize=7.2, color='#334155', linespacing=1.2, zorder=5)
+
+    # Arrows between steps
+    ax.annotate('', xy=(7.6, 2.5), xytext=(7.6, 2.63), arrowprops=dict(arrowstyle='->', color='#64748B', lw=1.3))
+    ax.annotate('', xy=(7.6, 1.4), xytext=(7.6, 1.53), arrowprops=dict(arrowstyle='->', color='#64748B', lw=1.3))
 
     fig.savefig(os.path.join(DIAGRAMS_DIR, "hinh_2_6_texture_mapping.png"), bbox_inches='tight')
     plt.close(fig)
@@ -770,19 +775,67 @@ def gen_fig_2_9():
     plt.close(fig)
 
 def gen_fig_2_10():
-    """Hinh 2.10: JWT Auth Flow (Mau sam tram nha nhan, text den tuyen)"""
-    fig, ax = plt.subplots(figsize=(10.5, 3.4), dpi=300)
-    ax.set_xlim(0, 10.5); ax.set_ylim(0, 3.4); ax.axis('off')
+    """Hinh 2.10: Quy trinh xac thuc JWT (UML Sequence Diagram chuan chuyen nghiep)"""
+    fig, ax = plt.subplots(figsize=(10.5, 4.4), dpi=300)
+    ax.set_xlim(0, 10.5); ax.set_ylim(0, 4.4); ax.axis('off')
     
-    draw_actor(ax, 1.2, 1.7, "Người dùng / Admin", "Client Browser", color=C_FILL_ACTOR)
-    draw_server(ax, 4.8, 1.7, w=1.4, h=1.4, title="API Gateway / Auth", sub="Node.js JWT Verify")
-    draw_database(ax, 8.8, 1.7, w=1.1, h=1.1, title="User Database", sub="Bcrypt Hash pass", color=C_FILL_DB)
+    # 3 participants
+    participants = [
+        ('Trình duyệt Client\n(User / Admin)', 1.8),
+        ('API Gateway / Auth\n(Node.js Express)', 5.2),
+        ('Cơ sở dữ liệu\n(PostgreSQL 16)', 8.6)
+    ]
     
-    draw_step_arrow(ax, 2.0, 2.1, 4.0, 2.1, step="1", label="POST /login (Credentials)", label_offset=0.25)
-    draw_step_arrow(ax, 5.6, 2.1, 8.1, 2.1, step="2", label="Tra cứu User & Hash", label_offset=0.25)
-    draw_step_arrow(ax, 8.1, 1.3, 5.6, 1.3, step="3", label="Xác thực thành công", label_offset=0.25)
-    draw_step_arrow(ax, 4.0, 1.3, 2.2, 1.3, step="4", label="Trả về JWT Access Token (24h)", label_offset=0.25)
+    for title, x in participants:
+        box = patches.FancyBboxPatch((x - 1.2, 3.7), 2.4, 0.55, boxstyle='round,pad=0.03,rounding_size=0.06',
+                                    facecolor='#F8FAFC', edgecolor=C_LINE_DARK, lw=1.4, zorder=4)
+        ax.add_patch(box)
+        ax.text(x, 3.97, title, ha='center', va='center', fontsize=7.8, fontweight='bold', color=C_DARK_TEXT, zorder=5)
+        
+        # Lifeline
+        ax.plot([x, x], [0.35, 3.7], color='#94A3B8', ls='--', lw=1.1, zorder=2)
+        
+    # Activation bars
+    def add_activation(x, y_start, y_end):
+        w = 0.16
+        bar = patches.Rectangle((x - w/2, y_end), w, y_start - y_end, facecolor='#E2E8F0', edgecolor=C_LINE_DARK, lw=1.0, zorder=3)
+        ax.add_patch(bar)
+        
+    add_activation(1.8, 3.4, 0.45)
+    add_activation(5.2, 3.2, 1.8)
+    add_activation(5.2, 1.3, 0.5)
+    add_activation(8.6, 2.8, 2.3)
     
+    # Messages
+    msgs = [
+        (1.8, 5.2, 3.2, '1. POST /api/auth/login (email, password)', False),
+        (5.2, 8.6, 2.8, '2. SELECT * FROM users WHERE email = ?', False),
+        (8.6, 5.2, 2.4, '3. Trả về bản ghi user & mật khẩu băm Bcrypt', True),
+        (5.2, 1.8, 1.8, '4. Trả về JWT Access Token (24h) kèm HttpOnly Cookie', True),
+        (1.8, 5.2, 1.3, '5. GET /api/rooms (Header: Authorization Bearer <token>)', False),
+        (5.2, 1.8, 0.6, '6. Phản hồi dữ liệu 360° & cổ vật 3D (HTTP 200 OK)', True)
+    ]
+    
+    for x1, x2, y, label, is_ret in msgs:
+        ls = '--' if is_ret else '-'
+        col = '#1E3A8A' if not is_ret else '#166534'
+        ax.annotate('', xy=(x2, y), xytext=(x1, y),
+                    arrowprops=dict(arrowstyle='->', color=col, lw=1.3, ls=ls), zorder=5)
+        mx = (x1 + x2) / 2
+        ax.text(mx, y + 0.12, label, ha='center', va='bottom', fontsize=7.2, fontweight='bold', color='#1E293B',
+                bbox=dict(boxstyle='round,pad=0.15', facecolor='#FFFFFF', edgecolor='#CBD5E1', lw=0.6, alpha=0.98), zorder=6)
+                
+    # Self loops for Gateway
+    # Self loop 1: bcrypt & sign
+    ax.plot([5.28, 5.75, 5.75, 5.28], [2.15, 2.15, 1.95, 1.95], color='#475569', lw=1.0, zorder=5)
+    ax.annotate('', xy=(5.28, 1.95), xytext=(5.38, 1.95), arrowprops=dict(arrowstyle='->', color='#475569', lw=1.0))
+    ax.text(5.82, 2.05, 'bcrypt.compare() &\njwt.sign(HMAC-SHA256)', ha='left', va='center', fontsize=6.8, color='#475569')
+    
+    # Self loop 2: verify
+    ax.plot([5.28, 5.75, 5.75, 5.28], [1.05, 1.05, 0.85, 0.85], color='#475569', lw=1.0, zorder=5)
+    ax.annotate('', xy=(5.28, 0.85), xytext=(5.38, 0.85), arrowprops=dict(arrowstyle='->', color='#475569', lw=1.0))
+    ax.text(5.82, 0.95, 'Middleware jwt.verify() &\ngiải mã claims', ha='left', va='center', fontsize=6.8, color='#475569')
+
     fig.savefig(os.path.join(DIAGRAMS_DIR, "hinh_2_10_jwt_auth.png"), bbox_inches='tight')
     plt.close(fig)
 
@@ -1022,26 +1075,6 @@ def gen_fig_4_5():
     fig.savefig(os.path.join(DIAGRAMS_DIR, "hinh_4_5_artifact_2engines.png"), bbox_inches='tight')
     plt.close(fig)
 
-def gen_fig_4_6():
-    """Hinh 4.6: Anh so sanh thuc te giua Local CPU va TRELLIS AI tu upload cua user"""
-    p2 = r"C:/Users/HUYNH TAN LOC/.gemini/antigravity/brain/c9a48d8a-80fb-42de-8766-be88653eace8/.user_uploaded/media_1795104558258_b9b7daa7.jpg"
-    p3 = r"C:/Users/HUYNH TAN LOC/.gemini/antigravity/brain/c9a48d8a-80fb-42de-8766-be88653eace8/.user_uploaded/media_1795104579468_1b0a2492.png"
-    if not (os.path.exists(p2) and os.path.exists(p3)):
-        return
-    import matplotlib.image as mpimg
-    img2 = mpimg.imread(p2)
-    img3 = mpimg.imread(p3)
-    
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10.5, 4.5), dpi=300)
-    ax1.imshow(img2); ax1.axis('off')
-    ax1.set_title("A. ĐỘNG CƠ LOCAL CPU (MÁY CHỦ NỘI BỘ)\nLưới phồng đối xứng trục, mất góc cạnh, 95k poly", fontsize=8.2, fontweight='bold', color=C_DARK_TEXT)
-    ax2.imshow(img3); ax2.axis('off')
-    ax2.set_title("B. ĐỘNG CƠ CLOUD AI TRELLIS (ZEROGPU A100)\nCấu trúc SLAT 3D đa diện sắc nét, chuẩn PBR, 25k poly", fontsize=8.2, fontweight='bold', color=C_DARK_TEXT)
-    
-    plt.tight_layout()
-    fig.savefig(os.path.join(DIAGRAMS_DIR, "hinh_4_6_so_sanh_3d_thuc_te.png"), bbox_inches='tight')
-    plt.close(fig)
-
 def gen_fig_4_7():
     """Hinh 4.7: Dijkstra Route Flow trong Panorama Studio (Mo hinh Do thi Topo 18 phong & Luu do giai thuat chuan)"""
     fig, ax = plt.subplots(figsize=(10.5, 4.2), dpi=300)
@@ -1203,7 +1236,6 @@ def gen_all():
     gen_fig_4_1()
     gen_fig_4_3()
     gen_fig_4_5()
-    gen_fig_4_6()
     gen_fig_4_7()
     gen_fig_4_8()
     print(">>> HOAN THANH TAO 23 SO DO HOC THUAT MAU SAM HOAN HAO!")
