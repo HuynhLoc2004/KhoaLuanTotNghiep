@@ -1287,8 +1287,9 @@ export const AdminSettingsPage: React.FC = () => {
                   width: 32,
                   height: 32,
                   borderRadius: 6,
-                  backgroundColor: maintenance.enabled ? 'rgba(239, 68, 68, 0.12)' : 'rgba(34, 197, 94, 0.12)',
-                  color: maintenance.enabled ? '#EF4444' : '#22C55E',
+                  backgroundColor: maintenance.enabled ? 'rgba(212, 168, 106, 0.15)' : 'rgba(255, 255, 255, 0.05)',
+                  border: '1px solid var(--border-color)',
+                  color: 'var(--accent-gold, #D4A86A)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center'
@@ -1429,10 +1430,9 @@ export const AdminSettingsPage: React.FC = () => {
                   width: 32,
                   height: 32,
                   borderRadius: 6,
-                  backgroundColor: sysInfo?.hostMetrics?.smartAdvisory?.needsUpgrade
-                    ? 'rgba(239, 68, 68, 0.12)'
-                    : 'rgba(34, 197, 94, 0.12)',
-                  color: sysInfo?.hostMetrics?.smartAdvisory?.needsUpgrade ? '#EF4444' : '#22C55E',
+                  backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                  border: '1px solid var(--border-color)',
+                  color: 'var(--accent-gold, #D4A86A)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center'
@@ -1515,14 +1515,38 @@ export const AdminSettingsPage: React.FC = () => {
                 </p>
               </div>
 
-              {/* Hàng chuyển mạch BẬT / TẮT */}
-              <div className="settings-maintenance-toggle-row">
+              {/* Hàng chuyển mạch BẬT / TẮT Bảo Trì Chuẩn Mực */}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '14px 16px',
+                  borderRadius: 'var(--radius-md, 8px)',
+                  backgroundColor: 'var(--bg-subtle)',
+                  border: '1px solid var(--border-color)',
+                  marginBottom: 20
+                }}
+              >
                 <div>
-                  <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text-main)', marginBottom: 2, display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span>{maintenance.enabled ? t('settings.modeOn', 'Chế độ bảo trì: ĐANG BẬT') : t('settings.modeOff', 'Chế độ bảo trì: ĐANG TẮT')}</span>
+                  <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text-main)', marginBottom: 3, display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span>{t('settings.modeLabel', 'Chế độ bảo trì hệ thống')}</span>
+                    <span
+                      style={{
+                        padding: '2px 8px',
+                        borderRadius: 4,
+                        fontSize: 11,
+                        fontWeight: 600,
+                        backgroundColor: maintenance.enabled ? 'rgba(212, 168, 106, 0.18)' : 'rgba(255, 255, 255, 0.05)',
+                        color: maintenance.enabled ? 'var(--accent-gold)' : 'var(--text-muted)',
+                        border: '1px solid ' + (maintenance.enabled ? 'rgba(212, 168, 106, 0.35)' : 'var(--border-color)')
+                      }}
+                    >
+                      {maintenance.enabled ? t('settings.badgeOn', 'ĐANG BẬT BẢO TRÌ') : t('settings.badgeOff', 'ĐANG MỞ CỬA')}
+                    </span>
                     {toggling && (
                       <span style={{ fontSize: 12, color: 'var(--accent-gold)', display: 'inline-flex', alignItems: 'center', gap: 4, fontWeight: 500 }}>
-                        <Loader2 size={13} className="spin" /> Đang cập nhật máy chủ...
+                        <Loader2 size={13} className="spin" /> Đang cập nhật...
                       </span>
                     )}
                   </div>
@@ -1534,16 +1558,6 @@ export const AdminSettingsPage: React.FC = () => {
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <span
-                    style={{
-                      fontSize: 12,
-                      fontWeight: 600,
-                      letterSpacing: 0.5,
-                      color: toggling ? 'var(--accent-gold)' : maintenance.enabled ? 'var(--primary)' : 'var(--text-muted)'
-                    }}
-                  >
-                    {toggling ? 'ĐANG LƯU...' : maintenance.enabled ? t('settings.badgeOn', 'BẬT') : t('settings.badgeOff', 'TẮT')}
-                  </span>
                   <button
                     type="button"
                     onClick={handleToggle}
@@ -1552,10 +1566,10 @@ export const AdminSettingsPage: React.FC = () => {
                     title={maintenance.enabled ? 'Bấm để tắt bảo trì' : 'Bấm để bật bảo trì'}
                     style={{
                       position: 'relative',
-                      width: 52,
-                      height: 28,
-                      borderRadius: 14,
-                      backgroundColor: maintenance.enabled ? 'var(--primary)' : '#332D28',
+                      width: 50,
+                      height: 26,
+                      borderRadius: 13,
+                      backgroundColor: maintenance.enabled ? 'var(--primary)' : 'rgba(255, 255, 255, 0.1)',
                       border: '1px solid ' + (maintenance.enabled ? 'var(--primary)' : 'var(--border-color)'),
                       cursor: saving || toggling ? 'wait' : 'pointer',
                       transition: 'all 0.2s ease',
@@ -1566,13 +1580,13 @@ export const AdminSettingsPage: React.FC = () => {
                     <span
                       style={{
                         position: 'absolute',
-                        top: 3,
-                        left: maintenance.enabled ? 27 : 3,
+                        top: 2,
+                        left: maintenance.enabled ? 26 : 2,
                         width: 20,
                         height: 20,
                         borderRadius: '50%',
                         backgroundColor: '#FFFFFF',
-                        boxShadow: '0 1px 4px rgba(0,0,0,0.3)',
+                        boxShadow: '0 1px 4px rgba(0,0,0,0.35)',
                         transition: 'all 0.2s ease',
                         display: 'flex',
                         alignItems: 'center',
@@ -1587,51 +1601,6 @@ export const AdminSettingsPage: React.FC = () => {
 
               {/* Form nội dung chi tiết */}
               <form onSubmit={handleSave}>
-                {/* Thanh chuyển nhanh trạng thái trong Form */}
-                <div style={{ marginBottom: 18, padding: '12px 14px', borderRadius: 6, backgroundColor: 'var(--bg-subtle)', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
-                  <div>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-main)' }}>
-                      Trạng thái áp dụng: <span style={{ color: maintenance.enabled ? '#EF4444' : '#22C55E' }}>{maintenance.enabled ? 'ĐANG BẬT BẢO TRÌ' : 'ĐANG TẮT (MỞ CỬA)'}</span>
-                    </div>
-                    <div style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>
-                      {maintenance.enabled ? 'Khách tham quan vãng lai sẽ thấy màn hình bảo trì.' : 'Hệ thống đón khách tham quan bình thường.'}
-                    </div>
-                  </div>
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <button
-                      type="button"
-                      onClick={() => setMaintenance({ ...maintenance, enabled: false })}
-                      style={{
-                        padding: '6px 14px',
-                        fontSize: 12,
-                        borderRadius: 4,
-                        border: !maintenance.enabled ? '1px solid #22C55E' : '1px solid var(--border-color)',
-                        backgroundColor: !maintenance.enabled ? 'rgba(34, 197, 94, 0.15)' : 'transparent',
-                        color: !maintenance.enabled ? '#22C55E' : 'var(--text-muted)',
-                        cursor: 'pointer',
-                        fontWeight: !maintenance.enabled ? 600 : 400
-                      }}
-                    >
-                      Mở cửa đón khách
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setMaintenance({ ...maintenance, enabled: true })}
-                      style={{
-                        padding: '6px 14px',
-                        fontSize: 12,
-                        borderRadius: 4,
-                        border: maintenance.enabled ? '1px solid #EF4444' : '1px solid var(--border-color)',
-                        backgroundColor: maintenance.enabled ? 'rgba(239, 68, 68, 0.15)' : 'transparent',
-                        color: maintenance.enabled ? '#EF4444' : 'var(--text-muted)',
-                        cursor: 'pointer',
-                        fontWeight: maintenance.enabled ? 600 : 400
-                      }}
-                    >
-                      Bật chế độ bảo trì
-                    </button>
-                  </div>
-                </div>
 
                 <div style={{ marginBottom: 18 }}>
                   <label
@@ -1783,91 +1752,41 @@ export const AdminSettingsPage: React.FC = () => {
                   />
                 </div>
 
-                <div className="settings-form-actions">
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                    <button
-                      type="submit"
-                      className={`btn ${saveSuccess ? 'btn-success' : 'btn-primary'}`}
-                      disabled={saving || toggling}
-                      style={{
-                        padding: '9px 20px',
-                        fontSize: 13,
-                        fontWeight: 500,
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 6,
-                        backgroundColor: saveSuccess ? '#16A34A' : undefined,
-                        borderColor: saveSuccess ? '#16A34A' : undefined,
-                        transition: 'all 0.25s ease'
-                      }}
-                    >
-                      {saving ? (
-                        <>
-                          <Loader2 size={14} className="spin" />
-                          <span>Đang lưu & áp dụng...</span>
-                        </>
-                      ) : saveSuccess ? (
-                        <>
-                          <CheckCircle2 size={15} />
-                          <span>Đã áp dụng thành công!</span>
-                        </>
-                      ) : (
-                        <>
-                          <Check size={15} />
-                          <span>{maintenance.enabled ? 'Lưu & Giữ Bật Bảo Trì' : t('settings.btnSaveApply', 'Lưu & Áp dụng')}</span>
-                        </>
-                      )}
-                    </button>
-
-                    {/* Nút thao tác nhanh một chạm: Bật hoặc Tắt bảo trì tức thì */}
-                    {!maintenance.enabled ? (
-                      <button
-                        type="button"
-                        onClick={() => handleToggleAndApply(true)}
-                        disabled={saving || toggling}
-                        className="btn"
-                        style={{
-                          padding: '9px 18px',
-                          fontSize: 13,
-                          fontWeight: 600,
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: 6,
-                          backgroundColor: '#DC2626',
-                          borderColor: '#DC2626',
-                          color: '#FFFFFF',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        {toggling ? <Loader2 size={14} className="spin" /> : <AlertTriangle size={15} />}
-                        <span>Bật Bảo Trì Ngay</span>
-                      </button>
+                <div className="settings-form-actions" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 22, paddingTop: 18, borderTop: '1px solid var(--border-color)', flexWrap: 'wrap', gap: 12 }}>
+                  <button
+                    type="submit"
+                    className="btn btn-primary"
+                    disabled={saving || toggling}
+                    style={{
+                      padding: '9px 24px',
+                      fontSize: 13,
+                      fontWeight: 600,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      cursor: saving || toggling ? 'wait' : 'pointer',
+                      borderRadius: 'var(--radius-sm, 6px)'
+                    }}
+                  >
+                    {saving || toggling ? (
+                      <>
+                        <Loader2 size={14} className="spin" />
+                        <span>Đang lưu...</span>
+                      </>
+                    ) : saveSuccess ? (
+                      <>
+                        <CheckCircle2 size={15} />
+                        <span>Đã lưu thành công!</span>
+                      </>
                     ) : (
-                      <button
-                        type="button"
-                        onClick={() => handleToggleAndApply(false)}
-                        disabled={saving || toggling}
-                        className="btn"
-                        style={{
-                          padding: '9px 18px',
-                          fontSize: 13,
-                          fontWeight: 600,
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: 6,
-                          backgroundColor: '#16A34A',
-                          borderColor: '#16A34A',
-                          color: '#FFFFFF',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        {toggling ? <Loader2 size={14} className="spin" /> : <CheckCircle2 size={15} />}
-                        <span>Tắt Bảo Trì & Mở Cửa Đón Khách</span>
-                      </button>
+                      <>
+                        <Check size={15} />
+                        <span>{maintenance.enabled ? 'Lưu & Kích hoạt bảo trì' : t('settings.btnSaveApply', 'Lưu & Áp dụng')}</span>
+                      </>
                     )}
-                  </div>
+                  </button>
 
-                  <span style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>
+                  <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
                     {t('settings.syncVPS', 'Tự động đồng bộ lên VPS & Nginx')}
                   </span>
                 </div>
@@ -2084,8 +2003,9 @@ export const AdminSettingsPage: React.FC = () => {
                   borderRadius: 4,
                   backgroundColor: sysInfo?.hostMetrics?.smartAdvisory?.needsUpgrade
                     ? 'rgba(239, 68, 68, 0.1)'
-                    : 'rgba(34, 197, 94, 0.1)',
-                  color: sysInfo?.hostMetrics?.smartAdvisory?.needsUpgrade ? '#EF4444' : '#22C55E',
+                    : 'rgba(255, 255, 255, 0.04)',
+                  border: '1px solid ' + (sysInfo?.hostMetrics?.smartAdvisory?.needsUpgrade ? 'rgba(239, 68, 68, 0.3)' : 'var(--border-color)'),
+                  color: sysInfo?.hostMetrics?.smartAdvisory?.needsUpgrade ? '#EF4444' : 'var(--text-muted)',
                   fontWeight: 500
                 }}
               >
@@ -2094,7 +2014,7 @@ export const AdminSettingsPage: React.FC = () => {
                     width: 5,
                     height: 5,
                     borderRadius: '50%',
-                    backgroundColor: sysInfo?.hostMetrics?.smartAdvisory?.needsUpgrade ? '#EF4444' : '#22C55E'
+                    backgroundColor: sysInfo?.hostMetrics?.smartAdvisory?.needsUpgrade ? '#EF4444' : '#10B981'
                   }}
                 />
                 {sysInfo?.hostMetrics?.smartAdvisory?.needsUpgrade ? 'Cần lưu ý' : 'Bình thường'}
@@ -2684,12 +2604,13 @@ export const AdminSettingsPage: React.FC = () => {
                   fontSize: 11,
                   padding: '2px 8px',
                   borderRadius: 4,
-                  backgroundColor: 'rgba(34, 197, 94, 0.1)',
-                  color: '#22C55E',
+                  backgroundColor: 'rgba(255, 255, 255, 0.04)',
+                  border: '1px solid var(--border-color)',
+                  color: 'var(--text-muted)',
                   fontWeight: 500
                 }}
               >
-                <span style={{ width: 5, height: 5, borderRadius: '50%', backgroundColor: '#22C55E' }} />
+                <span style={{ width: 5, height: 5, borderRadius: '50%', backgroundColor: '#10B981' }} />
                 Trực tuyến
               </span>
             </div>
@@ -2797,7 +2718,7 @@ export const AdminSettingsPage: React.FC = () => {
                 <span style={{ color: 'var(--text-muted)' }}>{t('settings.portalStatus', 'Trạng thái cổng 360')}</span>
                 <span
                   style={{
-                    color: maintenance.enabled ? '#F59E0B' : '#22C55E',
+                    color: maintenance.enabled ? 'var(--accent-gold)' : 'var(--text-main)',
                     fontWeight: 600
                   }}
                 >
