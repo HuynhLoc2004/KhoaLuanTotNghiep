@@ -932,21 +932,68 @@ def gen_fig_4_1():
     plt.close(fig)
 
 def gen_fig_4_3():
-    """Hinh 4.3: Panorama Studio 4 Inputs Flow"""
+    """Hinh 4.3: Panorama Studio 4 Inputs Flow (Kien truc duong ong xu ly anh toan canh thuc te)"""
     fig, ax = plt.subplots(figsize=(10.5, 4.2), dpi=300)
     ax.set_xlim(0, 10.5); ax.set_ylim(0, 4.2); ax.axis('off')
     
-    draw_device(ax, 1.2, 3.5, 1.0, 0.9, "1. Webcam Laptop", "Kiểm thử nhanh", kind="desktop")
-    draw_device(ax, 1.2, 2.4, 1.0, 0.9, "2. Chọn từ máy", "Ảnh DSLR 8K", kind="desktop")
-    draw_device(ax, 1.2, 1.3, 0.9, 0.9, "3. Video quét", "Smartphone / Cam", kind="mobile")
-    draw_device(ax, 1.2, 0.2, 0.9, 0.9, "4. Quét trực tiếp", "Gyroscope", kind="mobile")
+    # Left: 4 input sources
+    ax.text(1.2, 4.05, 'NGUỒN DỮ LIỆU ĐẦU VÀO', fontsize=7.8, fontweight='bold', ha='center', color='#0F172A')
+    draw_device(ax, 1.2, 3.45, 1.0, 0.75, "1. Webcam Laptop", "Kiểm thử nhanh", kind="desktop")
+    draw_device(ax, 1.2, 2.45, 1.0, 0.75, "2. Chọn từ máy", "Ảnh DSLR 8K", kind="desktop")
+    draw_device(ax, 1.2, 1.45, 0.9, 0.75, "3. Video quét", "Smartphone / Cam", kind="mobile")
+    draw_device(ax, 1.2, 0.45, 0.9, 0.75, "4. Quét trực tiếp", "Gyroscope 360°", kind="mobile")
     
-    draw_clean_node(ax, 4.8, 1.85, 2.5, 1.5, "XỬ LÝ ẢNH STUDIO", "• Lọc mờ Laplacian (Var ≥ 100)\n• Nắn mặt trụ f (2.5 – 2.8)\n• Khớp SIFT & RANSAC\n• Ghép mí Voronoi Seam", bg='#EFF6FF', border='#1E3A8A')
-    draw_clean_node(ax, 8.6, 1.85, 2.4, 1.5, "ẢNH CẦU 360° HOÀN CHỈNH", "• Equirectangular 8K (2:1)\n• Vá đáy sàn Nadir\n• Tối ưu WebP nạp WebGL 60fps", bg='#F0FDF4', border='#166534')
+    # Middle: Pipeline Engine (3 stages)
+    ax.text(5.1, 4.05, 'ĐỘNG CƠ XỬ LÝ TOÁN HỌC & THỊ GIÁC MÁY TÍNH (PANORAMA ENGINE)', fontsize=7.8, fontweight='bold', ha='center', color='#0F172A')
     
-    for y_in in [3.5, 2.4, 1.3, 0.2]:
-        draw_step_arrow(ax, 1.8, y_in, 3.5, 1.85)
-    draw_step_arrow(ax, 6.1, 1.85, 7.3, 1.85, label="Xuất Panorama")
+    # Stage 1
+    p1 = patches.FancyBboxPatch((3.4, 2.65), 3.4, 1.05, boxstyle='round,pad=0.03,rounding_size=0.06',
+                                facecolor='#EFF6FF', edgecolor='#1E3A8A', lw=1.2, zorder=3)
+    ax.add_patch(p1)
+    ax.text(5.1, 3.35, 'BƯỚC 1: LỌC MỜ & NẮN TRỤ (WARPING)', fontsize=7.2, fontweight='bold', ha='center', color='#1E3A8A')
+    ax.text(5.1, 3.0, '• Lọc mờ Laplace (Var ≥ 100)\n• Phép chiếu trụ $f = W / (2\\tan(\\text{FOV}/2))$', fontsize=6.8, ha='center', color='#1E293B')
+    
+    # Arrow 1->2
+    ax.annotate('', xy=(5.1, 2.3), xytext=(5.1, 2.65), arrowprops=dict(arrowstyle='->', color='#1E3A8A', lw=1.4))
+    
+    # Stage 2
+    p2 = patches.FancyBboxPatch((3.4, 1.2), 3.4, 1.05, boxstyle='round,pad=0.03,rounding_size=0.06',
+                                facecolor='#F0FDF4', edgecolor='#166534', lw=1.2, zorder=3)
+    ax.add_patch(p2)
+    ax.text(5.1, 1.9, 'BƯỚC 2: KHỚP SIFT & CẮT MÍ TỐI ƯU', fontsize=7.2, fontweight='bold', ha='center', color='#166534')
+    ax.text(5.1, 1.55, '• Trích xuất đặc trưng & RANSAC\n• Tìm vết cắt Voronoi né tránh hiện vật', fontsize=6.8, ha='center', color='#1E293B')
+    
+    # Arrow 2->3
+    ax.annotate('', xy=(5.1, 0.85), xytext=(5.1, 1.2), arrowprops=dict(arrowstyle='->', color='#166534', lw=1.4))
+    
+    # Stage 3
+    p3 = patches.FancyBboxPatch((3.4, 0.15), 3.4, 0.68, boxstyle='round,pad=0.03,rounding_size=0.06',
+                                facecolor='#FEF3C7', edgecolor='#B45309', lw=1.2, zorder=3)
+    ax.add_patch(p3)
+    ax.text(5.1, 0.49, 'BƯỚC 3: HÒA TRỘN ĐA TẦN (MULTIBAND LAPLACIAN)', fontsize=7.0, fontweight='bold', ha='center', color='#B45309')
+    
+    # Arrows from 4 inputs to Stage 1
+    for y_in in [3.45, 2.45, 1.45, 0.45]:
+        ax.plot([1.8, 2.6], [y_in, y_in], color='#475569', lw=1.0)
+        ax.plot([2.6, 2.6], [y_in, 3.15], color='#475569', lw=1.0)
+    ax.annotate('', xy=(3.35, 3.15), xytext=(2.6, 3.15), arrowprops=dict(arrowstyle='->', color='#475569', lw=1.4))
+    
+    # Right: Equirectangular 2:1 Output
+    ax.text(8.8, 4.05, 'ẢNH TOÀN CẢNH ĐẦU RA', fontsize=7.8, fontweight='bold', ha='center', color='#0F172A')
+    
+    canvas = patches.Rectangle((7.4, 1.2), 2.8, 1.4, facecolor='#F8FAFC', edgecolor='#1E3A8A', lw=1.5, zorder=3)
+    ax.add_patch(canvas)
+    for i in range(1, 4):
+        ax.plot([7.4, 10.2], [1.2 + i*0.35, 1.2 + i*0.35], color='#E2E8F0', lw=0.6, ls=':', zorder=4)
+    for j in range(1, 6):
+        ax.plot([7.4 + j*0.46, 7.4 + j*0.46], [1.2, 2.6], color='#E2E8F0', lw=0.6, ls=':', zorder=4)
+    ax.text(8.8, 1.9, 'Ảnh Equirectangular (2:1)\nĐộ phân giải 8K (8192 × 4096)', fontsize=7.0, fontweight='bold', ha='center', va='center', color='#1E3A8A', zorder=5)
+    
+    ax.text(8.8, 0.8, '• Nén WebP Lossy (q=85) ~ 4.2 MB\n• Tối ưu VRAM WebGL 60 FPS mượt mà', fontsize=6.8, ha='center', color='#334155')
+    
+    # Arrow to Output
+    ax.annotate('', xy=(7.35, 1.9), xytext=(6.85, 0.5), arrowprops=dict(arrowstyle='->', color='#166534', lw=1.6))
+    ax.text(7.0, 1.1, 'Xuất file 8K', fontsize=6.8, fontweight='bold', color='#166534', rotation=45)
     
     fig.savefig(os.path.join(DIAGRAMS_DIR, "hinh_4_3_panorama_4inputs.png"), bbox_inches='tight')
     plt.close(fig)
@@ -996,37 +1043,109 @@ def gen_fig_4_6():
     plt.close(fig)
 
 def gen_fig_4_7():
-    """Hinh 4.7: Dijkstra Route Flow trong Panorama Studio"""
-    fig, ax = plt.subplots(figsize=(10.5, 3.8), dpi=300)
-    ax.set_xlim(0, 10.5); ax.set_ylim(0, 3.8); ax.axis('off')
+    """Hinh 4.7: Dijkstra Route Flow trong Panorama Studio (Mo hinh Do thi Topo 18 phong & Luu do giai thuat chuan)"""
+    fig, ax = plt.subplots(figsize=(10.5, 4.2), dpi=300)
+    ax.set_xlim(0, 10.5); ax.set_ylim(0, 4.2); ax.axis('off')
     
-    map_box = patches.FancyBboxPatch((0.8, 0.6), 4.5, 2.7, boxstyle='round,pad=0.03,rounding_size=0.08',
-                                     facecolor='#F8FAFC', edgecolor=C_LINE_DARK, lw=1.4, zorder=2)
-    ax.add_patch(map_box)
-    ax.text(3.05, 3.0, 'BẢN ĐỒ TOPO TƯƠNG TÁC (MINI-MAP)', fontsize=8.2, fontweight='bold', ha='center', color=C_DARK_TEXT)
-    
-    pts = [(1.5, 1.1), (2.3, 1.1), (3.1, 1.1), (4.3, 1.1), (4.3, 2.3), (3.1, 2.3), (2.0, 2.3)]
-    for i in range(len(pts)-1):
-        ax.plot([pts[i][0], pts[i+1][0]], [pts[i][1], pts[i+1][1]], color='#1D4ED8', lw=2.6, zorder=3)
-    for p in pts:
-        ax.plot(p[0], p[1], 'o', color='#1D4ED8', markersize=5.5, zorder=4)
+    # Left side: Topological Graph (0.5 to 5.1)
+    ax.text(2.75, 4.0, 'MÔ HÌNH ĐỒ THỊ 18 PHÒNG TRƯNG BÀY (TOPOLOGICAL GRAPH)', 
+            fontsize=8.2, fontweight='bold', ha='center', color='#0F172A')
+
+    nodes = {
+        'P01': (1.0, 1.2), 'P02': (1.9, 1.2), 'P03': (2.8, 1.2), 'P04': (3.7, 1.2),
+        'P05': (4.5, 1.2), 'P06': (4.5, 2.0), 'P07': (4.5, 2.8), 'P08': (4.5, 3.5),
+        'P09': (3.7, 3.5), 'P10': (2.8, 3.5), 'P11': (1.9, 3.5), 'P12': (1.0, 3.5),
+        'P13': (1.0, 2.8), 'P14': (1.0, 2.0), 'HV': (2.75, 2.35)
+    }
+
+    edges = [
+        ('P01', 'P02', '12m'), ('P02', 'P03', '15m'), ('P03', 'P04', '14m'), ('P04', 'P05', '16m'),
+        ('P05', 'P06', '18m'), ('P06', 'P07', '15m'), ('P07', 'P08', '17m'),
+        ('P08', 'P09', '14m'), ('P09', 'P10', '15m'), ('P10', 'P11', '13m'), ('P11', 'P12', '16m'),
+        ('P12', 'P13', '15m'), ('P13', 'P14', '18m'), ('P14', 'P01', '14m'),
+        ('P03', 'HV', '20m'), ('HV', 'P10', '22m')
+    ]
+
+    optimal_path = [('P01', 'P02'), ('P02', 'P03'), ('P03', 'HV'), ('HV', 'P10')]
+
+    for u, v, w in edges:
+        x1, y1 = nodes[u]
+        x2, y2 = nodes[v]
+        is_opt = (u, v) in optimal_path or (v, u) in optimal_path
+        col = '#166534' if is_opt else '#94A3B8'
+        lw = 3.0 if is_opt else 1.2
+        ls = '-' if is_opt else '--'
+        ax.plot([x1, x2], [y1, y2], color=col, lw=lw, ls=ls, zorder=2)
+        mx, my = (x1 + x2)/2, (y1 + y2)/2
+        if is_opt:
+            ax.text(mx, my + 0.12, w, fontsize=6.5, fontweight='bold', color='#166534', ha='center',
+                    bbox=dict(boxstyle='round,pad=0.15', facecolor='#F0FDF4', edgecolor='#166534', lw=0.6), zorder=4)
+
+    for name, (x, y) in nodes.items():
+        if name == 'P01':
+            bg = '#1E3A8A'; text_col = 'white'; ec = '#0F172A'; r = 0.22
+        elif name == 'P10':
+            bg = '#991B1B'; text_col = 'white'; ec = '#7F1D1D'; r = 0.22
+        elif name in ['P02', 'P03', 'HV']:
+            bg = '#166534'; text_col = 'white'; ec = '#14532D'; r = 0.18
+        else:
+            bg = '#F8FAFC'; text_col = '#1E293B'; ec = '#64748B'; r = 0.16
         
-    ax.plot(1.5, 1.1, 'o', color=C_FILL_ACTOR, markersize=8, zorder=5)
-    ax.text(1.5, 0.85, 'Vị trí hiện tại (P01)', ha='center', va='top', fontsize=7.0, fontweight='bold', color=C_DARK_TEXT)
-    
-    ax.plot(2.0, 2.3, 'o', color='#991B1B', markersize=8, zorder=5)
-    ax.text(2.0, 2.65, 'Đích đến (P10: Chăm Pa)', ha='center', va='bottom', fontsize=7.0, fontweight='bold', color=C_DARK_TEXT)
-    
-    draw_clean_node(ax, 8.2, 2.9, 3.6, 1.0, "1. MA TRẬN TRỌNG SỐ KỀ",
-                    "• Đồ thị 18 đỉnh (Phòng) & 24 cạnh (Hành lang)\n• Trọng số là cự ly đo thực tế (mét)", bg='#EFF6FF', border='#1E3A8A')
-                    
-    draw_clean_node(ax, 8.2, 1.7, 3.6, 1.0, "2. HÀNG ĐỢI ƯU TIÊN MIN-HEAP",
-                    "• Độ phức tạp O(E log V)\n• Nới lỏng cạnh: d[v] = min(d[v], d[u] + w)\n• Thời gian tính toán: < 5 miligiây", bg='#FFF7ED', border='#C2410C')
-                    
-    draw_clean_node(ax, 8.2, 0.5, 3.6, 0.9, "3. KẾT QUẢ ĐỊNH TUYẾN",
-                    "Hiển thị nét đứt phát sáng & hướng dẫn viên Voice AI", bg='#F0FDF4', border='#166534')
-                    
-    draw_step_arrow(ax, 5.4, 1.9, 6.3, 1.9, label="Định tuyến")
+        circle = patches.Circle((x, y), r, facecolor=bg, edgecolor=ec, lw=1.2, zorder=5)
+        ax.add_patch(circle)
+        ax.text(x, y, name, fontsize=6.5, fontweight='bold', color=text_col, ha='center', va='center', zorder=6)
+
+    ax.text(1.0, 0.78, 'Xuất phát (P01)', fontsize=7.2, fontweight='bold', ha='center', color='#1E3A8A')
+    ax.text(2.8, 3.9, 'Đích đến: P10 (Chăm Pa)', fontsize=7.2, fontweight='bold', ha='center', color='#991B1B')
+    ax.text(2.75, 0.55, '— Lộ trình tối ưu: P01 → P02 → P03 → HV → P10 (Tổng: 69m) —', 
+            fontsize=7.2, fontweight='bold', ha='center', color='#166534')
+
+    # Divider line
+    ax.plot([5.3, 5.3], [0.4, 4.0], color='#CBD5E1', lw=1.0, ls=':')
+
+    # Right side: Flowchart (5.6 to 10.2)
+    ax.text(7.9, 4.0, 'LƯU ĐỒ GIẢI THUẬT DIJKSTRA (MIN-HEAP)', 
+            fontsize=8.2, fontweight='bold', ha='center', color='#0F172A')
+
+    # Step 1: Start
+    ax.text(7.9, 3.5, 'BẮT ĐẦU: Khởi tạo đồ thị G(V, E)\nĐặt d[P01] = 0, d[v] = ∞; Push (0, P01) vào Min-Heap', 
+            fontsize=7.0, ha='center', va='center',
+            bbox=dict(boxstyle='round,pad=0.35', facecolor='#F1F5F9', edgecolor='#334155', lw=1.2))
+
+    ax.annotate('', xy=(7.9, 2.95), xytext=(7.9, 3.25), arrowprops=dict(arrowstyle='->', color='#334155', lw=1.4))
+
+    # Step 2: Pop Min-Heap
+    ax.text(7.9, 2.7, 'Lấy đỉnh u có d[u] nhỏ nhất từ Min-Heap\nu = Extract-Min()', 
+            fontsize=7.0, ha='center', va='center',
+            bbox=dict(boxstyle='square,pad=0.35', facecolor='#EFF6FF', edgecolor='#1E3A8A', lw=1.2))
+
+    ax.annotate('', xy=(7.9, 2.15), xytext=(7.9, 2.45), arrowprops=dict(arrowstyle='->', color='#334155', lw=1.4))
+
+    # Step 3: Decision Diamond
+    diamond = patches.Polygon([[7.9, 2.05], [8.9, 1.7], [7.9, 1.35], [6.9, 1.7]], 
+                              facecolor='#FEF3C7', edgecolor='#B45309', lw=1.2)
+    ax.add_patch(diamond)
+    ax.text(7.9, 1.7, 'Đã đến đích\nu == P10?', fontsize=7.2, fontweight='bold', ha='center', va='center')
+
+    # Branch YES
+    ax.annotate('', xy=(9.2, 1.7), xytext=(8.9, 1.7), arrowprops=dict(arrowstyle='->', color='#166534', lw=1.4))
+    ax.text(9.05, 1.85, 'Đúng', fontsize=7.0, fontweight='bold', color='#166534')
+    ax.text(9.65, 1.7, 'Truy vết đường đi\n(Path Reconstruct)\nP01 → ... → P10', fontsize=6.8, ha='center', va='center',
+            bbox=dict(boxstyle='round,pad=0.25', facecolor='#F0FDF4', edgecolor='#166534', lw=1.2))
+
+    # Branch NO
+    ax.annotate('', xy=(7.9, 0.95), xytext=(7.9, 1.35), arrowprops=dict(arrowstyle='->', color='#B45309', lw=1.4))
+    ax.text(8.05, 1.15, 'Sai', fontsize=7.0, fontweight='bold', color='#B45309')
+
+    ax.text(7.9, 0.65, 'Nới lỏng cạnh: d[v] = min(d[v], d[u] + w)\nCập nhật giá trị và giảm khóa Min-Heap', 
+            fontsize=6.8, ha='center', va='center',
+            bbox=dict(boxstyle='square,pad=0.25', facecolor='#EFF6FF', edgecolor='#1E3A8A', lw=1.0))
+
+    # Loop back
+    ax.plot([6.5, 6.5], [0.65, 2.7], color='#475569', lw=1.2, ls='--')
+    ax.plot([6.5, 7.1], [0.65, 0.65], color='#475569', lw=1.2, ls='--')
+    ax.annotate('', xy=(7.1, 2.7), xytext=(6.5, 2.7), arrowprops=dict(arrowstyle='->', color='#475569', lw=1.2, ls='--'))
+    ax.text(6.38, 1.7, 'Lặp lại', fontsize=6.5, color='#475569', rotation=90, va='center')
     
     fig.savefig(os.path.join(DIAGRAMS_DIR, "hinh_4_7_dijkstra_flow.png"), bbox_inches='tight')
     plt.close(fig)
