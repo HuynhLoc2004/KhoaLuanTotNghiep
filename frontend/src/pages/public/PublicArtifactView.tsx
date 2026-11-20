@@ -201,6 +201,22 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
     [audioRef, changeLanguage]
   );
 
+  // Chuẩn hóa và bóc tách an toàn translations (hỗ trợ cả JSON string và Object từ CSDL)
+  const safeTranslations = React.useMemo<Record<string, any>>(() => {
+    if (!artifact?.translations) return {};
+    if (typeof artifact.translations === 'string') {
+      try {
+        const p = JSON.parse(artifact.translations);
+        if (p && typeof p === 'object' && !Array.isArray(p)) return p;
+      } catch {}
+      return {};
+    }
+    if (typeof artifact.translations === 'object' && !Array.isArray(artifact.translations)) {
+      return artifact.translations;
+    }
+    return {};
+  }, [artifact]);
+
   // Danh sách các ngôn ngữ mà hiện vật này THỰC SỰ HỖ TRỢ (được dịch nội dung hoặc có bản thu âm trong DB)
   const artifactSupportedLanguages = React.useMemo(() => {
     if (!artifact) return [];
@@ -208,8 +224,8 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
       // 1. Tiếng Việt là ngôn ngữ gốc luôn luôn được hỗ trợ
       if (lang.code === 'vi') return true;
 
-      // 2. Các ngôn ngữ khác: Chỉ hỗ trợ nếu admin đã tạo bản dịch hoặc voice cho hiện vật này
-      const trans = artifact.translations?.[lang.code];
+      // 2. Các ngôn ngữ khác: Hỗ trợ nếu có bản dịch hoặc voice trong DB
+      const trans = safeTranslations[lang.code];
       if (!trans) return false;
 
       const hasText = Boolean(
@@ -221,25 +237,16 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
 
       return hasText || hasVoice;
     });
-  }, [artifact, displayLanguages]);
-
-  // Tự động chuyển về tiếng Việt nếu người dùng đang ở một ngôn ngữ mà hiện vật này KHÔNG hỗ trợ
-  useEffect(() => {
-    if (!artifact || artifactSupportedLanguages.length === 0) return;
-    const isSupported = artifactSupportedLanguages.some((l) => l.code === currentLang);
-    if (!isSupported) {
-      handleSelectLanguage('vi');
-    }
-  }, [artifact, artifactSupportedLanguages, currentLang, handleSelectLanguage]);
+  }, [artifact, displayLanguages, safeTranslations]);
 
   // Bản dịch hiện tại của hiện vật từ DB
   const activeTranslation = React.useMemo(() => {
     if (!artifact || currentLang === 'vi') return null;
-    return artifact.translations?.[currentLang] || null;
-  }, [artifact, currentLang]);
+    return safeTranslations[currentLang] || null;
+  }, [artifact, currentLang, safeTranslations]);
 
   const displayName = activeTranslation?.name || artifact?.name || '';
-  const displayPeriod = activeTranslation?.period || artifact?.period || '';
+  const displayPeriod = activeTranslation?.period || (artifact?.period ? t(artifact.period, artifact.period) : '');
   const displayDescription =
     (activeTranslation as any)?.narrationScript ||
     activeTranslation?.description ||
@@ -260,7 +267,7 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
     const list: VoiceOption[] = [];
 
     // 1. Kiểm tra audio tiếng Việt
-    const viRaw = artifact.translations?.vi?.audioNarrationUrl || artifact.audioNarrationUrl;
+    const viRaw = safeTranslations.vi?.audioNarrationUrl || artifact.audioNarrationUrl;
     if (viRaw && typeof viRaw === 'string' && viRaw.trim()) {
       const u = viRaw.trim();
       list.push({
@@ -271,30 +278,28 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
       });
     }
 
-    // 2. Kiểm tra các ngôn ngữ khác trong artifact.translations
-    if (artifact.translations && typeof artifact.translations === 'object') {
-      Object.entries(artifact.translations).forEach(([langCode, trans]: [string, any]) => {
-        if (
-          langCode !== 'vi' &&
-          trans &&
-          trans.audioNarrationUrl &&
-          typeof trans.audioNarrationUrl === 'string' &&
-          trans.audioNarrationUrl.trim()
-        ) {
-          const u = trans.audioNarrationUrl.trim();
-          const langMeta = displayLanguages.find((l) => l.code === langCode);
-          list.push({
-            code: langCode,
-            label: langMeta?.nativeName || langMeta?.name || langCode.toUpperCase(),
-            flag: langMeta?.flagIcon || '🌐',
-            url: u.startsWith('http') ? u : `${API_ROOT}${u.startsWith('/') ? '' : '/'}${u}`
-          });
-        }
-      });
-    }
+    // 2. Kiểm tra các ngôn ngữ khác trong safeTranslations
+    Object.entries(safeTranslations).forEach(([langCode, trans]: [string, any]) => {
+      if (
+        langCode !== 'vi' &&
+        trans &&
+        trans.audioNarrationUrl &&
+        typeof trans.audioNarrationUrl === 'string' &&
+        trans.audioNarrationUrl.trim()
+      ) {
+        const u = trans.audioNarrationUrl.trim();
+        const langMeta = displayLanguages.find((l) => l.code === langCode);
+        list.push({
+          code: langCode,
+          label: langMeta?.nativeName || langMeta?.name || langCode.toUpperCase(),
+          flag: langMeta?.flagIcon || '🌐',
+          url: u.startsWith('http') ? u : `${API_ROOT}${u.startsWith('/') ? '' : '/'}${u}`
+        });
+      }
+    });
 
     return list;
-  }, [artifact, displayLanguages]);
+  }, [artifact, safeTranslations, displayLanguages]);
 
   // Giọng đọc tương ứng với ngôn ngữ đang xem hiện tại
   const currentLangVoice = React.useMemo(() => {
@@ -303,8 +308,8 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
 
   // Xác định giọng đọc đang được kích hoạt:
   // - Nếu người dùng bấm chọn một giọng đọc cụ thể trong Voice Player -> phát giọng đó
-  // - Nếu ở chế độ 'auto': Chỉ kích hoạt nếu ngôn ngữ đang xem CÓ bản thu âm voice (currentLangVoice).
-  //   Nếu ngôn ngữ đang xem không có voice, activeVoice là null -> Không hiện Voice Player (không phát chéo tiếng khác).
+  // - Nếu ở chế độ 'auto': Ưu tiên giọng đọc khớp với ngôn ngữ đang xem (currentLangVoice).
+  //   Nếu ngôn ngữ đang xem chưa có voice riêng (ví dụ EN chưa tạo voice), vẫn hiển thị voice có sẵn (ví dụ tiếng Việt) với cờ rõ ràng để khách vẫn nghe được giới thiệu.
   const activeVoice = React.useMemo<VoiceOption | null>(() => {
     if (availableVoices.length === 0) return null;
 
@@ -313,7 +318,7 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
       if (found) return found;
     }
 
-    return currentLangVoice;
+    return currentLangVoice || availableVoices[0] || null;
   }, [availableVoices, selectedVoiceLang, currentLangVoice]);
 
   const activeAudioUrl = activeVoice?.url || null;
@@ -630,7 +635,7 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
         <aside className="artifact-info-sidebar">
           {/* Category & Status Badges */}
           <div className="meta-badge-row">
-            <span className="category-pill">{artifact.category}</span>
+            <span className="category-pill">{t(artifact.category, artifact.category)}</span>
             {displayPeriod && (
               <span className="period-pill">
                 <Calendar size={13} />
@@ -640,7 +645,7 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
             {artifact.origin && (
               <span className="origin-pill">
                 <MapPin size={13} />
-                {artifact.origin}
+                {t(artifact.origin, artifact.origin)}
               </span>
             )}
           </div>

@@ -47,7 +47,7 @@ import {
   DEFAULT_BRANDING
 } from '../models/SystemBranding.js';
 import { broadcastRealtimeEvent, handleRealtimeStream } from '../services/realtimeSync.js';
-import { getPgStatus, logAudit } from '../db/postgres.js';
+import { pgPool, getPgStatus, logAudit } from '../db/postgres.js';
 import { getRabbitMQStatus } from '../services/rabbitmq.js';
 import { pgUpsertBranding, syncAuditLogs } from '../db/syncEngine.js';
 import { AuditLogModel } from '../models/AuditLog.js';
@@ -100,6 +100,46 @@ const DEFAULT_CONFIG: MaintenanceConfig = {
   expectedEndTime: new Date(Date.now() + 30 * 60000).toISOString(),
   remainingMinutes: 30
 };
+
+/**
+ * Lưu trạng thái bảo trì vào PostgreSQL Database để tồn tại vĩnh viễn qua mọi lần restart container
+ */
+async function persistMaintenanceToDb(config: MaintenanceConfig): Promise<void> {
+  try {
+    await pgPool.query(`
+      CREATE TABLE IF NOT EXISTS system_maintenance (
+        id VARCHAR(32) PRIMARY KEY,
+        config JSONB NOT NULL,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+    await pgPool.query(`
+      INSERT INTO system_maintenance (id, config, updated_at)
+      VALUES ('current', $1, CURRENT_TIMESTAMP)
+      ON CONFLICT (id) DO UPDATE SET
+        config = EXCLUDED.config,
+        updated_at = CURRENT_TIMESTAMP;
+    `, [JSON.stringify(config)]);
+  } catch (err: any) {
+    console.warn('[Maintenance DB Save Warning]:', err.message);
+  }
+}
+
+/**
+ * Đọc cấu hình bảo trì từ PostgreSQL Database
+ */
+async function getMaintenanceFromDb(): Promise<Partial<MaintenanceConfig> | null> {
+  try {
+    const res = await pgPool.query('SELECT config FROM system_maintenance WHERE id = $1 LIMIT 1', ['current']);
+    if (res.rows.length > 0) {
+      const cfg = res.rows[0].config;
+      return typeof cfg === 'string' ? JSON.parse(cfg) : cfg;
+    }
+  } catch {
+    // Nếu bảng chưa có, trả về null
+  }
+  return null;
+}
 
 /**
  * Đọc trạng thái bảo trì hiện tại
@@ -195,7 +235,24 @@ function writeMaintenanceState(config: MaintenanceConfig): void {
  */
 systemRouter.get('/maintenance', async (req: Request, res: Response) => {
   try {
-    const state = readMaintenanceState();
+    let state = readMaintenanceState();
+
+    // Đối chiếu với PostgreSQL Database để đảm bảo trạng thái luôn nhất quán
+    const dbConfig = await getMaintenanceFromDb();
+    if (dbConfig) {
+      const dbEnabled = Boolean(dbConfig.enabled);
+      state = {
+        ...state,
+        ...dbConfig,
+        enabled: dbEnabled || state.enabled
+      };
+
+      // Nếu database bật bảo trì mà file cờ chưa có trên disk, tự động ghi bù cờ cho Nginx
+      if (state.enabled && !fs.existsSync('/app/maintenance_flag/maintenance.flag')) {
+        writeMaintenanceState(state);
+      }
+    }
+
     res.json({
       success: true,
       maintenance: state
@@ -218,15 +275,18 @@ systemRouter.post('/maintenance', authenticate, requireAdmin, async (req: AuthRe
     const { enabled, title, message, estimatedMinutes } = req.body;
 
     const current = readMaintenanceState();
+    const dbConfig = await getMaintenanceFromDb();
+    const effectiveCurrent = { ...current, ...(dbConfig || {}) };
+
     const nowIso = new Date().toISOString();
-    const estMin = Number(estimatedMinutes) > 0 ? Number(estimatedMinutes) : current.estimatedMinutes;
-    const isEn = Boolean(enabled);
+    const estMin = Number(estimatedMinutes) > 0 ? Number(estimatedMinutes) : (effectiveCurrent.estimatedMinutes || 30);
+    const isEn = enabled !== undefined ? Boolean(enabled) : !effectiveCurrent.enabled;
     const expEndIso = new Date(Date.now() + estMin * 60000).toISOString();
 
     const newConfig: MaintenanceConfig = {
       enabled: isEn,
-      title: (title && String(title).trim()) || current.title,
-      message: (message && String(message).trim()) || current.message,
+      title: (title && String(title).trim()) || effectiveCurrent.title,
+      message: (message && String(message).trim()) || effectiveCurrent.message,
       estimatedMinutes: estMin,
       updatedAt: nowIso,
       updatedBy: req.user?.username || 'admin',
@@ -236,6 +296,7 @@ systemRouter.post('/maintenance', authenticate, requireAdmin, async (req: AuthRe
     };
 
     writeMaintenanceState(newConfig);
+    await persistMaintenanceToDb(newConfig);
 
     // Cập nhật Redis cache nếu có
     await cacheSet(REDIS_MAINTENANCE_KEY, newConfig, 86400);

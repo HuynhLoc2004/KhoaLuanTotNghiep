@@ -384,9 +384,8 @@ export const AdminSettingsPage: React.FC = () => {
     handlePing();
   }, []);
 
-  const handleToggle = async () => {
+  const handleToggleAndApply = async (targetEnabled: boolean) => {
     if (toggling || saving) return;
-    const nextState = !maintenance.enabled;
     const nowIso = new Date().toISOString();
     const estMin = Number(maintenance.estimatedMinutes) || 30;
     const expEndIso = new Date(Date.now() + estMin * 60000).toISOString();
@@ -395,18 +394,18 @@ export const AdminSettingsPage: React.FC = () => {
       setToggling(true);
       const updated = await api.updateMaintenanceStatus({
         ...maintenance,
-        enabled: nextState,
+        enabled: targetEnabled,
         startTime: nowIso,
         expectedEndTime: expEndIso,
-        remainingMinutes: nextState ? estMin : 0
+        remainingMinutes: targetEnabled ? estMin : 0
       });
       setMaintenance(updated);
       setLocalMaintenance(updated);
       lastToggleToastTime.current = Date.now();
       showToast(
-        nextState
-          ? `Đã kích hoạt chế độ bảo trì (Dự kiến trong ${estMin} phút, đến ${formatTime(expEndIso)})`
-          : 'Đã tắt bảo trì, hệ thống đang mở cửa đón khách tham quan',
+        targetEnabled
+          ? `Đã kích hoạt chế độ bảo trì thành công (Dự kiến trong ${estMin} phút, đến ${formatTime(expEndIso)})`
+          : 'Đã tắt bảo trì, hệ thống đã mở cửa đón khách tham quan bình thường!',
         'success'
       );
     } catch (err: any) {
@@ -414,6 +413,10 @@ export const AdminSettingsPage: React.FC = () => {
     } finally {
       setToggling(false);
     }
+  };
+
+  const handleToggle = () => {
+    handleToggleAndApply(!maintenance.enabled);
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -439,7 +442,12 @@ export const AdminSettingsPage: React.FC = () => {
 
       // Nếu vừa gạt toggle trong vòng 2.5s thì không bắn thêm toast thứ 2 để tránh 2 thông báo chồng nhau
       if (Date.now() - lastToggleToastTime.current > 2500) {
-        showToast('Đã lưu và áp dụng cấu hình bảo trì thành công', 'success');
+        showToast(
+          maintenance.enabled
+            ? 'Đã lưu và áp dụng cấu hình bảo trì thành công (Hệ thống đang chặn khách vãng lai)'
+            : 'Đã lưu cấu hình thông điệp thành công (Cổng tham quan đang mở)',
+          'success'
+        );
       }
     } catch (err: any) {
       showToast(err.message || 'Lỗi lưu cấu hình', 'error');
@@ -1579,6 +1587,52 @@ export const AdminSettingsPage: React.FC = () => {
 
               {/* Form nội dung chi tiết */}
               <form onSubmit={handleSave}>
+                {/* Thanh chuyển nhanh trạng thái trong Form */}
+                <div style={{ marginBottom: 18, padding: '12px 14px', borderRadius: 6, backgroundColor: 'var(--bg-subtle)', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-main)' }}>
+                      Trạng thái áp dụng: <span style={{ color: maintenance.enabled ? '#EF4444' : '#22C55E' }}>{maintenance.enabled ? 'ĐANG BẬT BẢO TRÌ' : 'ĐANG TẮT (MỞ CỬA)'}</span>
+                    </div>
+                    <div style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>
+                      {maintenance.enabled ? 'Khách tham quan vãng lai sẽ thấy màn hình bảo trì.' : 'Hệ thống đón khách tham quan bình thường.'}
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button
+                      type="button"
+                      onClick={() => setMaintenance({ ...maintenance, enabled: false })}
+                      style={{
+                        padding: '6px 14px',
+                        fontSize: 12,
+                        borderRadius: 4,
+                        border: !maintenance.enabled ? '1px solid #22C55E' : '1px solid var(--border-color)',
+                        backgroundColor: !maintenance.enabled ? 'rgba(34, 197, 94, 0.15)' : 'transparent',
+                        color: !maintenance.enabled ? '#22C55E' : 'var(--text-muted)',
+                        cursor: 'pointer',
+                        fontWeight: !maintenance.enabled ? 600 : 400
+                      }}
+                    >
+                      Mở cửa đón khách
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setMaintenance({ ...maintenance, enabled: true })}
+                      style={{
+                        padding: '6px 14px',
+                        fontSize: 12,
+                        borderRadius: 4,
+                        border: maintenance.enabled ? '1px solid #EF4444' : '1px solid var(--border-color)',
+                        backgroundColor: maintenance.enabled ? 'rgba(239, 68, 68, 0.15)' : 'transparent',
+                        color: maintenance.enabled ? '#EF4444' : 'var(--text-muted)',
+                        cursor: 'pointer',
+                        fontWeight: maintenance.enabled ? 600 : 400
+                      }}
+                    >
+                      Bật chế độ bảo trì
+                    </button>
+                  </div>
+                </div>
+
                 <div style={{ marginBottom: 18 }}>
                   <label
                     style={{
@@ -1760,11 +1814,57 @@ export const AdminSettingsPage: React.FC = () => {
                       ) : (
                         <>
                           <Check size={15} />
-                          <span>{t('settings.btnSaveApply', 'Lưu & Áp dụng')}</span>
+                          <span>{maintenance.enabled ? 'Lưu & Giữ Bật Bảo Trì' : t('settings.btnSaveApply', 'Lưu & Áp dụng')}</span>
                         </>
                       )}
                     </button>
 
+                    {/* Nút thao tác nhanh một chạm: Bật hoặc Tắt bảo trì tức thì */}
+                    {!maintenance.enabled ? (
+                      <button
+                        type="button"
+                        onClick={() => handleToggleAndApply(true)}
+                        disabled={saving || toggling}
+                        className="btn"
+                        style={{
+                          padding: '9px 18px',
+                          fontSize: 13,
+                          fontWeight: 600,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 6,
+                          backgroundColor: '#DC2626',
+                          borderColor: '#DC2626',
+                          color: '#FFFFFF',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        {toggling ? <Loader2 size={14} className="spin" /> : <AlertTriangle size={15} />}
+                        <span>Bật Bảo Trì Ngay</span>
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => handleToggleAndApply(false)}
+                        disabled={saving || toggling}
+                        className="btn"
+                        style={{
+                          padding: '9px 18px',
+                          fontSize: 13,
+                          fontWeight: 600,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 6,
+                          backgroundColor: '#16A34A',
+                          borderColor: '#16A34A',
+                          color: '#FFFFFF',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        {toggling ? <Loader2 size={14} className="spin" /> : <CheckCircle2 size={15} />}
+                        <span>Tắt Bảo Trì & Mở Cửa Đón Khách</span>
+                      </button>
+                    )}
                   </div>
 
                   <span style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>

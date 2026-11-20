@@ -254,15 +254,23 @@ export async function pgUpsertArtifact(artifact: any) {
         thumbnail_url = EXCLUDED.thumbnail_url,
         original_photo_url = COALESCE(EXCLUDED.original_photo_url, artifacts.original_photo_url),
         angle_photos = EXCLUDED.angle_photos,
-        model_3d_url = EXCLUDED.model_3d_url,
-        audio_narration_url = EXCLUDED.audio_narration_url,
-        voice_language = EXCLUDED.voice_language,
-        qr_code_url = EXCLUDED.qr_code_url,
+        model_3d_url = COALESCE(NULLIF(EXCLUDED.model_3d_url, ''), artifacts.model_3d_url),
+        audio_narration_url = COALESCE(NULLIF(EXCLUDED.audio_narration_url, ''), artifacts.audio_narration_url),
+        voice_language = COALESCE(NULLIF(EXCLUDED.voice_language, ''), artifacts.voice_language),
+        qr_code_url = COALESCE(NULLIF(EXCLUDED.qr_code_url, ''), artifacts.qr_code_url),
         status = EXCLUDED.status,
         processing_status = EXCLUDED.processing_status,
         processing_error = EXCLUDED.processing_error,
-        model_metadata = EXCLUDED.model_metadata,
-        translations = EXCLUDED.translations,
+        model_metadata = CASE
+          WHEN EXCLUDED.model_metadata IS NOT NULL AND EXCLUDED.model_metadata::text != '{}'
+          THEN COALESCE(artifacts.model_metadata, '{}'::jsonb) || EXCLUDED.model_metadata
+          ELSE artifacts.model_metadata
+        END,
+        translations = CASE
+          WHEN EXCLUDED.translations IS NOT NULL AND EXCLUDED.translations::text != '{}'
+          THEN COALESCE(artifacts.translations, '{}'::jsonb) || EXCLUDED.translations
+          ELSE artifacts.translations
+        END,
         order_index = EXCLUDED.order_index,
         mongo_id = COALESCE(EXCLUDED.mongo_id, artifacts.mongo_id),
         updated_at = CURRENT_TIMESTAMP;
@@ -1156,6 +1164,27 @@ export async function runStartupDataSync() {
       const pgAllArt = await pgPool.query('SELECT * FROM artifacts ORDER BY order_index ASC;');
       for (const row of pgAllArt.rows) {
         const artId = row.id || row.mongo_id;
+        const pgTrans = typeof row.translations === 'string' ? JSON.parse(row.translations || '{}') : (row.translations || {});
+        const mongoDoc = await ArtifactModel.findOne({ $or: [{ id: artId }, { code: row.code }] });
+        const mongoTrans = mongoDoc?.translations && typeof mongoDoc.translations === 'object' && !Array.isArray(mongoDoc.translations)
+          ? mongoDoc.translations
+          : (typeof mongoDoc?.translations === 'string' ? JSON.parse(mongoDoc.translations || '{}') : {});
+
+        // Hợp nhất sâu (Deep Merge) bản dịch đa ngôn ngữ từ cả PostgreSQL và MongoDB
+        const mergedTrans = { ...pgTrans, ...mongoTrans };
+        for (const lang of Object.keys(pgTrans)) {
+          if (mongoTrans[lang] && typeof mongoTrans[lang] === 'object') {
+            mergedTrans[lang] = {
+              ...pgTrans[lang],
+              ...mongoTrans[lang],
+              // Giữ lại audioNarrationUrl nếu có ở bất kỳ bên nào
+              audioNarrationUrl: mongoTrans[lang].audioNarrationUrl || pgTrans[lang].audioNarrationUrl || ''
+            };
+          }
+        }
+
+        const effectiveAudio = mongoDoc?.audioNarrationUrl || row.audio_narration_url || '';
+
         await ArtifactModel.updateOne({ $or: [{ id: artId }, { code: row.code }] }, {
           $set: {
             id: artId,
@@ -1172,17 +1201,23 @@ export async function runStartupDataSync() {
             images: typeof row.images === 'string' ? JSON.parse(row.images || '[]') : (row.images || []),
             thumbnailUrl: row.thumbnail_url,
             model3dUrl: row.model_3d_url,
-            audioNarrationUrl: row.audio_narration_url,
+            audioNarrationUrl: effectiveAudio,
             voiceLanguage: row.voice_language,
             qrCodeUrl: row.qr_code_url,
             status: row.status,
             processingStatus: row.processing_status,
             processingError: row.processing_error,
             modelMetadata: typeof row.model_metadata === 'string' ? JSON.parse(row.model_metadata || '{}') : (row.model_metadata || {}),
-            translations: typeof row.translations === 'string' ? JSON.parse(row.translations || '{}') : (row.translations || {}),
+            translations: mergedTrans,
             orderIndex: row.order_index ?? 0
           }
         }, { upsert: true });
+
+        // Cập nhật ngược lại bản dịch đã hợp nhất vào PostgreSQL
+        await pgPool.query(
+          'UPDATE artifacts SET translations = $1, audio_narration_url = COALESCE(NULLIF($2, \'\'), audio_narration_url) WHERE id = $3 OR code = $4',
+          [JSON.stringify(mergedTrans), effectiveAudio, artId, row.code]
+        );
       }
     }
 
@@ -2095,7 +2130,11 @@ export const LY_ARTIFACTS_DATA = [
     dimensions: 'Dài 26.5 cm x Rộng 18.0 cm x Cao 15.0 cm',
     roomCode: 'P-230',
     description: 'Mô hình kiến trúc nhà đất nung thời Lý (thế kỷ XI - XIII) là hiện vật khảo cổ học quý giá cung cấp tư liệu nguyên gốc về nghệ thuật kiến trúc cung đình và dân gian Đại Việt. Hiện vật mô phỏng kiến trúc nhà mái dốc lợp ngói âm dương truyền thống, bờ nóc và diềm mái chạm khắc tinh xảo họa tiết hoa văn lá đề, mây cuộn và cánh hoa sen đặc trưng của mỹ thuật Phật giáo thời Lý. Tường nhà trổ hoa văn ô thoáng hình học, kết cấu mộc truyền thống độc đáo, phản ánh trình độ kỹ thuật nung luyện gốm kiến trúc đạt đến đỉnh cao được lưu giữ và trưng bày trang trọng tại Bảo tàng Lịch sử TP. Hồ Chí Minh.',
-    narrationScript: 'Chào mừng quý khách đến chiêm ngưỡng Mô hình nhà đất nung thời Lý, hiện vật quý giá niên đại thế kỷ thứ 11 đến thế kỷ 13, hiện đang được lưu giữ tại Bảo tàng Lịch sử Thành phố Hồ Chí Minh. Trải qua gần một thiên niên kỷ, trong khi phần lớn các công trình kiến trúc bằng gỗ thời Lý đã tiêu biến theo thời gian, mô hình đất nung này chính là tư liệu vật chất chân thực nhất tái hiện không gian kiến trúc truyền thống Đại Việt. Quý khách có thể quan sát hệ thống mái dốc lợp ngói âm dương, các họa tiết hoa sen, lá đề uốn lượn uyển chuyển mang đậm triết lý Phật giáo, cùng hệ thống tường bao hoa gió tinh tế. Hiện vật không chỉ thể hiện bàn tay tài hoa của các nghệ nhân nung gốm Đại Việt mà còn là biểu tượng sống động cho sự phồn vinh và bản sắc kiến trúc dân tộc thời Lý.'
+    narrationScript: 'Chào mừng quý khách đến chiêm ngưỡng Mô hình nhà đất nung thời Lý, hiện vật quý giá niên đại thế kỷ thứ 11 đến thế kỷ 13, hiện đang được lưu giữ tại Bảo tàng Lịch sử Thành phố Hồ Chí Minh. Trải qua gần một thiên niên kỷ, trong khi phần lớn các công trình kiến trúc bằng gỗ thời Lý đã tiêu biến theo thời gian, mô hình đất nung này chính là tư liệu vật chất chân thực nhất tái hiện không gian kiến trúc truyền thống Đại Việt. Quý khách có thể quan sát hệ thống mái dốc lợp ngói âm dương, các họa tiết hoa sen, lá đề uốn lượn uyển chuyển mang đậm triết lý Phật giáo, cùng hệ thống tường bao hoa gió tinh tế. Hiện vật không chỉ thể hiện bàn tay tài hoa của các nghệ nhân nung gốm Đại Việt mà còn là biểu tượng sống động cho sự phồn vinh và bản sắc kiến trúc dân tộc thời Lý.',
+    enName: 'Terracotta House Architectural Model',
+    enPeriod: 'Ly Dynasty (11th - 13th Century)',
+    enDescription: 'Ly Dynasty terracotta architectural house model (11th - 13th century), a precious archaeological artifact providing authentic physical documentation of Dai Viet traditional architecture. Featuring sloping yin-yang tiled roofs, intricately carved eaves with Bodhi leaves and lotus petal motifs, and geometric openwork screens, this piece exemplifies the zenith of ancient Vietnamese ceramic architectural craftsmanship preserved at the Museum of History in Ho Chi Minh City.',
+    enNarrationScript: 'Welcome to explore the Terracotta House Model from the Ly Dynasty, an invaluable artifact dating from the 11th to 13th century preserved at the Museum of History in Ho Chi Minh City. While most wooden structures of the Ly Dynasty have succumbed to time, this terracotta model stands as genuine archaeological evidence recreating traditional Dai Viet architecture. Notice the traditional sloping yin-yang tiled roof, the exquisite Bodhi leaves, undulating cloud and lotus motifs embodying Buddhist aesthetics, alongside elegant openwork screens. We invite you to view the 3D model to appreciate the master craftsmanship and enduring architectural heritage of the Ly era.'
   },
   {
     code: 'HV-661',
@@ -2106,7 +2145,11 @@ export const LY_ARTIFACTS_DATA = [
     dimensions: 'Đường kính miệng 16.5 cm, Đường kính đáy 6.2 cm, Cao 7.5 cm',
     roomCode: 'P-230',
     description: 'Bát gốm men thời Lý (thế kỷ XI - XIII) là tuyệt phẩm đỉnh cao của dòng gốm ngự dụng và quý tộc thời Lý. Hiện vật có xương gốm tinh xảo, thành vát mỏng nhẹ, miệng loe thanh thoát. Lòng bát áp dụng kỹ thuật khắc chìm và in khuôn nổi (ám họa) họa tiết hoa sen nở rộ nhiều tầng cánh mềm mại. Toàn thân phủ lớp men ngọc (celadon) trong trẻo, sắc men bóng mịn như ngọc thạch, ánh lên nét huyền ảo khi ánh sáng chiếu xuyên qua các đường rãnh hoa văn dày mỏng. Đáy bát để mộc bộc lộ chất đất sét tinh khiết được lọc rửa công phu, đại diện cho thời kỳ hoàng kim của nghệ thuật gốm men Đại Việt.',
-    narrationScript: 'Kính thưa quý khách, trước mắt quý khách là Bát gốm men ngọc ám họa hoa sen thời Lý, một kiệt tác tiêu biểu cho thời kỳ hoàng kim của nghệ thuật chế tác gốm cổ Việt Nam thế kỷ 11 đến thế kỷ 13. Chiếc bát sở hữu dáng hình thanh thoát, thành gốm mỏng nhẹ và được phủ lớp men ngọc bóng mịn, tạo hiệu ứng thị giác lung linh như một khối ngọc thạch. Điểm đặc sắc nhất nằm ở lòng bát, nơi các nghệ nhân thời Lý đã khéo léo chạm khắc chìm đóa sen nhiều tầng cánh đang bung nở – biểu tượng của sự thuần khiết và giác ngộ trong văn hóa Phật giáo Lý triều. Hiện vật là bằng chứng đanh thép cho kỹ nghệ làm gốm đỉnh cao và thẩm mỹ cung đình tinh tế của tổ tiên ta nghìn năm trước.'
+    narrationScript: 'Kính thưa quý khách, trước mắt quý khách là Bát gốm men ngọc ám họa hoa sen thời Lý, một kiệt tác tiêu biểu cho thời kỳ hoàng kim của nghệ thuật chế tác gốm cổ Việt Nam thế kỷ 11 đến thế kỷ 13. Chiếc bát sở hữu dáng hình thanh thoát, thành gốm mỏng nhẹ và được phủ lớp men ngọc bóng mịn, tạo hiệu ứng thị giác lung linh như một khối ngọc thạch. Điểm đặc sắc nhất nằm ở lòng bát, nơi các nghệ nhân thời Lý đã khéo léo chạm khắc chìm đóa sen nhiều tầng cánh đang bung nở – biểu tượng của sự thuần khiết và giác ngộ trong văn hóa Phật giáo Lý triều. Hiện vật là bằng chứng đanh thép cho kỹ nghệ làm gốm đỉnh cao và thẩm mỹ cung đình tinh tế của tổ tiên ta nghìn năm trước.',
+    enName: 'Celadon Glazed Lotus Bowl',
+    enPeriod: 'Ly Dynasty (11th - 13th Century)',
+    enDescription: 'Ly Dynasty celadon-glazed ceramic bowl with carved and molded lotus blossom motifs (11th - 13th century). A prime example of aristocratic royal ceramics, characterized by ultra-thin delicate walls, graceful flared rim, and lustrous jade-green celadon glaze reminiscent of nephrite jade. The interior features deeply incised blooming lotus petals, symbolizing Buddhist purity and royal aesthetic elegance.',
+    enNarrationScript: 'Before you is the Celadon Glazed Lotus Bowl from the Ly Dynasty, a masterwork representing the golden era of ancient Vietnamese ceramics from the 11th to 13th century. Featuring an ethereal silhouette and wafer-thin porcelain body, it is coated in a luminous jade-green celadon glaze that glistens like polished stone. In the basin of the bowl, master artisans delicately carved blooming multi-tiered lotus petals—the emblem of purity and enlightenment in Ly-era Buddhist culture. Please inspect the 3D details to admire the supreme pottery technique of Dai Viet ancestors.'
   },
   {
     code: 'HV-901',
@@ -2117,7 +2160,11 @@ export const LY_ARTIFACTS_DATA = [
     dimensions: 'Đường kính 32.0 cm, Đường kính lỗ tâm 12.0 cm, Cao 14.5 cm',
     roomCode: 'P-230',
     description: 'Khối hoa sen thời Lý (thế kỷ XI - XIII) là bộ phận điêu khắc kiến trúc và tôn giáo độc đáo, thường dùng làm bệ đỡ tượng Phật, bệ kê cột hoặc trang trí đỉnh tháp chùa thời Lý. Khối đất nung được tạo hình tròn đều đặn với ba lớp cánh sen úp ngửa đan xen uyển chuyển, mỗi cánh sen đều có gờ chỉ viền đôi và chạm nổi hoa văn đôi rồng thời Lý hoặc dây lá uốn lượn hình chữ S mềm mại. Tâm khối hoa sen khoét rỗng hình tròn để ngậm mộng cột hoặc thân tượng. Màu đất nung đỏ hồng ấm áp, chất đất mịn và độ nung già chứng minh kỹ thuật chế tác điêu luyện của các thợ thủ công cung đình Thăng Long.',
-    narrationScript: 'Xin trân trọng giới thiệu đến quý khách Khối hoa sen trang trí kiến trúc thời Lý, hiện vật điêu khắc đất nung quý báu có niên đại từ thế kỷ thứ 11 đến thế kỷ 13. Dưới triều đại nhà Lý, hoa sen được tôn vinh là biểu tượng tối thượng của Phật giáo thanh tịnh. Khối hoa sen này được chế tác với nhiều lớp cánh bung nở đối xứng, các cánh sen chạm trổ họa tiết hoa văn mềm mại, uyển chuyển đặc trưng của mỹ thuật Lý. Trong kiến trúc cổ, hiện vật từng giữ vai trò làm bệ đỡ trang nghiêm cho các pho tượng Phật hoặc làm bệ cột chùa cổ nguy nga. Mời quý khách xoay ngắm mô hình 3D để quan sát từng đường nét điêu khắc tinh xảo, cảm nhận hào khí và chiều sâu văn hóa tâm linh của thời đại Lý triều.'
+    narrationScript: 'Xin trân trọng giới thiệu đến quý khách Khối hoa sen trang trí kiến trúc thời Lý, hiện vật điêu khắc đất nung quý báu có niên đại từ thế kỷ thứ 11 đến thế kỷ 13. Dưới triều đại nhà Lý, hoa sen được tôn vinh là biểu tượng tối thượng của Phật giáo thanh tịnh. Khối hoa sen này được chế tác với nhiều lớp cánh bung nở đối xứng, các cánh sen chạm trổ họa tiết hoa văn mềm mại, uyển chuyển đặc trưng của mỹ thuật Lý. Trong kiến trúc cổ, hiện vật từng giữ vai trò làm bệ đỡ trang nghiêm cho các pho tượng Phật hoặc làm bệ cột chùa cổ nguy nga. Mời quý khách xoay ngắm mô hình 3D để quan sát từng đường nét điêu khắc tinh xảo, cảm nhận hào khí và chiều sâu văn hóa tâm linh của thời đại Lý triều.',
+    enName: 'Lotus Pedestal Block',
+    enPeriod: 'Ly Dynasty (11th - 13th Century)',
+    enDescription: 'Ly Dynasty terracotta architectural lotus pedestal (11th - 13th century), featuring three undulating tiers of sculpted lotus petals adorned with double borders, Ly-era dragons, and S-curved floral tendrils. The central hollow accommodates column mortises or statue mountings, demonstrating exquisite royal craftsmanship of ancient Thang Long.',
+    enNarrationScript: 'Welcome to the architectural terracotta lotus block from the Ly Dynasty, dating back to the 11th to 13th century. In Ly Dynasty culture, the sacred lotus symbolized supreme Buddhist purity and enlightenment. Sculpted with three layers of symmetrical blooming petals, each adorned with refined dragon and vegetal motifs, this masterpiece served as a solemn pedestal for Buddha statues or temple pillars in ancient pagodas. Explore the 3D model to appreciate the timeless artistry and spiritual depth of Dai Viet heritage.'
   },
   {
     code: 'HV-749',
@@ -2128,7 +2175,11 @@ export const LY_ARTIFACTS_DATA = [
     dimensions: 'Rộng 48.0 cm x Sâu 38.0 cm x Cao 85.0 cm (Cả bệ: Cao 115.0 cm)',
     roomCode: 'P-230',
     description: 'Tượng phật Thời Lý (thế kỷ XI - XIII) là kiệt tác điêu khắc tôn giáo tiêu biểu của mỹ thuật Đại Việt thời Lý. Đức Phật được tạc trong tư thế kiết già tọa thiền định trên tòa sen tam tầng, hai tay đặt trong lòng kết ấn Thiền định (Dhyana Mudra). Khuôn mặt tượng đôn hậu, ánh mắt khép nhẹ nhìn xuống với nụ cười từ bi, cổ cao ba ngấn, tóc kết xoắn ốc (usnisa). Áo cà sa buông mềm mại phủ qua vai với những nếp gấp uốn lượn tự nhiên ôm sát thân hình thanh thoát, mang đậm phong cách mỹ thuật Phật giáo thuần Việt thời Lý. Bệ đá bên dưới được chia tầng với hoa văn sóng nước thủy ba thời Lý và đôi rồng chầu dâng hoa sen.',
-    narrationScript: 'Kính mời quý khách chiêm ngưỡng Tượng Phật thời Lý, pho tượng mang tinh hoa nghệ thuật điêu khắc tôn giáo đỉnh cao thế kỷ 11 đến thế kỷ 13, hiện diện trang trọng tại Gian phòng Thời Lý của Bảo tàng Lịch sử Thành phố Hồ Chí Minh. Đức Phật tĩnh tọa an nhiên trong tư thế kiết già trên đài sen, đôi bàn tay buông thư thái kết ấn thiền định. Từng đường nét khuôn mặt đôn hậu, nụ cười thanh thoát và nếp áo cà sa mềm mại uốn lượn đều toát lên tinh thần từ bi, hỷ xả và sự an lạc nội tâm. Dưới thời Lý, Phật giáo là quốc giáo, định hình nên bản sắc văn hóa hòa ái, vị tha và thịnh trị của Đại Việt. Mời quý khách chiêm ngưỡng toàn diện pho tượng 3D để cảm nhận sự trang nghiêm, tĩnh tại và vẻ đẹp trường tồn qua nghìn năm lịch sử.'
+    narrationScript: 'Kính mời quý khách chiêm ngưỡng Tượng Phật thời Lý, pho tượng mang tinh hoa nghệ thuật điêu khắc tôn giáo đỉnh cao thế kỷ 11 đến thế kỷ 13, hiện diện trang trọng tại Gian phòng Thời Lý của Bảo tàng Lịch sử Thành phố Hồ Chí Minh. Đức Phật tĩnh tọa an nhiên trong tư thế kiết già trên đài sen, đôi bàn tay buông thư thái kết ấn thiền định. Từng đường nét khuôn mặt đôn hậu, nụ cười thanh thoát và nếp áo cà sa mềm mại uốn lượn đều toát lên tinh thần từ bi, hỷ xả và sự an lạc nội tâm. Dưới thời Lý, Phật giáo là quốc giáo, định hình nên bản sắc văn hóa hòa ái, vị tha và thịnh trị của Đại Việt. Mời quý khách chiêm ngưỡng toàn diện pho tượng 3D để cảm nhận sự trang nghiêm, tĩnh tại và vẻ đẹp trường tồn qua nghìn năm lịch sử.',
+    enName: 'Ly Dynasty Buddha Statue',
+    enPeriod: 'Ly Dynasty (11th - 13th Century)',
+    enDescription: 'Ly Dynasty stone Buddha sculpture (11th - 13th century), a monumental masterpiece of Dai Viet Buddhist sacred art. Depicting the Buddha seated in serene meditation (Dhyana Mudra) atop a tripartite lotus throne, with gentle downcast eyes, compassionate smile, three neck folds, and coiled ushnisha hair. Soft monastic drapery contours gracefully over the physique, resting on a pedestal carved with thủy ba sea-wave motifs and dragons offering lotus blossoms.',
+    enNarrationScript: 'We cordially invite you to admire the Ly Dynasty Buddha Statue, embodying the pinnacle of sacred religious sculpture from the 11th to 13th century, displayed at the Museum of History in Ho Chi Minh City. The Buddha is seated peacefully in the full lotus posture in deep meditation. Every contour of the serene face, the gentle benevolent smile, and the soft flowing monastic robes reflect the spirit of compassion, equanimity, and inner tranquility of Dai Viet Buddhism. We invite you to explore this 3D masterpiece to experience the solemnity and enduring spiritual beauty spanning a thousand years of history.'
   }
 ];
 
@@ -2148,16 +2199,31 @@ export async function enrichLyArtifactsData() {
         art.roomCode = item.roomCode;
         if (targetRoomId) art.roomId = targetRoomId;
 
-        const currentTrans = (typeof art.translations === 'object' && art.translations) ? art.translations : {};
+        let currentTrans: Record<string, any> = {};
+        if (typeof art.translations === 'string') {
+          try { currentTrans = JSON.parse(art.translations); } catch {}
+        } else if (art.translations && typeof art.translations === 'object') {
+          currentTrans = { ...art.translations };
+        }
+
         const viTrans = currentTrans.vi || {};
+        const enTrans = currentTrans.en || {};
+
         art.translations = {
           ...currentTrans,
           vi: {
-            ...viTrans,
             name: item.name,
             period: item.period,
             description: item.description,
-            narrationScript: item.narrationScript
+            narrationScript: item.narrationScript,
+            ...viTrans, // Bảo lưu audioNarrationUrl và chỉnh sửa riêng của Admin nếu đã có
+          },
+          en: {
+            name: item.enName,
+            period: item.enPeriod,
+            description: item.enDescription,
+            narrationScript: item.enNarrationScript,
+            ...enTrans, // Bảo lưu audioNarrationUrl và chỉnh sửa riêng của Admin nếu đã có
           }
         };
         art.markModified('translations');

@@ -59,6 +59,73 @@ function resolveOriginalPhoto(art: any): string {
   return art.originalPhotoUrl || (art.images && art.images[0]) || art.thumbnailUrl || '';
 }
 
+/**
+ * Chuẩn hóa toàn diện dữ liệu Artifact từ PostgreSQL/MongoDB:
+ * Đảm bảo translations luôn là Object (không bị dính chuỗi JSON), images là mảng, anglePhotos là mảng
+ */
+export function normalizeArtifactData(art: any): any {
+  if (!art) return art;
+  const parsed = { ...(art.toObject ? art.toObject() : art) };
+
+  // 1. Chuẩn hóa translations thành Object JavaScript hợp lệ
+  if (typeof parsed.translations === 'string') {
+    try {
+      parsed.translations = JSON.parse(parsed.translations || '{}');
+    } catch {
+      parsed.translations = {};
+    }
+  } else if (!parsed.translations || typeof parsed.translations !== 'object' || Array.isArray(parsed.translations)) {
+    parsed.translations = {};
+  }
+
+  // 2. Chuẩn hóa images thành Array
+  if (typeof parsed.images === 'string') {
+    try {
+      parsed.images = JSON.parse(parsed.images || '[]');
+    } catch {
+      parsed.images = [];
+    }
+  } else if (!Array.isArray(parsed.images)) {
+    parsed.images = [];
+  }
+
+  // 3. Chuẩn hóa anglePhotos thành Array
+  if (typeof parsed.anglePhotos === 'string') {
+    try {
+      parsed.anglePhotos = JSON.parse(parsed.anglePhotos || '[]');
+    } catch {
+      parsed.anglePhotos = [];
+    }
+  } else if (!Array.isArray(parsed.anglePhotos)) {
+    parsed.anglePhotos = [];
+  }
+
+  // 4. Chuẩn hóa modelMetadata thành Object
+  if (typeof parsed.modelMetadata === 'string') {
+    try {
+      parsed.modelMetadata = JSON.parse(parsed.modelMetadata || '{}');
+    } catch {
+      parsed.modelMetadata = {};
+    }
+  } else if (!parsed.modelMetadata || typeof parsed.modelMetadata !== 'object') {
+    parsed.modelMetadata = {};
+  }
+
+  // 5. Chuẩn hóa originalPhotoUrl
+  if (!parsed.originalPhotoUrl || parsed.originalPhotoUrl.includes('isolated_')) {
+    const resolved = resolveOriginalPhoto(parsed);
+    if (resolved && !resolved.includes('isolated_')) {
+      parsed.originalPhotoUrl = resolved;
+    }
+  }
+
+  if (parsed._id && !parsed.id) {
+    parsed.id = parsed._id.toString();
+  }
+
+  return parsed;
+}
+
 // Cấu hình Multer cho ảnh
 const storageImage = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, ARTIFACTS_UPLOAD_DIR),
@@ -152,10 +219,7 @@ artifactsRouter.get('/', async (req: Request, res: Response) => {
       `, params);
 
       if (pgRes.rows.length > 0) {
-        formatted = pgRes.rows.map((row: any) => ({
-          ...row,
-          anglePhotos: Array.isArray(row.anglePhotos) ? row.anglePhotos : (typeof row.anglePhotos === 'string' ? JSON.parse(row.anglePhotos || '[]') : [])
-        }));
+        formatted = pgRes.rows.map((row: any) => normalizeArtifactData(row));
       }
     } catch (pgErr: any) {
       console.warn('[Artifacts PG List Warning]:', pgErr.message);
@@ -178,10 +242,7 @@ artifactsRouter.get('/', async (req: Request, res: Response) => {
         ];
       }
       const items = await ArtifactModel.find(filter).sort({ orderIndex: 1, createdAt: -1 }).lean();
-      formatted = items.map((item: any) => ({
-        ...item,
-        id: item._id ? item._id.toString() : item.id
-      }));
+      formatted = items.map((item: any) => normalizeArtifactData(item));
     }
 
     const result = {
@@ -329,17 +390,8 @@ artifactsRouter.get('/:id', async (req: Request, res: Response) => {
       }
     }
 
-    // Chuẩn hóa anglePhotos và originalPhotoUrl cho phản hồi
-    artifact.anglePhotos = Array.isArray(artifact.anglePhotos)
-      ? artifact.anglePhotos
-      : (typeof artifact.anglePhotos === 'string' ? JSON.parse(artifact.anglePhotos || '[]') : []);
-
-    if (!artifact.originalPhotoUrl || artifact.originalPhotoUrl.includes('isolated_')) {
-      const resolved = resolveOriginalPhoto(artifact);
-      if (resolved && !resolved.includes('isolated_')) {
-        artifact.originalPhotoUrl = resolved;
-      }
-    }
+    // Chuẩn hóa toàn bộ dữ liệu trước khi phản hồi (translations, images, anglePhotos, modelMetadata)
+    artifact = normalizeArtifactData(artifact);
 
     await cacheSet(cacheKey, artifact, 600); // 10 phút TTL
     res.json({ success: true, data: artifact });
@@ -467,6 +519,33 @@ artifactsRouter.put('/:id', async (req: Request, res: Response) => {
       }
     }
     const query = mongoose.isValidObjectId(id) ? { $or: [{ _id: id }, { id }, { code: id }] } : { $or: [{ id }, { code: id }] };
+
+    // Chuẩn hóa translations nếu được gửi dưới dạng chuỗi JSON
+    if (req.body.translations && typeof req.body.translations === 'string') {
+      try {
+        req.body.translations = JSON.parse(req.body.translations);
+      } catch {
+        delete req.body.translations;
+      }
+    }
+
+    // Bảo lưu và hợp nhất các bản dịch đã có để không bao giờ bị mất tiếng Anh/Pháp khi cập nhật một ngôn ngữ khác
+    if (req.body.translations && typeof req.body.translations === 'object' && !Array.isArray(req.body.translations)) {
+      const existingDoc = await ArtifactModel.findOne(query).lean();
+      if (existingDoc && existingDoc.translations) {
+        let existingTrans: Record<string, any> = {};
+        if (typeof existingDoc.translations === 'string') {
+          try { existingTrans = JSON.parse(existingDoc.translations); } catch {}
+        } else if (typeof existingDoc.translations === 'object') {
+          existingTrans = { ...existingDoc.translations };
+        }
+        req.body.translations = {
+          ...existingTrans,
+          ...req.body.translations
+        };
+      }
+    }
+
     let updated = await ArtifactModel.findOneAndUpdate(query, { $set: req.body }, { returnDocument: 'after' });
 
     // Nếu chưa có trong MongoDB (do trước đây chỉ lưu ở PostgreSQL), nạp và đồng bộ vào MongoDB
@@ -516,8 +595,9 @@ artifactsRouter.put('/:id', async (req: Request, res: Response) => {
       cacheDel(`artifacts:item:${updated.id}`)
     ]);
 
-    broadcastRealtimeEvent('artifacts_updated', { action: 'update', artifact: updated });
-    res.json({ success: true, data: updated });
+    const normalizedResult = normalizeArtifactData(updated.toObject ? updated.toObject() : updated);
+    broadcastRealtimeEvent('artifacts_updated', { action: 'update', artifact: normalizedResult });
+    res.json({ success: true, data: normalizedResult });
   } catch (err: any) {
     res.status(500).json({ success: false, message: 'Lỗi cập nhật hiện vật: ' + err.message });
   }

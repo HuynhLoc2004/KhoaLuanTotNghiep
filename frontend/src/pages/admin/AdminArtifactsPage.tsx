@@ -1193,12 +1193,18 @@ export const AdminArtifactsPage: React.FC = () => {
       // Reset preview audio vì văn bản mới dịch chưa được tạo Voice AI
       setPreviewAudioUrl(null);
 
+      // Bảo lưu audioNarrationUrl đã có nếu đã từng tạo giọng đọc
+      const safeTransMap = parseSafeTranslations(activeVoiceArtifact.translations);
+      const existingAudio = previewAudioUrl ||
+                            workingVoiceTranslations[selectedVoiceLang]?.audioNarrationUrl ||
+                            safeTransMap[selectedVoiceLang]?.audioNarrationUrl || '';
+
       const currentLangPayload = {
         name: translatedName,
         period: translatedPeriod,
         narrationScript: translatedScript,
         description: translatedScript,
-        audioNarrationUrl: '' // Reset vì nội dung mới dịch chưa tạo voice
+        audioNarrationUrl: existingAudio
       };
 
       const updatedWorking = {
@@ -1213,7 +1219,7 @@ export const AdminArtifactsPage: React.FC = () => {
 
       // Tự động lưu bản dịch vào CSDL để không bị mất khi thoát modal
       try {
-        const existingTranslations = activeVoiceArtifact.translations || {};
+        const existingTranslations = parseSafeTranslations(activeVoiceArtifact.translations);
         const mergedTranslations = {
           ...existingTranslations,
           ...updatedWorking
