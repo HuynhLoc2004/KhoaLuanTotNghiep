@@ -26,7 +26,7 @@ import { Artifact, LanguageItem } from '../../types';
 import { Turntable360Viewer } from '../../components/Turntable360Viewer';
 import { useSystemBranding } from '../../context/SystemBrandingContext';
 import { useClientTranslation } from '../../context/ClientTranslationContext';
-import { ARTIFACT_PRESET_TRANSLATIONS } from '../../locales/dictionaries';
+import { ARTIFACT_PRESET_TRANSLATIONS, BUILTIN_DICTIONARIES } from '../../locales/dictionaries';
 import '../../styles/artifacts.css';
 
 interface PublicArtifactViewProps {
@@ -217,7 +217,7 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
       // 1. Tiếng Việt là ngôn ngữ gốc luôn luôn được hỗ trợ
       if (lang.code === 'vi') return true;
 
-      // 2. Các ngôn ngữ khác: Hỗ trợ nếu có bản dịch (text hoặc voice) trong DB hoặc trong Preset
+      // 2. Các ngôn ngữ khác: Hỗ trợ nếu có bản dịch (text hoặc voice) trong DB hoặc tiếng Anh trong Preset
       const trans = safeTranslations[lang.code];
       const hasDbData = Boolean(
         trans &&
@@ -228,30 +228,63 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
       );
 
       const code = artifact.code || '';
-      const hasPreset = Boolean(code && ARTIFACT_PRESET_TRANSLATIONS[code]?.[lang.code]);
+      // Chỉ tự nhận preset cho tiếng Anh (en). Tuyệt đối không tự động kích hoạt FR/ZH nếu hiện vật chưa có DB
+      const hasPreset = Boolean(lang.code === 'en' && code && ARTIFACT_PRESET_TRANSLATIONS[code]?.en);
 
       return hasDbData || hasPreset;
     });
   }, [artifact, displayLanguages, safeTranslations]);
 
-  // Tự động đồng bộ artifactLang khi mở hiện vật nếu hiện vật hỗ trợ ngôn ngữ website
+  // Cờ nhận biết người dùng có muốn tự động phát tiếp voice khi chuyển ngôn ngữ không
+  const shouldAutoPlayRef = React.useRef<boolean>(false);
+
+  // Khởi tạo ngôn ngữ khi mở hiện vật:
+  // CHỈ chạy MỘT LẦN khi hiện vật lần đầu được nạp (hoặc khi đổi artifactId)
+  // Tuyệt đối KHÔNG chạy lại khi người dùng chủ động bấm chọn ngôn ngữ khác!
+  const lastLoadedArtifactIdRef = React.useRef<string | null>(null);
+
   useEffect(() => {
-    if (artifactSupportedLanguages.some((l) => l.code === currentLang)) {
-      setArtifactLang(currentLang);
+    if (!artifact) return;
+    const currentId = String(artifact.id || (artifact as any)._id || artifact.code || '');
+    if (lastLoadedArtifactIdRef.current !== currentId) {
+      lastLoadedArtifactIdRef.current = currentId;
+      // Khởi tạo theo ngôn ngữ website nếu hiện vật đó có hỗ trợ, không thì mặc định tiếng Việt
+      const initialLang = artifactSupportedLanguages.some((l) => l.code === currentLang) ? currentLang : 'vi';
+      setArtifactLang(initialLang);
+      setSelectedVoiceLang(initialLang);
     }
-  }, [currentLang, artifactSupportedLanguages]);
+  }, [artifact, currentLang, artifactSupportedLanguages]);
+
+  // Hàm dịch chuyên biệt cho toàn bộ giao diện hiện vật: dịch 100% theo artifactLang
+  const artifactT = React.useCallback(
+    (key: string, fallback?: string): string => {
+      if (artifactLang === 'vi') {
+        const viDict = BUILTIN_DICTIONARIES.vi;
+        return viDict?.[key] || fallback || key;
+      }
+      const targetDict = BUILTIN_DICTIONARIES[artifactLang] || BUILTIN_DICTIONARIES.en;
+      return targetDict?.[key] || fallback || key;
+    },
+    [artifactLang]
+  );
 
   // Chọn ngôn ngữ hiển thị RIÊNG CHO HIỆN VẬT NÀY (Tuyệt đối KHÔNG thay đổi ngôn ngữ toàn website)
   const handleSelectArtifactLanguage = React.useCallback(
     (langCode: string) => {
+      // Nếu đang nghe thì khi đổi ngôn ngữ, ghi nhớ để tự động phát ngay giọng đọc của ngôn ngữ mới
+      const wasPlaying = isPlayingAudio;
+      shouldAutoPlayRef.current = wasPlaying;
+
       if (audioRef) {
         audioRef.pause();
+        audioRef.currentTime = 0;
       }
       setIsPlayingAudio(false);
+      setAudioCurrentTime(0);
       setArtifactLang(langCode);
       setSelectedVoiceLang(langCode);
     },
-    [audioRef]
+    [audioRef, isPlayingAudio]
   );
 
   // Bản dịch hiện tại của hiện vật theo artifactLang (từ DB hoặc Preset)
@@ -271,17 +304,17 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
   const displayName =
     artifactLang === 'vi'
       ? (safeTranslations?.vi?.name || artifact?.name || '')
-      : (activeTranslation?.name || (artifact?.name ? t(artifact.name, artifact.name) : '') || artifact?.name || '');
+      : (activeTranslation?.name || (artifact?.name ? artifactT(artifact.name, artifact.name) : '') || artifact?.name || '');
 
   const displayPeriod =
     artifactLang === 'vi'
       ? (safeTranslations?.vi?.period || artifact?.period || '')
-      : (activeTranslation?.period || (artifact?.period ? t(artifact.period, artifact.period) : '') || artifact?.period || '');
+      : (activeTranslation?.period || (artifact?.period ? artifactT(artifact.period, artifact.period) : '') || artifact?.period || '');
 
   const displayDescription =
     artifactLang === 'vi'
       ? (safeTranslations?.vi?.narrationScript || safeTranslations?.vi?.description || artifact?.description || '')
-      : ((activeTranslation as any)?.narrationScript || activeTranslation?.description || (artifact?.description ? t(artifact.description, artifact.description) : '') || artifact?.description || '');
+      : ((activeTranslation as any)?.narrationScript || activeTranslation?.description || (artifact?.description ? artifactT(artifact.description, artifact.description) : '') || artifact?.description || '');
 
   // Định nghĩa cấu trúc lựa chọn giọng đọc Voice AI
   interface VoiceOption {
@@ -389,14 +422,34 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
     if (!activeAudioUrl) {
       setAudioRef(null);
       setAudioDuration(0);
+      shouldAutoPlayRef.current = false;
       return;
     }
 
     const audio = new Audio(activeAudioUrl);
     setAudioRef(audio);
 
+    const tryAutoPlay = () => {
+      if (shouldAutoPlayRef.current) {
+        shouldAutoPlayRef.current = false;
+        audio
+          .play()
+          .then(() => setIsPlayingAudio(true))
+          .catch((err) => {
+            console.warn('[PublicArtifactView] audio auto-play failed:', err);
+            setIsPlayingAudio(false);
+          });
+      }
+    };
+
     const onTimeUpdate = () => setAudioCurrentTime(audio.currentTime);
-    const onLoadedMetadata = () => setAudioDuration(audio.duration);
+    const onLoadedMetadata = () => {
+      setAudioDuration(audio.duration);
+      tryAutoPlay();
+    };
+    const onCanPlay = () => {
+      tryAutoPlay();
+    };
     const onEnded = () => {
       setIsPlayingAudio(false);
       setAudioCurrentTime(0);
@@ -406,14 +459,18 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
 
     audio.addEventListener('timeupdate', onTimeUpdate);
     audio.addEventListener('loadedmetadata', onLoadedMetadata);
+    audio.addEventListener('canplay', onCanPlay);
     audio.addEventListener('ended', onEnded);
     audio.addEventListener('play', onPlay);
     audio.addEventListener('pause', onPause);
+
+    audio.load();
 
     return () => {
       audio.pause();
       audio.removeEventListener('timeupdate', onTimeUpdate);
       audio.removeEventListener('loadedmetadata', onLoadedMetadata);
+      audio.removeEventListener('canplay', onCanPlay);
       audio.removeEventListener('ended', onEnded);
       audio.removeEventListener('play', onPlay);
       audio.removeEventListener('pause', onPause);
@@ -440,13 +497,22 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
   };
 
   // Chọn giọng đọc riêng mà KHÔNG đổi ngôn ngữ toàn trang web
-  const handleSelectVoiceLang = (voiceCode: string) => {
-    if (audioRef) {
-      audioRef.pause();
-    }
-    setIsPlayingAudio(false);
-    setSelectedVoiceLang(voiceCode);
-  };
+  const handleSelectVoiceLang = React.useCallback(
+    (voiceCode: string) => {
+      const wasPlaying = isPlayingAudio;
+      shouldAutoPlayRef.current = wasPlaying;
+
+      if (audioRef) {
+        audioRef.pause();
+        audioRef.currentTime = 0;
+      }
+      setIsPlayingAudio(false);
+      setAudioCurrentTime(0);
+      setSelectedVoiceLang(voiceCode);
+      setArtifactLang(voiceCode);
+    },
+    [audioRef, isPlayingAudio]
+  );
 
   const handleAudioSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!audioRef) return;
@@ -578,21 +644,21 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
   }
 
   return (
-    <div className="public-artifact-viewport">
+    <div className="public-artifact-viewport" data-no-auto-translate="true">
       {/* Top Navigation Bar */}
       <header className="public-artifact-header">
         <div className="header-left">
           <button
             className="back-btn"
             onClick={onBackToTour || (() => (window.location.href = '/'))}
-            title={t('artifact.backToRooms', 'Không gian trưng bày')}
+            title={artifactT('artifact.backToRooms', 'Không gian trưng bày')}
           >
             <ArrowLeft size={18} />
-            <span className="back-text">{t('artifact.backToRooms', 'Không gian trưng bày')}</span>
+            <span className="back-text">{artifactT('artifact.backToRooms', 'Không gian trưng bày')}</span>
           </button>
           <div className="divider-vertical" />
           <div className="brand-group">
-            <span className="museum-name">{t('nav.museumTitle', branding.museumName || 'BẢO TÀNG LỊCH SỬ TP. HỒ CHÍ MINH')}</span>
+            <span className="museum-name">{artifactT('nav.museumTitle', branding.museumName || 'BẢO TÀNG LỊCH SỬ TP. HỒ CHÍ MINH')}</span>
             <span className="artifact-code-badge" data-no-auto-translate="true">{artifact.code}</span>
           </div>
         </div>
@@ -621,14 +687,14 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
           <button
             className="action-icon-btn"
             onClick={() => setIsQRModalOpen(true)}
-            title={t('artifact.shareQr', 'Chia sẻ hoặc quét mã QR')}
+            title={artifactT('artifact.shareQr', 'Chia sẻ hoặc quét mã QR')}
           >
             <QrCode size={18} />
           </button>
           <button
             className="action-icon-btn"
             onClick={handleCopyLink}
-            title={t('artifact.copyLinkSuccess', 'Sao chép liên kết')}
+            title={artifactT('artifact.copyLinkSuccess', 'Sao chép liên kết')}
           >
             {copiedLink ? <Check size={18} color="#10B981" /> : <Share2 size={18} />}
           </button>
@@ -653,7 +719,7 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
                   undefined
                 }
                 artifactName={displayName}
-                artifactPeriod={displayPeriod || t('nav.museumTitle', 'Bảo tàng Lịch sử TP.HCM')}
+                artifactPeriod={displayPeriod || artifactT('nav.museumTitle', 'Bảo tàng Lịch sử TP.HCM')}
                 autoRotateSpeed={0.8}
                 audioNarrationUrl={undefined}
                 translations={undefined}
@@ -681,7 +747,7 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
               <div className="hero-gradient-overlay" />
               <div className="no-3d-notice">
                 <Layers size={20} />
-                <span>{t('artifact.model3dCreating', 'Hiện vật đang được số hóa tạo lập mô hình 3D')}</span>
+                <span>{artifactT('artifact.model3dCreating', 'Hiện vật đang được số hóa tạo lập mô hình 3D')}</span>
               </div>
             </div>
           )}
@@ -691,7 +757,7 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
         <aside className="artifact-info-sidebar">
           {/* Category & Status Badges */}
           <div className="meta-badge-row">
-            <span className="category-pill">{t(artifact.category, artifact.category)}</span>
+            <span className="category-pill">{artifactLang === 'vi' ? artifact.category : artifactT(artifact.category, artifact.category)}</span>
             {displayPeriod && (
               <span className="period-pill">
                 <Calendar size={13} />
@@ -701,7 +767,7 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
             {artifact.origin && (
               <span className="origin-pill">
                 <MapPin size={13} />
-                {t(artifact.origin, artifact.origin)}
+                {artifactLang === 'vi' ? artifact.origin : artifactT(artifact.origin, artifact.origin)}
               </span>
             )}
           </div>
@@ -722,7 +788,7 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
                   </div>
                   <div className="guide-meta-texts" style={{ flex: 1 }}>
                     <div className="guide-title-row">
-                      <span className="guide-label">{t('artifact.narrationGuide', 'Giới thiệu hiện vật')}</span>
+                      <span className="guide-label">{artifactT('artifact.narrationGuide', 'Giới thiệu hiện vật')}</span>
                       <span className="guide-badge-ai">Voice AI</span>
                     </div>
 
@@ -732,13 +798,13 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
                         style={{ backgroundColor: '#10B981' }}
                       />
                       <span>
-                        {t('artifact.voiceLanguage', 'Giọng đọc')}:{' '}
+                        {artifactT('artifact.voiceLanguage', 'Giọng đọc')}:{' '}
                         <strong className="lang-highlight">
                           {activeVoice.flag} {activeVoice.label}
                         </strong>
-                        {activeVoice.code !== currentLang && (
+                        {activeVoice.code !== artifactLang && (
                           <span style={{ opacity: 0.8, fontSize: '0.78rem', marginLeft: 6 }}>
-                            ({t('artifact.fallbackVoiceNote', 'Bản thu mặc định')})
+                            ({artifactT('artifact.fallbackVoiceNote', 'Bản thu mặc định')})
                           </span>
                         )}
                       </span>
@@ -757,7 +823,7 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
                         }}
                       >
                         <span style={{ fontSize: '0.72rem', color: '#d4a86a', fontWeight: 600 }}>
-                          {t('artifact.chooseVoice', 'Chọn giọng đọc')}:
+                          {artifactT('artifact.chooseVoice', 'Chọn giọng đọc')}:
                         </span>
                         {availableVoices.map((v) => {
                           const isSelected = activeVoice?.code === v.code;
@@ -829,12 +895,12 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
                   {isPlayingAudio ? (
                     <>
                       <Pause size={17} />
-                      <span>{t('artifact.pauseAudio', 'Tạm dừng nghe')}</span>
+                      <span>{artifactT('artifact.pauseAudio', 'Tạm dừng nghe')}</span>
                     </>
                   ) : (
                     <>
                       <Play size={17} />
-                      <span>{t('artifact.playAudio', 'Nghe giới thiệu hiện vật')}</span>
+                      <span>{artifactT('artifact.playAudio', 'Nghe giới thiệu hiện vật')}</span>
                     </>
                   )}
                 </button>
@@ -846,39 +912,39 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
           <div className="specifications-box">
             <h3 className="section-heading">
               <Tag size={15} />
-              <span>{t('artifact.specsTitle', 'Thông số di sản & Hồ sơ khoa học')}</span>
+              <span>{artifactT('artifact.specsTitle', 'Thông số di sản & Hồ sơ khoa học')}</span>
             </h3>
             <div className="specs-grid">
               <div className="spec-item">
-                <span className="spec-label">{t('artifact.identifier', 'Mã định danh')}</span>
+                <span className="spec-label">{artifactT('artifact.identifier', 'Mã định danh')}</span>
                 <span className="spec-val highlight-gold" data-no-auto-translate="true">{artifact.code}</span>
               </div>
               <div className="spec-item">
-                <span className="spec-label">{t('artifact.chronology', 'Niên đại lịch sử')}</span>
-                <span className="spec-val">{displayPeriod || (artifact.period ? t(artifact.period, artifact.period) : t('common.updating', 'Chưa cập nhật'))}</span>
+                <span className="spec-label">{artifactT('artifact.chronology', 'Niên đại lịch sử')}</span>
+                <span className="spec-val">{displayPeriod || (artifact.period ? (artifactLang === 'vi' ? artifact.period : artifactT(artifact.period, artifact.period)) : artifactT('common.updating', 'Chưa cập nhật'))}</span>
               </div>
               <div className="spec-item">
-                <span className="spec-label">{t('artifact.originDiscovery', 'Nguồn gốc phát hiện')}</span>
-                <span className="spec-val">{artifact.origin ? t(artifact.origin, artifact.origin) : t('nav.museumTitle', 'Bảo tàng Lịch sử TP.HCM')}</span>
+                <span className="spec-label">{artifactT('artifact.originDiscovery', 'Nguồn gốc phát hiện')}</span>
+                <span className="spec-val">{artifact.origin ? (artifactLang === 'vi' ? artifact.origin : artifactT(artifact.origin, artifact.origin)) : artifactT('nav.museumTitle', 'Bảo tàng Lịch sử TP.HCM')}</span>
               </div>
               {artifact.dimensions && (
                 <div className="spec-item">
-                  <span className="spec-label">{t('artifact.measurements', 'Kích thước đo đạc')}</span>
+                  <span className="spec-label">{artifactT('artifact.measurements', 'Kích thước đo đạc')}</span>
                   <span className="spec-val" data-no-auto-translate="true">{artifact.dimensions}</span>
                 </div>
               )}
               {artifact.modelMetadata && (
                 <>
                   <div className="spec-item">
-                    <span className="spec-label">{t('artifact.meshResolution', 'Độ phân giải lưới 3D')}</span>
+                    <span className="spec-label">{artifactT('artifact.meshResolution', 'Độ phân giải lưới 3D')}</span>
                     <span className="spec-val">
                       <span data-no-auto-translate="true">{artifact.modelMetadata.vertices?.toLocaleString()}</span>{' '}
-                      <span>{t('artifact.vertices', 'đỉnh (Vertices)')}</span>
+                      <span>{artifactT('artifact.vertices', 'đỉnh (Vertices)')}</span>
                     </span>
                   </div>
                   <div className="spec-item">
-                    <span className="spec-label">{t('artifact.geometricStructure', 'Cấu trúc hình học')}</span>
-                    <span className="spec-val">{t('artifact.manifoldHousing', 'Vỏ kín đa diện Manifold')}</span>
+                    <span className="spec-label">{artifactT('artifact.geometricStructure', 'Cấu trúc hình học')}</span>
+                    <span className="spec-val">{artifactT('artifact.manifoldHousing', 'Vỏ kín đa diện Manifold')}</span>
                   </div>
                 </>
               )}
@@ -889,7 +955,7 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
           <div className="description-box">
             <h3 className="section-heading">
               <Info size={15} />
-              <span>{t('artifact.significanceTitle', 'Giá trị lịch sử & Ý nghĩa văn hóa')}</span>
+              <span>{artifactT('artifact.significanceTitle', 'Giá trị lịch sử & Ý nghĩa văn hóa')}</span>
             </h3>
             <div className="description-text">
               {displayDescription ? (
@@ -897,7 +963,7 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
                   <p key={idx}>{paragraph}</p>
                 ))
               ) : (
-                <p className="empty-text">{t('artifact.emptyStory', 'Đang cập nhật câu chuyện lịch sử cho cổ vật này...')}</p>
+                <p className="empty-text">{artifactT('artifact.emptyStory', 'Đang cập nhật câu chuyện lịch sử cho cổ vật này...')}</p>
               )}
             </div>
           </div>
@@ -907,7 +973,7 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
             <div className="photo-gallery-section">
               <h3 className="section-heading">
                 <Layers size={15} />
-                <span>{t('artifact.archivedImages', 'Hình ảnh lưu trữ tư liệu')}</span>
+                <span>{artifactT('artifact.archivedImages', 'Hình ảnh lưu trữ tư liệu')}</span>
                 <span className="spec-count" data-no-auto-translate="true">({displayArchiveImages.length})</span>
               </h3>
               <div className="photo-grid">
@@ -921,13 +987,13 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
                         setLightboxList(
                           displayArchiveImages.map((u, idx) => ({
                             url: u,
-                            label: `${displayName} - ${t('artifact.archivedImages', 'Ảnh tư liệu gốc')} (${idx + 1}/${displayArchiveImages.length})`
+                            label: `${displayName} - ${artifactT('artifact.archivedImages', 'Ảnh tư liệu gốc')} (${idx + 1}/${displayArchiveImages.length})`
                           }))
                         );
                         setActiveImageIndex(i);
                         setIsLightboxOpen(true);
                       }}
-                      title={`${displayName} - ${t('artifact.viewOriginal', 'Bấm để xem ảnh gốc nguyên bản')}`}
+                      title={`${displayName} - ${artifactT('artifact.viewOriginal', 'Bấm để xem ảnh gốc nguyên bản')}`}
                     >
                       <img src={fullUrl} alt={`${displayName} ${i + 1}`} loading="lazy" />
                     </div>
@@ -942,11 +1008,11 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
             <div className="photo-gallery-section angle-photos-section">
               <h3 className="section-heading">
                 <Compass size={15} />
-                <span>{t('artifact.aroundPhotos', 'Ảnh chụp các hướng xung quanh')}</span>
+                <span>{artifactT('artifact.aroundPhotos', 'Ảnh chụp các hướng xung quanh')}</span>
                 <span className="spec-count" data-no-auto-translate="true">({artifact.anglePhotos.length})</span>
               </h3>
               <p className="section-subtext">
-                {t('artifact.aroundPhotosHint', 'Khám phá chi tiết hiện vật qua ảnh chụp thực tế các góc (trái, phải, trước, sau, trên, dưới...)')}
+                {artifactT('artifact.aroundPhotosHint', 'Khám phá chi tiết hiện vật qua ảnh chụp thực tế các góc (trái, phải, trước, sau, trên, dưới...)')}
               </p>
               <div className="photo-grid">
                 {artifact.anglePhotos.map((item, idx) => {
@@ -1062,8 +1128,8 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
             </button>
             <div className="qr-card-header">
               <QrCode size={28} className="gold-icon" />
-              <h3>{t('rooms.qrModalTitle', 'Mã QR Khám Phá Cổ Vật')}</h3>
-              <p>{t('rooms.scanToExplore', 'Quét mã bằng camera điện thoại để chiêm ngưỡng mô hình 3D và nghe giới thiệu hiện vật')}</p>
+              <h3>{artifactT('rooms.qrModalTitle', 'Mã QR Khám Phá Cổ Vật')}</h3>
+              <p>{artifactT('rooms.scanToExplore', 'Quét mã bằng camera điện thoại để chiêm ngưỡng mô hình 3D và nghe giới thiệu hiện vật')}</p>
             </div>
 
             <div className="qr-image-wrapper">
@@ -1076,7 +1142,7 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
 
             <div className="qr-artifact-meta">
               <strong>{displayName}</strong>
-              <span data-no-auto-translate="true">{t('artifact.identifier', 'Mã')}: {artifact.code}</span>
+              <span data-no-auto-translate="true">{artifactT('artifact.identifier', 'Mã')}: {artifact.code}</span>
             </div>
 
             <div className="qr-modal-actions">
