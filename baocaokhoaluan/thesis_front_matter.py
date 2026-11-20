@@ -220,12 +220,24 @@ def add_front_matter(doc, helper):
     p_gvhd_h = helper.add_heading_1(doc, "NHẬN XÉT CỦA GIÁO VIÊN HƯỚNG DẪN")
     p_gvhd_h.alignment = WD_ALIGN_PARAGRAPH.CENTER
     
-    # Dòng chấm toàn chiều rộng (tab leader dots, 21 dòng thẳng tắp phủ kín trang chuẩn bài mẫu)
-    helper.add_full_width_dotted_line(doc, count=21, space_before=2.5, space_after=2.5, line_spacing=1.3)
+    # 4 tieu chi danh gia cua GVHD kem dong cham tab leader
+    def add_eval_block_hd(title, count=3):
+        p = doc.add_paragraph()
+        helper.format_paragraph(p, space_before=6, space_after=2, line_spacing=1.15, align=WD_ALIGN_PARAGRAPH.LEFT, first_indent=0.0)
+        p.paragraph_format.keep_with_next = True
+        r = p.add_run(title)
+        helper.set_run_font(r, "Times New Roman", 13, bold=True)
+        helper.add_full_width_dotted_line(doc, count=count, space_before=2.5, space_after=2.5, line_spacing=1.3)
+
+    add_eval_block_hd("1. Đánh giá về tinh thần, thái độ làm việc của sinh viên trong suốt quá trình thực hiện đề tài:", 3)
+    add_eval_block_hd("2. Đánh giá về kiến thức chuyên môn, khả năng tự nghiên cứu và giải quyết vấn đề:", 3)
+    add_eval_block_hd("3. Đánh giá về chất lượng sản phẩm chương trình và tính ứng dụng thực tiễn:", 3)
+    add_eval_block_hd("4. Đánh giá tổng quát và kết luận:", 3)
     
     p_gvhd_bot = doc.add_paragraph()
-    helper.format_paragraph(p_gvhd_bot, space_before=16, space_after=0, line_spacing=1.3, align=WD_ALIGN_PARAGRAPH.RIGHT, first_indent=0.0)
+    helper.format_paragraph(p_gvhd_bot, space_before=10, space_after=0, line_spacing=1.2, align=WD_ALIGN_PARAGRAPH.RIGHT, first_indent=0.0)
     r_ghb = p_gvhd_bot.add_run(
+        "Điểm đánh giá: .............. / 10\n"
         "Tp. Hồ Chí Minh, ngày... tháng ... năm 2026\n"
         "GIÁO VIÊN HƯỚNG DẪN\n"
         "(Ký và ghi rõ họ tên)\n\n\n\n"
@@ -236,37 +248,39 @@ def add_front_matter(doc, helper):
     doc.add_page_break()
     
     # -------------------------------------------------------------------------
-    # 7. NHẬN XÉT CỦA GIÁO VIÊN PHẢN BIỆN (TRANG 1) (Trang 10 trong mẫu Tiến Trần)
+    # 7. NHẬN XÉT CỦA GIÁO VIÊN PHẢN BIỆN (TRANG 1/2) (Trang 10 trong mẫu)
     # -------------------------------------------------------------------------
-    p_gvpb_h1 = helper.add_heading_1(doc, "NHẬN XÉT CỦA GIÁO VIÊN PHẢN BIỆN")
+    p_gvpb_h1 = helper.add_heading_1(doc, "NHẬN XÉT CỦA GIÁO VIÊN PHẢN BIỆN (TRANG 1/2)")
     p_gvpb_h1.alignment = WD_ALIGN_PARAGRAPH.CENTER
     
-    # Dòng chấm toàn chiều rộng (tab leader dots, 21 dòng thẳng tắp phủ kín trang chuẩn bài mẫu)
-    helper.add_full_width_dotted_line(doc, count=21, space_before=2.5, space_after=2.5, line_spacing=1.3)
-    
-    p_gvpb_bot1 = doc.add_paragraph()
-    helper.format_paragraph(p_gvpb_bot1, space_before=16, space_after=0, line_spacing=1.3, align=WD_ALIGN_PARAGRAPH.RIGHT, first_indent=0.0)
-    r_gpb1 = p_gvpb_bot1.add_run(
-        "Tp. Hồ Chí Minh, ngày... tháng ... năm 2026\n"
-        "GIÁO VIÊN PHẢN BIỆN\n"
-        "(Ký và ghi rõ họ tên)"
-    )
-    helper.set_run_font(r_gpb1, "Times New Roman", 13, bold=True)
+    def add_eval_block_pb(title, count=4):
+        p = doc.add_paragraph()
+        helper.format_paragraph(p, space_before=6, space_after=2, line_spacing=1.15, align=WD_ALIGN_PARAGRAPH.LEFT, first_indent=0.0)
+        p.paragraph_format.keep_with_next = True
+        r = p.add_run(title)
+        helper.set_run_font(r, "Times New Roman", 13, bold=True)
+        helper.add_full_width_dotted_line(doc, count=count, space_before=2.5, space_after=2.5, line_spacing=1.3)
+
+    add_eval_block_pb("1. Đánh giá về tính cấp thiết, mục tiêu và phạm vi của đề tài:", 4)
+    add_eval_block_pb("2. Đánh giá về cơ sở lý thuyết, công nghệ và phương pháp tiếp cận:", 4)
+    add_eval_block_pb("3. Đánh giá về kết quả phân tích, thiết kế hệ thống và chất lượng báo cáo:", 4)
     
     doc.add_page_break()
     
     # -------------------------------------------------------------------------
-    # 8. NHẬN XÉT CỦA GIÁO VIÊN PHẢN BIỆN (TRANG 2) (Trang 11 trong mẫu Tiến Trần)
+    # 8. NHẬN XÉT CỦA GIÁO VIÊN PHẢN BIỆN (TRANG 2/2) (Khớp chuẩn 100% hình mẫu hội đồng)
     # -------------------------------------------------------------------------
-    p_gvpb_h2 = helper.add_heading_1(doc, "NHẬN XÉT CỦA GIÁO VIÊN PHẢN BIỆN")
+    p_gvpb_h2 = helper.add_heading_1(doc, "NHẬN XÉT CỦA GIÁO VIÊN PHẢN BIỆN (TRANG 2/2)")
     p_gvpb_h2.alignment = WD_ALIGN_PARAGRAPH.CENTER
     
-    # Dòng chấm toàn chiều rộng (tab leader dots, 21 dòng thẳng tắp phủ kín trang chuẩn bài mẫu)
-    helper.add_full_width_dotted_line(doc, count=21, space_before=2.5, space_after=2.5, line_spacing=1.3)
+    add_eval_block_pb("4. Đánh giá kết quả chương trình, tính năng và độ ổn định của sản phẩm:", 4)
+    add_eval_block_pb("5. Những thiếu sót, hạn chế cần giải trình trước Hội đồng:", 4)
+    add_eval_block_pb("6. Các câu hỏi dành cho sinh viên trong buổi bảo vệ:", 4)
     
     p_gvpb_bot2 = doc.add_paragraph()
-    helper.format_paragraph(p_gvpb_bot2, space_before=16, space_after=0, line_spacing=1.3, align=WD_ALIGN_PARAGRAPH.RIGHT, first_indent=0.0)
+    helper.format_paragraph(p_gvpb_bot2, space_before=10, space_after=0, line_spacing=1.2, align=WD_ALIGN_PARAGRAPH.RIGHT, first_indent=0.0)
     r_gpb2 = p_gvpb_bot2.add_run(
+        "Điểm đánh giá: .............. / 10\n"
         "Tp. Hồ Chí Minh, ngày... tháng ... năm 2026\n"
         "GIÁO VIÊN PHẢN BIỆN\n"
         "(Ký và ghi rõ họ tên)"
@@ -298,7 +312,7 @@ def add_front_matter(doc, helper):
         ("1.5. Yêu cầu chức năng của hệ thống", 14, 2),
         ("1.6. Yêu cầu phi chức năng của hệ thống", 16, 2),
         
-        ("CHƯƠNG 2: CƠ SỞ LÝ THUYẾT VÀ CÔNG NGHỆ SỬ DỤNG", 18, 1),
+        ("CHƯƠNG 2: CƠ SỞ LÝ THUYẾT VÀ CÔNG NGHỆ NỀN TẢNG", 18, 1),
         ("2.1. Cơ sở lý thuyết thị giác máy tính và không gian 360°", 18, 2),
         ("2.1.1. Khái niệm ảnh Panorama toàn cảnh và hệ tọa độ cầu Equirectangular", 18, 3),
         ("2.1.2. Phép chiếu trụ (Cylindrical Projection & Warping)", 20, 3),

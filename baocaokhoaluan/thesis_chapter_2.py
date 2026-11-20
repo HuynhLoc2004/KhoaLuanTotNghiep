@@ -13,7 +13,7 @@ def add_chapter_2(doc, helper):
     """Xây dựng toàn bộ nội dung Chương 2."""
     
     # Tiêu đề Chương 2
-    p_c2 = helper.add_heading_1(doc, "CHƯƠNG 2: CƠ SỞ LÝ THUYẾT VÀ CÔNG NGHỆ SỬ DỤNG")
+    p_c2 = helper.add_heading_1(doc, "CHƯƠNG 2: CƠ SỞ LÝ THUYẾT VÀ CÔNG NGHỆ NỀN TẢNG")
     p_c2.alignment = WD_ALIGN_PARAGRAPH.CENTER
     
     # 2.1. Cơ sở lý thuyết thị giác máy tính và không gian 360°

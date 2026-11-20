@@ -670,7 +670,7 @@ def build_full_document():
     pgNumType.set(qn('w:start'), '1')
     sectPr.append(pgNumType)
 
-    # Thiet lap Header Section 2: Chuan mau Tien Tran
+    # Thiet lap Header Section 2: Chuan mau theo quy dinh IUH & yeu cau giang vien
     header = section_body.header
     for p in header.paragraphs:
         p.text = ""
@@ -681,13 +681,13 @@ def build_full_document():
     tbl_h = header.add_table(rows=1, cols=2, width=Cm(15.5))
     tbl_h.alignment = WD_TABLE_ALIGNMENT.CENTER
     tbl_h.autofit = False
-    tbl_h.rows[0].cells[0].width = Cm(10.5)
-    tbl_h.rows[0].cells[1].width = Cm(5.0)
+    tbl_h.rows[0].cells[0].width = Cm(8.0)
+    tbl_h.rows[0].cells[1].width = Cm(7.5)
 
     borders_h = parse_xml(f'''
         <w:tblBorders {nsdecls("w")}>
             <w:top w:val="none"/>
-            <w:bottom w:val="single" w:sz="8" w:space="0" w:color="1B365D"/>
+            <w:bottom w:val="single" w:sz="6" w:space="0" w:color="94A3B8"/>
             <w:left w:val="none"/>
             <w:right w:val="none"/>
             <w:insideH w:val="none"/>
@@ -696,28 +696,23 @@ def build_full_document():
     ''')
     tbl_h._tbl.tblPr.append(borders_h)
 
-    # Header Trai: 2 dong
+    # Header Trai: KHOÁ LUẬN TỐT NGHIỆP - IUH
     c_h0 = tbl_h.rows[0].cells[0]
-    set_cell_margins(c_h0, top=0, bottom=40, left=0, right=40)
-    p_h0_1 = c_h0.paragraphs[0]
-    format_paragraph(p_h0_1, space_before=0, space_after=1, line_spacing=1.0, align=WD_ALIGN_PARAGRAPH.LEFT, first_indent=0.0)
-    r_h0_1 = p_h0_1.add_run("HỆ THỐNG TOUR 360° BẢO TÀNG LỊCH SỬ TP.HCM")
-    set_run_font(r_h0_1, "Times New Roman", 10, bold=True, color_rgb=(15, 23, 42))
+    set_cell_margins(c_h0, top=0, bottom=40, left=0, right=20)
+    p_h0 = c_h0.paragraphs[0]
+    format_paragraph(p_h0, space_before=0, space_after=2, line_spacing=1.0, align=WD_ALIGN_PARAGRAPH.LEFT, first_indent=0.0)
+    r_h0 = p_h0.add_run("KHOÁ LUẬN TỐT NGHIỆP - IUH")
+    set_run_font(r_h0, "Times New Roman", 10, bold=False, italic=True, color_rgb=(100, 116, 139))
 
-    p_h0_2 = c_h0.add_paragraph()
-    format_paragraph(p_h0_2, space_before=0, space_after=2, line_spacing=1.0, align=WD_ALIGN_PARAGRAPH.LEFT, first_indent=0.0)
-    r_h0_2 = p_h0_2.add_run("Số hóa không gian di sản & Trải nghiệm thực tế ảo tương tác")
-    set_run_font(r_h0_2, "Times New Roman", 9, italic=True, color_rgb=(71, 85, 105))
-
-    # Header Phai: GVHD
+    # Header Phai: GVHD: TS. TRẦN THỊ MINH KHOA
     c_h1 = tbl_h.rows[0].cells[1]
-    set_cell_margins(c_h1, top=0, bottom=40, left=40, right=0)
+    set_cell_margins(c_h1, top=0, bottom=40, left=20, right=0)
     p_h1 = c_h1.paragraphs[0]
     format_paragraph(p_h1, space_before=0, space_after=2, line_spacing=1.0, align=WD_ALIGN_PARAGRAPH.RIGHT, first_indent=0.0)
     r_h1 = p_h1.add_run("GVHD: TS. TRẦN THỊ MINH KHOA")
-    set_run_font(r_h1, "Times New Roman", 10, bold=True, color_rgb=(15, 23, 42))
+    set_run_font(r_h1, "Times New Roman", 10, bold=False, italic=True, color_rgb=(100, 116, 139))
 
-    # Thiet lap Footer Section 2: Chuan mau Tien Tran
+    # Thiet lap Footer Section 2: Chuan mau theo quy dinh IUH & yeu cau giang vien
     footer = section_body.footer
     for p in footer.paragraphs:
         p.text = ""
@@ -728,12 +723,12 @@ def build_full_document():
     tbl_f = footer.add_table(rows=1, cols=2, width=Cm(15.5))
     tbl_f.alignment = WD_TABLE_ALIGNMENT.CENTER
     tbl_f.autofit = False
-    tbl_f.rows[0].cells[0].width = Cm(12.0)
-    tbl_f.rows[0].cells[1].width = Cm(3.5)
+    tbl_f.rows[0].cells[0].width = Cm(13.0)
+    tbl_f.rows[0].cells[1].width = Cm(2.5)
 
     borders_f = parse_xml(f'''
         <w:tblBorders {nsdecls("w")}>
-            <w:top w:val="single" w:sz="8" w:space="0" w:color="1B365D"/>
+            <w:top w:val="single" w:sz="6" w:space="0" w:color="94A3B8"/>
             <w:bottom w:val="none"/>
             <w:left w:val="none"/>
             <w:right w:val="none"/>
@@ -743,27 +738,22 @@ def build_full_document():
     ''')
     tbl_f._tbl.tblPr.append(borders_f)
 
-    # Footer Trai: 2 sinh vien thuc hien
+    # Footer Trai: SVTH: Huỳnh Tấn Lộc (22686171) - Trịnh Vĩ Thành (22689411)
     c_f0 = tbl_f.rows[0].cells[0]
-    set_cell_margins(c_f0, top=40, bottom=0, left=0, right=40)
-    p_f0_1 = c_f0.paragraphs[0]
-    format_paragraph(p_f0_1, space_before=2, space_after=1, line_spacing=1.0, align=WD_ALIGN_PARAGRAPH.LEFT, first_indent=0.0)
-    r_f0_1 = p_f0_1.add_run("Huỳnh Tấn Lộc   - 22686171")
-    set_run_font(r_f0_1, "Times New Roman", 10, color_rgb=(15, 23, 42))
-
-    p_f0_2 = c_f0.add_paragraph()
-    format_paragraph(p_f0_2, space_before=0, space_after=0, line_spacing=1.0, align=WD_ALIGN_PARAGRAPH.LEFT, first_indent=0.0)
-    r_f0_2 = p_f0_2.add_run("Trịnh Vĩ Thành  - 22689411")
-    set_run_font(r_f0_2, "Times New Roman", 10, color_rgb=(15, 23, 42))
+    set_cell_margins(c_f0, top=40, bottom=0, left=0, right=20)
+    p_f0 = c_f0.paragraphs[0]
+    format_paragraph(p_f0, space_before=2, space_after=0, line_spacing=1.0, align=WD_ALIGN_PARAGRAPH.LEFT, first_indent=0.0)
+    r_f0 = p_f0.add_run("SVTH: Huỳnh Tấn Lộc (22686171) - Trịnh Vĩ Thành (22689411)")
+    set_run_font(r_f0, "Times New Roman", 10, bold=False, italic=True, color_rgb=(100, 116, 139))
 
     # Footer Phai: So trang tu dong
     c_f1 = tbl_f.rows[0].cells[1]
-    set_cell_margins(c_f1, top=40, bottom=0, left=40, right=0)
+    set_cell_margins(c_f1, top=40, bottom=0, left=20, right=0)
     set_cell_vertical_alignment(c_f1, "center")
     p_f1 = c_f1.paragraphs[0]
     format_paragraph(p_f1, space_before=2, space_after=0, line_spacing=1.0, align=WD_ALIGN_PARAGRAPH.RIGHT, first_indent=0.0)
     r_f1 = p_f1.add_run()
-    set_run_font(r_f1, "Times New Roman", 11, bold=True, color_rgb=(15, 23, 42))
+    set_run_font(r_f1, "Times New Roman", 11, bold=True, italic=False, color_rgb=(15, 23, 42))
     add_page_number_to_run(r_f1)
 
     # 3. NAP CAC CHUONG NOI DUNG (Moi chuong da co doc.add_page_break() o cuoi)
