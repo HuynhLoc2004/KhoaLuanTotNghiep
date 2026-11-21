@@ -8680,7 +8680,8 @@ html {
     overscroll-behavior: contain;
     touch-action: pan-y;
     transform: translate3d(0, 0, 0);
-    will-change: transform;
+    will-change: transform, bottom;
+    transition: bottom 0.18s ease-out;
     animation: aiWidgetSlideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   }
 }
@@ -9024,8 +9025,14 @@ html {
   background: transparent;
   border: none;
   color: #F8FAFC;
-  font-size: 12.5px;
+  font-size: 13.5px;
   outline: none;
+}
+
+@media (max-width: 768px) {
+  .ai-footer-input {
+    font-size: 16px; /* Bắt buộc font-size >= 16px để ngăn iOS Safari / WebKit tự động phóng to giật màn hình khi gõ */
+  }
 }
 
 .ai-footer-input::placeholder {

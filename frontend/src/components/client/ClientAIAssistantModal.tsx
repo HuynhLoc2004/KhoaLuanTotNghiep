@@ -44,49 +44,85 @@ export const ClientAIAssistantModal: React.FC<ClientAIAssistantModalProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [cooldownRemaining, setCooldownRemaining] = useState<number>(0);
+  const [keyboardOffset, setKeyboardOffset] = useState<number>(0);
 
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const chatStreamRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Khóa cuộn trang nền khi mở modal để chống trôi lên trôi xuống trên mọi màn hình
+  // Khóa cuộn trang nền hoàn toàn khi mở modal (chuẩn iOS Safari & Android mobile chống giật viewport)
   useEffect(() => {
     if (isOpen) {
+      const scrollY = window.scrollY || window.pageYOffset || document.documentElement.scrollTop;
+      const originalPosition = document.body.style.position;
+      const originalTop = document.body.style.top;
+      const originalWidth = document.body.style.width;
       const originalOverflow = document.body.style.overflow;
       const originalTouchAction = document.body.style.touchAction;
+
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${scrollY}px`;
+      document.body.style.width = '100%';
       document.body.style.overflow = 'hidden';
       document.body.style.touchAction = 'none';
+
       return () => {
+        document.body.style.position = originalPosition;
+        document.body.style.top = originalTop;
+        document.body.style.width = originalWidth;
         document.body.style.overflow = originalOverflow;
         document.body.style.touchAction = originalTouchAction;
+        window.scrollTo(0, scrollY);
       };
     }
   }, [isOpen]);
 
-  // Lời chào mở đầu gọn gàng, tinh tế
+  // Đồng bộ chiều cao theo bàn phím ảo trên thiết bị di động (Visual Viewport API)
   useEffect(() => {
-    if (messages.length === 0) {
-      setMessages([
-        {
-          id: 'welcome',
-          role: 'model',
-          text: `Kính chào Quý khách! Tôi là Trợ lý AI của ${branding.shortName || 'Bảo tàng Lịch sử'}.\nQuý khách muốn tìm hiểu cổ vật, phòng 360° hay thông tin tham quan?`,
-          createdAt: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
-          suggestedQuestions: [
-            'Giá vé & giờ mở cửa?',
-            'Phòng 360° nổi bật?',
-            'Bảo vật quốc gia?'
-          ]
-        }
-      ]);
-    }
-  }, [branding.shortName]);
+    if (!isOpen || typeof window === 'undefined') return;
 
-  // Tự động cuộn xuống cuối
+    const updateKeyboardOffset = () => {
+      if (window.visualViewport) {
+        const offset = window.innerHeight - window.visualViewport.height - window.visualViewport.offsetTop;
+        const safeOffset = Math.max(0, Math.round(offset));
+        setKeyboardOffset(safeOffset);
+        if (safeOffset > 100) {
+          // Bàn phím ảo vừa mở -> cuộn hội thoại đến tin nhắn mới nhất
+          setTimeout(() => scrollToBottom(false), 80);
+        }
+      }
+    };
+
+    window.visualViewport?.addEventListener('resize', updateKeyboardOffset);
+    window.visualViewport?.addEventListener('scroll', updateKeyboardOffset);
+
+    return () => {
+      window.visualViewport?.removeEventListener('resize', updateKeyboardOffset);
+      window.visualViewport?.removeEventListener('scroll', updateKeyboardOffset);
+    };
+  }, [isOpen]);
+
+  // Hàm cuộn an toàn bên trong container (tuyệt đối KHÔNG gọi window scrollIntoView gây giật màn hình)
+  const scrollToBottom = (smooth = true) => {
+    if (chatStreamRef.current) {
+      chatStreamRef.current.scrollTo({
+        top: chatStreamRef.current.scrollHeight,
+        behavior: smooth ? 'smooth' : 'auto'
+      });
+    }
+  };
+
+  // Cuộn container tin nhắn khi mở modal hoặc khi tin nhắn mới xuất hiện
   useEffect(() => {
     if (isOpen) {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      requestAnimationFrame(() => scrollToBottom(false));
     }
-  }, [messages, isOpen, isLoading]);
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (isOpen && messages.length > 0) {
+      requestAnimationFrame(() => scrollToBottom(true));
+    }
+  }, [messages, isLoading]);
 
   // Focus ô nhập khi mở
   useEffect(() => {
@@ -171,7 +207,11 @@ export const ClientAIAssistantModal: React.FC<ClientAIAssistantModalProps> = ({
 
   return (
     <div className="ai-widget-backdrop" onClick={onClose}>
-      <div className="ai-widget-window" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="ai-widget-window"
+        style={keyboardOffset > 0 ? { bottom: `${keyboardOffset}px`, maxHeight: `calc(100dvh - ${keyboardOffset}px)` } : undefined}
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="ai-widget-mobile-handle" />
         {/* HEADER GIAO DIỆN BẢO TÀNG SỐ ĐỒNG BỘ CLIENT */}
         <div className="ai-widget-header">
@@ -210,7 +250,7 @@ export const ClientAIAssistantModal: React.FC<ClientAIAssistantModalProps> = ({
 
         {/* KHÔNG GIAN HỘI THOẠI AI CHÍNH THỨC */}
         <div className="ai-widget-chat-pane">
-          <div className="ai-chat-stream">
+          <div ref={chatStreamRef} className="ai-chat-stream">
               {messages.map((msg, mIdx) => (
                 <div
                   key={msg.id}
@@ -318,7 +358,7 @@ export const ClientAIAssistantModal: React.FC<ClientAIAssistantModalProps> = ({
                 </div>
               )}
 
-              <div ref={messagesEndRef} />
+              <div className="ai-stream-bottom-anchor" />
             </div>
 
             {/* KHUNG NHẬP LIỆU GỌN GÀNG ĐỒNG BỘ MÀU BẢO TÀNG */}
