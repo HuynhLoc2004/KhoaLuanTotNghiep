@@ -161,7 +161,7 @@ def gen_architecture_en():
     # --- TẦNG 3: DATA & CLOUD ---
     draw_vector_db(ax, 13.5, 6.6, 'PostgreSQL 16 DB', color=C_RED, sub='ACID Tickets & Accounts')
     draw_vector_db(ax, 13.5, 4.3, 'MongoDB NoSQL', color=C_ORANGE, sub='18 Galleries & Artifacts')
-    draw_vector_card(ax, 13.5, 1.8, 'Cloud AI Services', color=C_INDIGO, sub='PayOS, ZeroGPU, TTS AI')
+    draw_vector_card(ax, 13.5, 1.8, 'Hugging Face & PayOS', color=C_INDIGO, sub='TRELLIS 3D (MSR), VietQR')
 
     # --- MŨI TÊN KẾT NỐI (ĐƯỢC BỐ TRÍ TỌA ĐỘ CHÍNH XÁC, KHÔNG ĐÈ LÊN NHAU) ---
     # Visitor -> Nginx (ngang nhẹ)

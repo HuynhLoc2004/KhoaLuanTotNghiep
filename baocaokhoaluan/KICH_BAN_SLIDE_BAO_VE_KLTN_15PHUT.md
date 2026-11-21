@@ -160,7 +160,7 @@ PostgreSQL 16 (Tickets/Orders) ── MongoDB (Rooms/Artifacts) ── Redis (Ca
 * **Sơ đồ luồng hoạt động (Activity Flow)**:
   `Khách chọn hiện vật` $\rightarrow$ `Mở Modal nạp mô hình 3D .GLB (Xoay 360°, Zoom, Pan)` $\rightarrow$ `Chọn ngôn ngữ thuyết minh (VI / EN / FR)` $\rightarrow$ `Kiểm tra Bộ đệm băm MD5` $\rightarrow$ `Google Cloud TTS Neural2 sinh giọng đọc AI` $\rightarrow$ `Truyền phát HTTP 206 Partial Content (<50ms)`.
 * **Cơ chế kỹ thuật**:
-  - **Kiến trúc Tái tạo 3D Kép (Dual-Engine Fallback)**: Kết hợp linh hoạt giữa Động cơ Cloud AI TRELLIS (sử dụng Deep Learning trên cụm GPU HuggingFace sinh lưới đa giác và PBR Texture độ phân giải cao) và Động cơ Nội bộ Local CPU (tách nền U2-Net, tiện khối tròn xoay đối xứng trục Radial-Axial hoạt động ngoại tuyến độc lập).
+  - **Kiến trúc Tái tạo 3D Kép (Dual-Engine Fallback)**: Kết hợp linh hoạt giữa Động cơ Cloud AI TRELLIS (sử dụng mô hình TRELLIS do Microsoft Research phát triển, triển khai trên Hugging Face Spaces (trellis-community/TRELLIS) với GPU A100 sinh lưới đa giác và PBR Texture độ phân giải cao) và Động cơ Nội bộ Local CPU (tách nền U2-Net, tiện khối tròn xoay đối xứng trục Radial-Axial hoạt động ngoại tuyến độc lập).
   - **Cơ chế Lưu trữ đệm băm (Hash Storage)**: Mỗi đoạn thuyết minh sau khi sinh được băm chuỗi `MD5(text + lang + voice_id)` lưu tệp tĩnh `/audio_cache/{Key}.mp3`. Máy chủ Nginx hỗ trợ truyền phát phân đoạn HTTP 206 Partial Content, giúp phát âm thanh sau $<50\text{ms}$ mà không cần tải hết tệp lớn.
 * **Bảng so sánh phương pháp kỹ thuật**:
 

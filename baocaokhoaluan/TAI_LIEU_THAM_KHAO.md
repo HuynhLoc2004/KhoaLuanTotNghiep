@@ -12,7 +12,7 @@
 
 [6] X. Qin, Z. Zhang, C. Huang, M. Dehghan, O. R. Zaiane, and M. Jagersand, "U2-Net: Going deeper with nested U-structure for salient object detection," *Pattern Recognition*, vol. 106, p. 107404, 2020.
 
-[7] J. Xiang et al., "TRELLIS: Structured 3D Latents for Scalable and Versatile 3D Generation," *arXiv preprint arXiv:2412.01506*, 2024.
+[7] J. Xiang, Z. Lv, S. Long, Y. Deng, K. Chen, and B. Dai (Microsoft Research), "TRELLIS: Structured 3D Latents for Scalable and Versatile 3D Generation," *arXiv preprint arXiv:2412.01506*, Dec. 2024. Hugging Face Space: https://huggingface.co/spaces/trellis-community/TRELLIS. GitHub: https://github.com/microsoft/TRELLIS.
 
 [8] J. L. Schönberger and J.-M. Frahm, "Structure-from-motion revisited," in *Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition (CVPR)*, Las Vegas, NV, USA, 2016, pp. 594–604.
 

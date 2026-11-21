@@ -117,8 +117,8 @@ def gen_hinh_1_real_icons():
     draw_tech_icon(ax, 13.8, 5.0, 'icon_mongodb.png', 'CSDL MongoDB', '18 Phòng 360° & Cổ vật', target_px=55)
     # Right-Bottom: RabbitMQ Worker
     draw_tech_icon(ax, 10.2, 2.2, 'icon_rabbitmq.png', 'Hàng đợi RabbitMQ', 'Xử lý tác vụ nền 3D', target_px=56)
-    # Bottom-Right: AI Brain
-    draw_tech_icon(ax, 13.8, 2.2, 'icon_ai_brain.png', 'Động cơ Trí tuệ AI', 'TRELLIS 3D & TTS Voice', target_px=56)
+    # Bottom-Right: Hugging Face (TRELLIS 3D)
+    draw_tech_icon(ax, 13.8, 2.2, 'icon_huggingface.png', 'Hugging Face (TRELLIS)', 'Mô hình 3D (Microsoft Research)', target_px=58)
     # Bottom-Left: Grafana Monitoring
     draw_tech_icon(ax, 5.8, 2.2, 'icon_grafana.png', 'Giám sát Grafana', 'Viễn trắc Prometheus', target_px=54)
 
@@ -147,8 +147,8 @@ def gen_hinh_1_real_icons():
     # Server <-> RabbitMQ
     draw_arrow_no_overlap(ax, 8.4, 4.3, 9.6, 2.8, label='Đẩy Hàng Đợi', lx=8.6, ly=3.35, shrinkA=16, shrinkB=16)
 
-    # RabbitMQ <-> AI Brain
-    draw_arrow_no_overlap(ax, 11.0, 2.2, 12.9, 2.2, label='Xử lý Model AI', lx=11.95, ly=2.55, shrinkA=16, shrinkB=16)
+    # RabbitMQ <-> Hugging Face TRELLIS
+    draw_arrow_no_overlap(ax, 11.0, 2.2, 12.9, 2.2, label='API ZeroGPU A100', lx=11.95, ly=2.55, shrinkA=16, shrinkB=16)
 
     # Server <-> Grafana
     draw_arrow_no_overlap(ax, 7.3, 4.3, 6.3, 2.8, label='PromQL Metrics', lx=6.4, ly=3.35, shrinkA=16, shrinkB=16)
@@ -188,9 +188,10 @@ def gen_hinh_2_real_icons():
     draw_tech_icon(ax, 8.0, 1.8, 'icon_rabbitmq.png', 'Hàng đợi RabbitMQ', 'Điều phối tác vụ bất đồng bộ', target_px=58)
 
     # Tầng 3
-    draw_tech_icon(ax, 13.5, 6.6, 'icon_postgres.png', 'CSDL PostgreSQL 16', 'Bảng vé tham quan & Đơn hàng', target_px=58)
-    draw_tech_icon(ax, 13.5, 4.3, 'icon_mongodb.png', 'CSDL MongoDB NoSQL', '18 Gian phòng 360° & Cổ vật', target_px=55)
-    draw_tech_icon(ax, 13.5, 1.8, 'icon_payos.png', 'Thanh toán PayOS & AI', 'VietQR Napas 247 & TRELLIS', target_px=58)
+    draw_tech_icon(ax, 13.5, 6.8, 'icon_postgres.png', 'CSDL PostgreSQL 16', 'Bảng vé tham quan & Đơn hàng', target_px=58)
+    draw_tech_icon(ax, 13.5, 4.9, 'icon_mongodb.png', 'CSDL MongoDB NoSQL', '18 Gian phòng 360° & Cổ vật', target_px=55)
+    draw_tech_icon(ax, 13.5, 3.0, 'icon_payos.png', 'Thanh toán PayOS', 'Cổng VietQR Napas 247', target_px=56)
+    draw_tech_icon(ax, 13.5, 1.1, 'icon_huggingface.png', 'Hugging Face Spaces', 'TRELLIS 3D (Microsoft Research)', target_px=56)
 
     # Mũi tên
     draw_arrow_no_overlap(ax, 3.6, 6.2, 6.8, 6.6, label='HTTPS / WSS (Port 443)', lx=5.2, ly=6.75, shrinkA=18, shrinkB=18)
@@ -199,9 +200,10 @@ def gen_hinh_2_real_icons():
     draw_arrow_no_overlap(ax, 8.0, 5.7, 8.0, 4.9, label='Cache Hit / Miss', lx=9.1, ly=5.3, shrinkA=12, shrinkB=12)
     draw_arrow_no_overlap(ax, 8.0, 3.6, 8.0, 2.5, label='Đẩy tác vụ 3D', lx=9.0, ly=3.05, shrinkA=12, shrinkB=12)
 
-    draw_arrow_no_overlap(ax, 9.2, 6.6, 12.3, 6.6, label='SQL (pgPool)', lx=10.75, ly=6.95, shrinkA=18, shrinkB=18)
-    draw_arrow_no_overlap(ax, 9.2, 5.0, 12.3, 4.4, label='Mongoose NoSQL', lx=10.75, ly=5.0, shrinkA=18, shrinkB=18)
-    draw_arrow_no_overlap(ax, 9.2, 1.8, 12.3, 1.8, label='Webhook / API Ngoại vi', lx=10.75, ly=2.15, shrinkA=18, shrinkB=18)
+    draw_arrow_no_overlap(ax, 9.2, 6.6, 12.3, 6.8, label='SQL (pgPool)', lx=10.75, ly=7.05, shrinkA=18, shrinkB=18)
+    draw_arrow_no_overlap(ax, 9.2, 5.8, 12.3, 4.9, label='Mongoose NoSQL', lx=10.75, ly=5.8, shrinkA=18, shrinkB=18)
+    draw_arrow_no_overlap(ax, 9.2, 5.2, 12.3, 3.2, label='Webhook VietQR', lx=10.75, ly=4.15, shrinkA=18, shrinkB=18)
+    draw_arrow_no_overlap(ax, 9.2, 1.8, 12.3, 1.2, label='API ZeroGPU A100', lx=10.75, ly=1.75, shrinkA=18, shrinkB=18)
 
     out1 = os.path.join(DIAGRAMS_DIR, "hinh_2_9_architecture_3tier.png")
     out2 = os.path.join(ASSETS_DIR, "hinh_2_9_architecture_3tier.png")
@@ -213,25 +215,28 @@ def gen_hinh_2_real_icons():
 
 
 # ==============================================================================
-# 3. HÌNH 5: TÁI TẠO CỔ VẬT 3D LAI GHÉP (TRELLIS AI BRAIN & LOCAL CPU)
+# 3. HÌNH 5: TÁI TẠO CỔ VẬT 3D LAI GHÉP (HUGGING FACE TRELLIS AI & LOCAL CPU)
 # ==============================================================================
 def gen_hinh_5_real_icons():
     fig, ax = plt.subplots(figsize=(15.0, 7.5), dpi=300)
     ax.set_xlim(0, 15.0); ax.set_ylim(0, 7.5); ax.axis('off')
 
-    ax.text(7.5, 7.0, 'SƠ ĐỒ HOẠT ĐỘNG: QUY TRÌNH TÁI TẠO CỔ VẬT 3D LAI GHÉP VỚI ĐỘNG CƠ AI',
+    ax.text(7.5, 7.1, 'SƠ ĐỒ HOẠT ĐỘNG: QUY TRÌNH TÁI TẠO CỔ VẬT 3D LAI GHÉP VỚI ĐỘNG CƠ AI',
             ha='center', va='center', fontsize=12.5, fontweight='bold', color=C_TEXT)
+    ax.text(7.5, 6.6, 'Hỗ trợ bóc tách phông nền Rembg / Alpha Mask — Ưu tiên Hugging Face (TRELLIS) và Tự động Fallback sang Local CPU',
+            ha='center', va='center', fontsize=9.2, fontstyle='italic', color='#475569')
 
     draw_tech_icon(ax, 1.8, 3.8, 'icon_client.png', 'Quản trị viên', 'Nạp ảnh tư liệu cổ vật', target_px=56)
     draw_tech_icon(ax, 5.0, 3.8, 'icon_rabbitmq.png', 'Hàng đợi 3D Queue', 'Phân luồng & Kiểm tra tài nguyên', target_px=58)
 
-    draw_tech_icon(ax, 9.2, 5.5, 'icon_ai_brain.png', 'Đám mây AI TRELLIS', 'ZeroGPU A100 (Chất lượng cao)', target_px=60)
+    # Hugging Face Space TRELLIS (Microsoft Research)
+    draw_tech_icon(ax, 9.2, 5.5, 'icon_huggingface.png', 'Hugging Face (TRELLIS)', 'ZeroGPU A100 (Microsoft Research)', target_px=60)
     draw_tech_icon(ax, 9.2, 2.0, 'icon_server.png', 'Máy chủ Local CPU', 'Marching Cubes (Dự phòng)', target_px=60)
 
     draw_tech_icon(ax, 13.5, 3.8, 'icon_browser.png', 'Mô hình 3D (.GLB)', 'Hiển thị WebGL Three.js', target_px=60)
 
     draw_arrow_no_overlap(ax, 2.7, 3.8, 4.0, 3.8, label='Tải ảnh lên', lx=3.35, ly=4.15, shrinkA=16, shrinkB=16)
-    draw_arrow_no_overlap(ax, 5.9, 4.3, 8.2, 5.3, label='Ưu tiên gọi AI GPU', lx=6.9, ly=5.15, shrinkA=16, shrinkB=16)
+    draw_arrow_no_overlap(ax, 5.9, 4.3, 8.2, 5.3, label='Ưu tiên gọi API AI', lx=6.9, ly=5.25, shrinkA=16, shrinkB=16)
     draw_arrow_no_overlap(ax, 5.9, 3.3, 8.2, 2.3, label='Tùy chọn Local CPU', lx=6.9, ly=2.5, shrinkA=16, shrinkB=16)
     draw_arrow_no_overlap(ax, 10.2, 5.3, 12.5, 4.1, label='Xuất .GLB PBR', lx=11.45, ly=5.05, shrinkA=16, shrinkB=16)
     draw_arrow_no_overlap(ax, 10.2, 2.3, 12.5, 3.5, label='Xuất .GLB xoay trục', lx=11.45, ly=2.6, shrinkA=16, shrinkB=16)
