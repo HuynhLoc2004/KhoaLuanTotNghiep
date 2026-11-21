@@ -45,6 +45,16 @@ export const ClientTourView: React.FC<ClientTourViewProps> = ({
 }) => {
   const { currentLang, activeLanguages, changeLanguage, t, localize } = useClientTranslation();
 
+  // Ngôn ngữ thuyết minh âm thanh ĐỘC LẬP cho gian phòng đang xem (KHÔNG thay đổi ngôn ngữ hệ thống UI)
+  const [roomAudioLang, setRoomAudioLang] = useState<string>(() => (currentLang || 'vi').toLowerCase());
+
+  // Đồng bộ ngầm khi ngôn ngữ hệ thống thay đổi nếu chưa chủ động chọn giọng đọc
+  useEffect(() => {
+    if (currentLang) {
+      setRoomAudioLang((prev) => prev || currentLang.toLowerCase());
+    }
+  }, [currentLang]);
+
   // State cho dropdown chọn phòng & chọn ngôn ngữ
   const [isRoomDropdownOpen, setIsRoomDropdownOpen] = useState(false);
   const [isLangDropdownOpen, setIsLangDropdownOpen] = useState(false);
@@ -177,8 +187,8 @@ export const ClientTourView: React.FC<ClientTourViewProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Xác định file âm thanh hoặc văn bản thuyết minh theo ngôn ngữ hiện hành
-  const getNarrationData = () => {
+  // Xác định file âm thanh hoặc văn bản thuyết minh theo ngôn ngữ giọng đọc riêng của phòng
+  const getNarrationData = (overrideLang?: string) => {
     let transObj: Record<string, any> = {};
     if (typeof currentRoom.translations === 'string') {
       try { transObj = JSON.parse(currentRoom.translations); } catch { transObj = {}; }
@@ -186,7 +196,7 @@ export const ClientTourView: React.FC<ClientTourViewProps> = ({
       transObj = currentRoom.translations;
     }
 
-    const lang = (currentLang || 'vi').toLowerCase();
+    const lang = (overrideLang || roomAudioLang || currentLang || 'vi').toLowerCase();
     const langData = transObj[lang] || {};
 
     let audioUrl = '';
@@ -215,6 +225,25 @@ export const ClientTourView: React.FC<ClientTourViewProps> = ({
     };
   };
 
+  // Kiểm tra ngôn ngữ bất kỳ có file âm thanh thu âm trong phòng này hay không
+  const checkLanguageAudioStatus = (langCode: string) => {
+    let transObj: Record<string, any> = {};
+    if (typeof currentRoom.translations === 'string') {
+      try { transObj = JSON.parse(currentRoom.translations); } catch { transObj = {}; }
+    } else if (currentRoom.translations && typeof currentRoom.translations === 'object') {
+      transObj = currentRoom.translations;
+    }
+    const code = langCode.toLowerCase();
+    const langData = transObj[code] || {};
+    let audio = '';
+    if (code === 'vi') {
+      audio = langData.audioUrl || currentRoom.audioUrl || (currentRoom as any).audio_url || '';
+    } else {
+      audio = langData.audioUrl || '';
+    }
+    return Boolean(audio && typeof audio === 'string' && audio.trim());
+  };
+
   // Dừng âm thanh khi chuyển phòng hoặc unmount
   const stopAudio = () => {
     if (audioRef.current) {
@@ -226,28 +255,25 @@ export const ClientTourView: React.FC<ClientTourViewProps> = ({
     setVoiceProgress(0);
   };
 
-  // Khi phòng hoặc ngôn ngữ thay đổi, reset âm thanh
+  // Khi phòng hoặc ngôn ngữ thuyết minh thay đổi, reset và kiểm tra âm thanh
   useEffect(() => {
     stopAudio();
-    const data = getNarrationData();
+    const data = getNarrationData(roomAudioLang);
     setHasVoiceAudio(Boolean(data.audioUrl));
     return () => {
       stopAudio();
     };
-  }, [currentRoom.id, currentLang, currentRoom.translations, currentRoom.audioUrl]);
+  }, [currentRoom.id, roomAudioLang, currentRoom.translations, currentRoom.audioUrl]);
 
-  // Xử lý bật / tắt thuyết minh Voice AI
-  const toggleVoicePlayback = () => {
-    if (isPlayingVoice) {
-      stopAudio();
-      return;
-    }
-
-    const { audioUrl } = getNarrationData();
+  // Phát audio cho một ngôn ngữ cụ thể của phòng
+  const playAudioForLang = (targetLang?: string) => {
+    stopAudio();
+    const lang = (targetLang || roomAudioLang || 'vi').toLowerCase();
+    const { audioUrl } = getNarrationData(lang);
 
     if (!audioUrl) {
       setIsPlayingVoice(false);
-      const langUpper = (currentLang || 'vi').toUpperCase();
+      const langUpper = lang.toUpperCase();
       setVoiceToast(`Gian phòng chưa có bản thu âm giới thiệu cho ngôn ngữ [${langUpper}]. Ban quản lý đang cập nhật.`);
       setTimeout(() => setVoiceToast(null), 3500);
       return;
@@ -277,6 +303,29 @@ export const ClientTourView: React.FC<ClientTourViewProps> = ({
       setVoiceToast('Trình duyệt chặn tự động phát âm thanh. Vui lòng bấm lại để nghe.');
       setTimeout(() => setVoiceToast(null), 3500);
     });
+  };
+
+  // Xử lý bật / tắt thuyết minh Voice AI
+  const toggleVoicePlayback = () => {
+    if (isPlayingVoice) {
+      stopAudio();
+    } else {
+      playAudioForLang(roomAudioLang);
+    }
+  };
+
+  // Chọn ngôn ngữ thuyết minh cho phòng (hoàn toàn cục bộ, KHÔNG thay đổi ngôn ngữ hệ thống UI)
+  const handleSelectNarrationLanguage = (langCode: string) => {
+    const newLang = langCode.toLowerCase();
+    setRoomAudioLang(newLang);
+    setIsLangDropdownOpen(false);
+
+    // Nếu đang phát âm thanh dở dang, chuyển ngay sang phát audio ngôn ngữ mới
+    if (isPlayingVoice) {
+      setTimeout(() => {
+        playAudioForLang(newLang);
+      }, 120);
+    }
   };
 
   const handleHotspotClick = (hotspot: Hotspot) => {
@@ -581,86 +630,77 @@ export const ClientTourView: React.FC<ClientTourViewProps> = ({
                 <button
                   type="button"
                   onClick={() => setIsLangDropdownOpen((prev) => !prev)}
-                  title="Chọn ngôn ngữ giọng đọc"
+                  title="Chọn ngôn ngữ giọng đọc thuyết minh cho gian phòng này"
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',
-                    gap: 3,
-                    padding: '4px 6px',
+                    gap: 4,
+                    padding: '4px 8px',
                     borderRadius: 16,
                     border: 'none',
-                    background: 'transparent',
+                    background: isLangDropdownOpen ? 'rgba(212, 168, 106, 0.25)' : 'transparent',
                     color: '#D4A86A',
                     fontSize: '11px',
-                    fontWeight: 600,
+                    fontWeight: 700,
                     cursor: 'pointer',
-                    textTransform: 'uppercase'
+                    textTransform: 'uppercase',
+                    transition: 'all 0.2s ease'
                   }}
                 >
-                  <span>{currentLang}</span>
-                  <ChevronDown size={10} style={{ opacity: 0.7 }} />
+                  <Headphones size={11} style={{ opacity: 0.9 }} />
+                  <span>{roomAudioLang.toUpperCase()}</span>
+                  <ChevronDown
+                    size={10}
+                    style={{
+                      opacity: 0.7,
+                      transform: isLangDropdownOpen ? 'rotate(180deg)' : 'none',
+                      transition: 'transform 0.2s ease'
+                    }}
+                  />
                 </button>
 
                 {isLangDropdownOpen && (
-                  <div
-                    style={{
-                      position: 'absolute',
-                      top: 'calc(100% + 8px)',
-                      right: 0,
-                      width: 150,
-                      background: 'rgba(18, 22, 30, 0.96)',
-                      backdropFilter: 'blur(16px)',
-                      WebkitBackdropFilter: 'blur(16px)',
-                      border: '1px solid rgba(212, 168, 106, 0.35)',
-                      borderRadius: 12,
-                      padding: '6px',
-                      boxShadow: '0 12px 32px rgba(0,0,0,0.6)',
-                      zIndex: 200,
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: 2
-                    }}
-                  >
-                    <div style={{ fontSize: '10px', color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: 0.5, padding: '4px 8px', borderBottom: '1px solid rgba(255,255,255,0.08)', marginBottom: 2 }}>
-                      Ngôn ngữ thuyết minh
+                  <div className="client-tour-lang-dropdown">
+                    <div className="tour-lang-dd-header">
+                      <div className="tour-lang-dd-title">
+                        <Headphones size={12} style={{ color: '#D4A86A' }} />
+                        <span>Ngôn ngữ thuyết minh</span>
+                      </div>
+                      <span className="tour-lang-dd-hint">Chỉ áp dụng cho phòng này</span>
                     </div>
-                    {activeLanguages.map((lang) => {
-                      const isSelected = lang.code === currentLang;
-                      return (
-                        <button
-                          key={lang.code}
-                          type="button"
-                          onClick={() => {
-                            changeLanguage(lang.code);
-                            setIsLangDropdownOpen(false);
-                          }}
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            width: '100%',
-                            padding: '6px 8px',
-                            borderRadius: 6,
-                            border: 'none',
-                            background: isSelected ? 'rgba(212, 168, 106, 0.16)' : 'transparent',
-                            color: isSelected ? '#D4A86A' : '#E5E7EB',
-                            fontSize: '12px',
-                            fontWeight: isSelected ? 600 : 400,
-                            cursor: 'pointer',
-                            textAlign: 'left',
-                            transition: 'background 0.15s'
-                          }}
-                        >
-                          <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                            <span style={{ fontSize: '10px', fontWeight: 700, padding: '1px 5px', borderRadius: 4, background: isSelected ? 'rgba(212, 168, 106, 0.25)' : 'rgba(255, 255, 255, 0.08)', color: '#D4A86A' }}>
-                              {lang.code.toUpperCase()}
-                            </span>
-                            <span>{lang.nativeName || lang.name}</span>
-                          </span>
-                          {isSelected && <Check size={13} style={{ color: '#D4A86A' }} />}
-                        </button>
-                      );
-                    })}
+
+                    <div className="tour-lang-dd-list">
+                      {activeLanguages.map((lang) => {
+                        const isSelected = lang.code.toLowerCase() === roomAudioLang.toLowerCase();
+                        const hasAudio = checkLanguageAudioStatus(lang.code);
+                        return (
+                          <button
+                            key={lang.code}
+                            type="button"
+                            className={`tour-lang-dd-item ${isSelected ? 'is-active' : ''}`}
+                            onClick={() => handleSelectNarrationLanguage(lang.code)}
+                          >
+                            <div className="tour-lang-dd-item-left">
+                              <span className="tour-lang-pill">{lang.code.toUpperCase()}</span>
+                              <span className="tour-lang-name">{lang.nativeName || lang.name}</span>
+                            </div>
+                            <div className="tour-lang-dd-item-right">
+                              {hasAudio ? (
+                                <span className="tour-lang-badge-audio" title="Có giọng đọc thu âm">
+                                  <Volume2 size={10} />
+                                  <span>Audio</span>
+                                </span>
+                              ) : (
+                                <span className="tour-lang-badge-text" title="Chưa có file âm thanh, chỉ có văn bản">
+                                  Văn bản
+                                </span>
+                              )}
+                              {isSelected && <Check size={12} className="tour-lang-check" />}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
               </div>
@@ -1399,7 +1439,7 @@ export const ClientTourView: React.FC<ClientTourViewProps> = ({
             <div style={{ background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: 12, padding: '14px' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
                 <span style={{ fontSize: '11.5px', fontWeight: 600, color: '#D4A86A', textTransform: 'uppercase' }}>
-                  {t('tour.introContent', 'Nội dung giới thiệu')} ({currentLang.toUpperCase()})
+                  {t('tour.introContent', 'Nội dung giới thiệu')} ({roomAudioLang.toUpperCase()})
                 </span>
                 <button
                   type="button"
