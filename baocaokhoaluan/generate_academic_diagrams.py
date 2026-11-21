@@ -1133,59 +1133,142 @@ def gen_fig_3_5():
     plt.close(fig)
 
 def gen_fig_3_6():
-    """Hinh 3.6: Sequence Diagram Dat ve va thanh toan VietQR PayOS"""
-    fig, ax = plt.subplots(figsize=(10.5, 4.8), dpi=300)
-    ax.set_xlim(0, 10.5); ax.set_ylim(0, 4.8); ax.axis('off')
+    """Hinh 3.6: Activity Diagram Quy trinh dat ve truc tuyen, thanh toan VietQR va quan ly ve Profile/My Tickets"""
+    fig, ax = plt.subplots(figsize=(11.5, 5.8), dpi=300)
+    ax.set_xlim(0, 11.5); ax.set_ylim(0, 5.8); ax.axis('off')
     
-    ax.text(5.25, 4.65, 'SƠ ĐỒ TUẦN TỰ: ĐẶT VÉ TRỰC TUYẾN VÀ THANH TOÁN VIETQR QUA CỔNG PAYOS',
+    # Title
+    ax.text(5.75, 5.55, 'SƠ ĐỒ HOẠT ĐỘNG: QUY TRÌNH ĐẶT VÉ TRỰC TUYẾN, THANH TOÁN VIETQR VÀ QUẢN LÝ VÉ CỦA TÔI',
             ha='center', va='center', fontsize=9.5, fontweight='bold', color=C_DARK_TEXT)
-    ax.text(5.25, 4.38, 'Luồng giao tiếp bất đồng bộ giữa Khách tham quan, Web Client, Backend API, PayOS và Ngân hàng',
-            ha='center', va='center', fontsize=7.8, color=C_MUTED_TEXT)
+    ax.text(5.75, 5.30, 'Chu trình khép kín: Chọn vé & Khung giờ -> VietQR PayOS -> Quản lý Profile / My Tickets -> Đồng bộ Realtime SSE khi soát vé',
+            ha='center', va='center', fontsize=7.6, color=C_MUTED_TEXT)
 
-    cols = [1.1, 3.1, 5.3, 7.6, 9.6]
-    headers = ['Khách tham quan\n(Browser)', 'Frontend UI\n(React Client)', 'Backend API\n(Node.js)', 'Cổng PayOS\n(Payment Hub)', 'Ngân hàng\n(VietQR/Napas)']
-    for i, x in enumerate(cols):
-        draw_clean_node(ax, x, 3.9, 1.6, 0.55, headers[i], bg='#E2E8F0')
-        ax.plot([x, x], [0.3, 3.6], color='#94A3B8', linestyle='--', lw=1.1, zorder=2)
+    # 3 Swimlanes
+    # Lane 1: Khách tham quan & Web Client (y: 3.55 - 5.05)
+    draw_clean_node(ax, 5.75, 4.30, 11.1, 1.55, '', bg='#F8FAFC', border='#CBD5E1', lw=0.8)
+    ax.text(0.4, 4.90, 'LÀN 1: KHÁCH THAM QUAN & TRÌNH DUYỆT WEB (/booking & /profile)', fontsize=7.2, fontweight='bold', color='#1E3A8A')
 
-    draw_step_arrow(ax, 1.1, 3.4, 3.1, 3.4, step='1', label='Chọn vé & Đặt tham quan')
-    draw_step_arrow(ax, 3.1, 3.0, 5.3, 3.0, step='2', label='POST /api/tickets/create')
-    draw_step_arrow(ax, 5.3, 2.6, 7.6, 2.6, step='3', label='Tạo giao dịch VietQR')
-    draw_step_arrow(ax, 7.6, 2.2, 3.1, 2.2, step='4', label='Trả mã VietQR + OrderCode')
-    draw_step_arrow(ax, 3.1, 1.8, 1.1, 1.8, step='5', label='Hiển thị VietQR cho khách')
-    draw_step_arrow(ax, 1.1, 1.4, 9.6, 1.4, step='6', label='Khách quét & chuyển tiền App')
-    draw_step_arrow(ax, 9.6, 1.0, 7.6, 1.0, step='7', label='Ngân hàng báo thanh toán')
-    draw_step_arrow(ax, 7.6, 0.65, 5.3, 0.65, step='8', label='Webhook HMAC-SHA256')
-    draw_step_arrow(ax, 5.3, 0.35, 3.1, 0.35, step='9', label='Trạng thái: PAID -> Cấp vé QR')
+    # Lane 2: Máy chủ Backend, Cổng PayOS & CSDL PostgreSQL (y: 1.85 - 3.35)
+    draw_clean_node(ax, 5.75, 2.60, 11.1, 1.55, '', bg='#F1F5F9', border='#CBD5E1', lw=0.8)
+    ax.text(0.4, 3.20, 'LÀN 2: MÁY CHỦ BACKEND API, CỔNG THANH TOÁN PAYOS & POSTGRESQL', fontsize=7.2, fontweight='bold', color='#166534')
 
+    # Lane 3: Nhân viên soát vé tại cổng & Cổng kiểm soát (y: 0.15 - 1.65)
+    draw_clean_node(ax, 5.75, 0.90, 11.1, 1.55, '', bg='#FFFBEB', border='#FDE68A', lw=0.8)
+    ax.text(0.4, 1.50, 'LÀN 3: NHÂN VIÊN SOÁT VÉ TẠI CỔNG BẢO TÀNG (MOBILE STAFF & BARIE)', fontsize=7.2, fontweight='bold', color='#92400E')
+
+    # Start Node
+    ax.plot(0.7, 4.30, 'o', color='#1E293B', markersize=10, zorder=5)
+
+    # Lane 1 Nodes
+    draw_clean_node(ax, 1.8, 4.30, 1.7, 0.95, '1. Chọn lịch & Khung giờ', 'Ngày tham quan\nSáng / Chiều', bg='#FFFFFF')
+    draw_clean_node(ax, 3.8, 4.30, 1.8, 0.95, '2. Chọn 3 hạng vé', 'Người lớn (30k)\nHSSV/Cao tuổi (15k)', bg='#FFFFFF')
+    draw_clean_node(ax, 5.8, 4.30, 1.8, 0.95, '3. Điền thông tin', 'Tự điền tài khoản\nLưu draft tạm 15p', bg='#FFFFFF')
+    draw_clean_node(ax, 7.8, 4.30, 1.8, 0.95, '4. Tóm tắt & Đặt vé', 'Xác nhận đơn hàng\nĐếm ngược 15 phút', bg='#FFFFFF')
+
+    # Lane 2 Nodes (Creation & Payment)
+    draw_clean_node(ax, 7.8, 2.60, 1.8, 0.95, '5. Khởi tạo đơn hàng', 'POST /api/tickets\nPayOS sinh VietQR', bg='#FFFFFF')
+    draw_clean_node(ax, 5.8, 2.60, 1.8, 0.95, '6. Khách quét VietQR', 'Napas 247 trên App\nNgân hàng báo có', bg='#EFF6FF')
+    draw_clean_node(ax, 3.8, 2.60, 1.8, 0.95, '7. Webhook HMAC', 'Verify chữ ký số\nSinh vé TKT-xxxxxx', bg='#FFFFFF')
+    draw_clean_node(ax, 1.8, 2.60, 1.7, 0.95, '8. Lưu CSDL & Gửi vé', 'PostgreSQL Bảng tickets\nMã hóa AES-256 / Email', bg='#FFFFFF')
+
+    # Lane 1 Nodes (Profile & My Tickets)
+    draw_clean_node(ax, 9.8, 4.30, 1.8, 0.95, '9. Tab Vé của tôi', 'Trang /profile\nHiển thị QR & Validity', bg='#EFF6FF')
+
+    # Lane 3 Nodes (Validation at Entrance)
+    draw_clean_node(ax, 9.8, 0.90, 1.8, 0.95, '10. Quét QR tại cổng', 'Nhân viên dùng Camera\nHTML5-QRCode', bg='#FFFFFF')
+    draw_clean_node(ax, 6.8, 0.90, 1.8, 0.95, '11. Xác thực vé API', 'Check AES-256 / SHA\nĐổi status sang USED', bg='#FFFFFF')
+    draw_clean_node(ax, 3.8, 0.90, 1.8, 0.95, '12. Mở cổng Barie', 'Âm báo Bíp + Tích xanh\nPhát sự kiện Realtime SSE', bg='#F0FDF4', border='#166534')
+
+    # Final Node Lane 1
+    draw_clean_node(ax, 1.8, 0.90, 1.6, 0.95, '13. Khách vào cổng', 'UI Profile đổi USED\nRung máy (<1ms)', bg='#F0FDF4', border='#166534')
+
+    # Arrows
+    ax.annotate('', xy=(0.95, 4.30), xytext=(0.78, 4.30), arrowprops=dict(arrowstyle='->', color='#1E293B', lw=1.2))
+    ax.annotate('', xy=(2.9, 4.30), xytext=(2.65, 4.30), arrowprops=dict(arrowstyle='->', color='#1E293B', lw=1.2))
+    ax.annotate('', xy=(4.9, 4.30), xytext=(4.7, 4.30), arrowprops=dict(arrowstyle='->', color='#1E293B', lw=1.2))
+    ax.annotate('', xy=(6.9, 4.30), xytext=(6.7, 4.30), arrowprops=dict(arrowstyle='->', color='#1E293B', lw=1.2))
+    
+    # Down to Lane 2
+    ax.annotate('', xy=(7.8, 3.1), xytext=(7.8, 3.8), arrowprops=dict(arrowstyle='->', color='#1E293B', lw=1.2))
+    ax.annotate('', xy=(6.7, 2.60), xytext=(6.9, 2.60), arrowprops=dict(arrowstyle='->', color='#1E293B', lw=1.2))
+    ax.annotate('', xy=(4.7, 2.60), xytext=(4.9, 2.60), arrowprops=dict(arrowstyle='->', color='#1E293B', lw=1.2))
+    ax.annotate('', xy=(2.65, 2.60), xytext=(2.9, 2.60), arrowprops=dict(arrowstyle='->', color='#1E293B', lw=1.2))
+
+    # Up to Lane 1 (My Tickets)
+    ax.annotate('', xy=(9.8, 3.8), xytext=(1.8, 2.1), arrowprops=dict(arrowstyle='->', color='#1E3A8A', lw=1.2, connectionstyle='arc3,rad=-0.15'))
+    ax.text(5.5, 3.65, 'Thanh toán thành công: Điều hướng /profile?payment=success -> Nạp My ticket', fontsize=7.0, color='#1E3A8A', fontweight='bold', ha='center')
+
+    # Down to Lane 3 (Scan QR)
+    ax.annotate('', xy=(9.8, 1.4), xytext=(9.8, 3.8), arrowprops=dict(arrowstyle='->', color='#92400E', lw=1.2))
+    ax.annotate('', xy=(7.7, 0.90), xytext=(8.9, 0.90), arrowprops=dict(arrowstyle='->', color='#1E293B', lw=1.2))
+    ax.annotate('', xy=(4.7, 0.90), xytext=(5.9, 0.90), arrowprops=dict(arrowstyle='->', color='#1E293B', lw=1.2))
+    ax.annotate('', xy=(2.6, 0.90), xytext=(2.9, 0.90), arrowprops=dict(arrowstyle='->', color='#166534', lw=1.2))
+
+    # SSE Event back to client
+    ax.annotate('', xy=(9.8, 3.8), xytext=(3.8, 1.4), arrowprops=dict(arrowstyle='->', color='#166534', lw=1.2, linestyle='--', connectionstyle='arc3,rad=0.2'))
+    ax.text(6.8, 1.9, 'Sự kiện Server-Sent Events (SSE) cập nhật trạng thái tức thì <1ms', fontsize=7.0, color='#166534', fontweight='bold', ha='center')
+
+    fig.savefig(os.path.join(DIAGRAMS_DIR, "hinh_3_6_activity_booking_ticket_lifecycle.png"), bbox_inches='tight')
     fig.savefig(os.path.join(DIAGRAMS_DIR, "hinh_3_6_sequence_payment_payos.png"), bbox_inches='tight')
     plt.close(fig)
 
 def gen_fig_3_7():
-    """Hinh 3.7: Sequence Diagram Soat ve QR Camera truc tiep"""
-    fig, ax = plt.subplots(figsize=(10.5, 4.8), dpi=300)
-    ax.set_xlim(0, 10.5); ax.set_ylim(0, 4.8); ax.axis('off')
+    """Hinh 3.7: Activity Diagram Soat ve QR Camera truc tiep va kiem soat gian lan"""
+    fig, ax = plt.subplots(figsize=(11.5, 5.0), dpi=300)
+    ax.set_xlim(0, 11.5); ax.set_ylim(0, 5.0); ax.axis('off')
     
-    ax.text(5.25, 4.65, 'SƠ ĐỒ TUẦN TỰ: SOÁT VÉ ĐIỆN TỬ BẰNG CAMERA THỜI GIAN THỰC',
+    # Title
+    ax.text(5.75, 4.75, 'SƠ ĐỒ HOẠT ĐỘNG: SOÁT VÉ ĐIỆN TỬ VÀ KIỂM SOÁT VÀO CỔNG THỜI GIAN THỰC',
             ha='center', va='center', fontsize=9.5, fontweight='bold', color=C_DARK_TEXT)
-    ax.text(5.25, 4.38, 'Quy trình giải mã khung hình camera HTML5-QRCode, đối soát chữ ký số SHA-256 và hủy vé tại cửa',
-            ha='center', va='center', fontsize=7.8, color=C_MUTED_TEXT)
+    ax.text(5.75, 4.48, 'Quy trình giải mã khung hình HTML5-QRCode, đối soát chữ ký số SHA-256, chuyển trạng thái USED và chống gian lận vé',
+            ha='center', va='center', fontsize=7.6, color=C_MUTED_TEXT)
 
-    cols = [1.2, 3.6, 6.2, 9.0]
-    headers = ['Nhân viên soát vé\n(Mobile Staff)', 'Camera Web App\n(HTML5-QRCode)', 'Backend API\n(Validation Service)', 'PostgreSQL CSDL\n(Bảng tickets)']
-    for i, x in enumerate(cols):
-        draw_clean_node(ax, x, 3.9, 1.8, 0.55, headers[i], bg='#E2E8F0')
-        ax.plot([x, x], [0.3, 3.6], color='#94A3B8', linestyle='--', lw=1.1, zorder=2)
+    # 2 Swimlanes
+    # Lane 1: Nhân viên soát vé & Thiết bị Camera (y: 2.3 - 4.2)
+    draw_clean_node(ax, 5.75, 3.25, 11.1, 1.85, '', bg='#FFFBEB', border='#FDE68A', lw=0.8)
+    ax.text(0.4, 4.05, 'LÀN 1: NHÂN VIÊN SOÁT VÉ & THIẾT BỊ CAMERA TẠI CỔNG (MOBILE / SCANNER)', fontsize=7.2, fontweight='bold', color='#92400E')
 
-    draw_step_arrow(ax, 1.2, 3.35, 3.6, 3.35, step='1', label='Hướng camera vào mã QR vé')
-    draw_step_arrow(ax, 3.6, 2.95, 3.6, 2.65, step='2', label='Quét khung hình & Decode', rad=0.25)
-    draw_step_arrow(ax, 3.6, 2.30, 6.2, 2.30, step='3', label='POST /api/tickets/validate-qr')
-    draw_step_arrow(ax, 6.2, 1.90, 6.2, 1.60, step='4', label='Giải mã AES-256 & Verify SHA', rad=0.25)
-    draw_step_arrow(ax, 6.2, 1.25, 9.0, 1.25, step='5', label='UPDATE tickets SET status=USED')
-    draw_step_arrow(ax, 9.0, 0.90, 6.2, 0.90, step='6', label='Xác nhận cập nhật thành công')
-    draw_step_arrow(ax, 6.2, 0.55, 3.6, 0.55, step='7', label='200 OK: Vé hợp lệ / Cửa mở')
-    draw_step_arrow(ax, 3.6, 0.35, 1.2, 0.35, step='8', label='Hiển thị tích xanh + Rung máy')
+    # Lane 2: Máy chủ Backend API & CSDL PostgreSQL (y: 0.2 - 2.1)
+    draw_clean_node(ax, 5.75, 1.15, 11.1, 1.85, '', bg='#F1F5F9', border='#CBD5E1', lw=0.8)
+    ax.text(0.4, 1.95, 'LÀN 2: MÁY CHỦ BACKEND API & CƠ SỞ DỮ LIỆU POSTGRESQL (BẢNG TICKETS & LOGS)', fontsize=7.2, fontweight='bold', color='#166534')
 
+    # Nodes
+    # Start
+    ax.plot(0.7, 3.25, 'o', color='#1E293B', markersize=10, zorder=5)
+
+    draw_clean_node(ax, 1.8, 3.25, 1.7, 1.0, '1. Mở Camera', 'HTML5-QRCode\nKhung ngắm quét vé', bg='#FFFFFF')
+    draw_clean_node(ax, 3.8, 3.25, 1.8, 1.0, '2. Quét mã QR', 'Mã hóa AES-256\nTrích xuất TKT-xxxx', bg='#FFFFFF')
+
+    draw_clean_node(ax, 3.8, 1.15, 1.8, 1.0, '3. API Đối soát', 'POST /validate-qr\nCheck chữ ký HMAC', bg='#FFFFFF')
+    draw_clean_node(ax, 5.8, 1.15, 1.8, 1.0, '4. Kiểm tra CSDL', 'Kiểm tra ngày, giờ\nStatus == PAID ?', bg='#FFFFFF')
+
+    # Decision Node (Diamond-like clean box)
+    draw_clean_node(ax, 7.8, 1.15, 1.6, 1.0, '5. Hợp lệ ?', 'Vé đúng & chưa dùng\nTrong khung giờ đón', bg='#EFF6FF', border='#3B82F6')
+
+    # Valid Branch -> Lane 1
+    draw_clean_node(ax, 9.8, 1.15, 1.8, 1.0, '6. Cập nhật USED', 'UPDATE status=USED\nGhi log checked_in_at', bg='#F0FDF4', border='#166534')
+    draw_clean_node(ax, 9.8, 3.25, 1.8, 1.0, '7. Cổng mở đón khách', 'Tích xanh + Bíp Bíp\nBắn SSE sang khách', bg='#F0FDF4', border='#166534')
+
+    # Invalid Branch
+    draw_clean_node(ax, 7.8, 3.25, 1.7, 1.0, 'Cảnh báo Gian lận', 'Vé giả hoặc đã dùng\nBáo động đỏ chối từ', bg='#FEF2F2', border='#991B1B')
+
+    # Connecting arrows
+    ax.annotate('', xy=(0.95, 3.25), xytext=(0.78, 3.25), arrowprops=dict(arrowstyle='->', color='#1E293B', lw=1.2))
+    ax.annotate('', xy=(2.9, 3.25), xytext=(2.65, 3.25), arrowprops=dict(arrowstyle='->', color='#1E293B', lw=1.2))
+    ax.annotate('', xy=(3.8, 1.7), xytext=(3.8, 2.7), arrowprops=dict(arrowstyle='->', color='#1E293B', lw=1.2))
+    ax.annotate('', xy=(4.9, 1.15), xytext=(4.7, 1.15), arrowprops=dict(arrowstyle='->', color='#1E293B', lw=1.2))
+    ax.annotate('', xy=(7.0, 1.15), xytext=(6.7, 1.15), arrowprops=dict(arrowstyle='->', color='#1E293B', lw=1.2))
+
+    # Branch True: 5 -> 6 -> 7
+    ax.annotate('', xy=(8.9, 1.15), xytext=(8.6, 1.15), arrowprops=dict(arrowstyle='->', color='#166534', lw=1.3))
+    ax.text(8.75, 1.3, '[Đúng]', fontsize=7.5, color='#166534', fontweight='bold', ha='center')
+    ax.annotate('', xy=(9.8, 2.7), xytext=(9.8, 1.7), arrowprops=dict(arrowstyle='->', color='#166534', lw=1.3))
+
+    # Branch False: 5 -> Cảnh báo
+    ax.annotate('', xy=(7.8, 2.7), xytext=(7.8, 1.7), arrowprops=dict(arrowstyle='->', color='#991B1B', lw=1.3))
+    ax.text(8.0, 2.2, '[Sai / Đã dùng]', fontsize=7.2, color='#991B1B', fontweight='bold', ha='left')
+
+    fig.savefig(os.path.join(DIAGRAMS_DIR, "hinh_3_7_activity_ticket_validation.png"), bbox_inches='tight')
     fig.savefig(os.path.join(DIAGRAMS_DIR, "hinh_3_7_sequence_qr_scan.png"), bbox_inches='tight')
     plt.close(fig)
 

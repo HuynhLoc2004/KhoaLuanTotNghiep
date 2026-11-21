@@ -408,32 +408,61 @@ def add_chapter_4(doc, helper):
         width_cm=15.0, height_cm=7.5
     )
     
-    # 4.2.4. Hiện thực phân hệ thanh toán vé VietQR, Soát vé cổng và Hệ thống QR Trưng bày Phygital
-    helper.add_heading_3(doc, "4.2.4. Hiện thực phân hệ thanh toán vé VietQR, Soát vé cổng và Hệ thống QR Trưng bày Phygital")
+    # 4.2.4. Hiện thực phân hệ Quản lý vé tham quan, Thanh toán VietQR, Hồ sơ cá nhân và Soát vé Phygital
+    helper.add_heading_3(doc, "4.2.4. Hiện thực phân hệ Quản lý vé tham quan, Thanh toán VietQR, Hồ sơ cá nhân và Soát vé Phygital")
     helper.add_body_p(doc,
-        "Trong quá trình xây dựng hệ thống chuyển đổi số di sản, nhóm tác giả đã thiết kế và phân định rành mạch hai cơ chế mã QR với mục đích và đối tượng phục vụ riêng biệt, "
-        "đảm bảo an toàn thông tin vé đồng thời tối ưu hóa trải nghiệm tương tác không chạm (Phygital) cho du khách [16], [17], [22], [39]:"
+        "Nhằm xây dựng chu trình dịch vụ khách hàng số hóa hoàn chỉnh và khép kín, nhóm tác giả đã hiện thực phân hệ vé tham quan với kiến trúc đa tầng "
+        "kết nối chặt chẽ giữa 3 phân hệ: Giao diện Đặt vé trực tuyến (/booking), Trang Hồ sơ cá nhân quản lý vé (/profile) và Cổng Quản trị vé CMS (/admin) "
+        "kết hợp công nghệ thanh toán VietQR Napas 247 [16], [17], bảo mật mã hóa AES-256 và cơ chế đồng bộ thời gian thực Server-Sent Events (SSE) (Hình 4.8) [22], [39]:"
     )
     
-    # 4.2.4.1. Quy trình phát hành vé VietQR và Soát vé điện tử tại cổng bảo tàng
+    # 4.2.4.1. Quy trình Đặt vé trực tuyến đa bước (/booking)
     helper.add_bullet_item(doc,
-        "Quy trình phát hành và kiểm soát vé tham quan được tự động hóa hoàn toàn từ khâu chọn vé, thanh toán trực tuyến đến kiểm soát tại cổng vào (Hình 4.8) [16], [17], [22]. "
-        "Sau khi du khách chọn số lượng vé và bấm thanh toán, máy chủ tích hợp cổng PayOS sinh mã VietQR động chuẩn Napas 247. "
-        "Khi giao dịch ngân hàng thành công, PayOS gửi Webhook có chữ ký số HMAC-SHA256 về máy chủ NodeJS để xác thực toàn vẹn dữ liệu. "
-        "Ngay lập tức, hệ thống sinh vé điện tử chứa mã vé duy nhất định dạng TKT-xxxxxx, được mã hóa bảo mật chuỗi token bằng thuật toán AES-256 và gửi tới email của du khách. "
-        "Tại cổng kiểm soát, nhân viên bảo tàng sử dụng camera điện thoại hoặc thiết bị chuyên dụng chạy module quét HTML5-QRCode [22] để quét mã vé của khách. "
-        "Yêu cầu đối soát được gửi đến API kiểm tra trong vòng dưới 150ms. Nếu hợp lệ, trạng thái vé lập tức được cập nhật từ PAID sang USED trong CSDL PostgreSQL, "
-        "ngăn chặn triệt để mọi hành vi gian lận quay vòng vé hoặc sử dụng lại ảnh chụp màn hình vé cũ.",
-        bold_prefix="1. Phân hệ Phát hành vé VietQR PayOS và Soát vé điện tử tại cổng: "
+        "Giao diện Đặt vé tham quan trực tuyến (ClientTicketBookingPage.tsx) được thiết kế theo cấu trúc luồng 4 bước tối ưu hóa tỷ lệ chuyển đổi:\n"
+        "• Bước 1 - Chọn Thời gian tham quan: Khách chọn ngày tham quan trên bộ lịch (Date Picker) và chọn khung giờ đón tiếp từ menu thả xuống gồm Buổi sáng (Morning: 08:00 – 11:30) hoặc Buổi chiều (Afternoon: 13:30 – 17:00). Hệ thống hiển thị rõ ràng lịch mở cửa định kỳ: Mở cửa đón khách từ Thứ Ba đến Chủ Nhật hàng tuần; đóng cửa Thứ Hai để thực hiện công tác bảo quản, trị liệu hiện vật di sản.\n"
+        "• Bước 2 - Chọn Loại vé theo bảng giá chuẩn mực: Hệ thống cung cấp bảng giá minh bạch theo đúng quy định thực tế của Bảo tàng Lịch sử TP. Hồ Chí Minh với 3 hạng vé: (1) Vé Người lớn tiêu chuẩn (Adult Ticket - Standard) giá 30.000 VNĐ dành cho khách từ 16 đến 59 tuổi, bao gồm quyền tham quan toàn bộ 18 gian phòng 360°, thuyết minh tự động qua mã QR và tự do trải nghiệm sa bàn; (2) Vé Học sinh - Sinh viên (Student Tickets) giá 15.000 VNĐ (giảm 50% khi xuất trình thẻ HSSV còn hạn tại cổng); (3) Vé Người cao tuổi & Trẻ em giá 15.000 VNĐ dành cho người từ 60 tuổi trở lên hoặc trẻ dưới 16 tuổi (hưởng ưu đãi di sản, lối đi riêng xe lăn/người già và hỗ trợ tận tình). Mỗi loại vé tích hợp bộ tăng giảm số lượng [- 0 +] trực quan, giới hạn tối đa 8 vé/lần đặt.\n"
+        "• Bước 3 - Thông tin người nhận vé & Ghi nhớ bản nháp: Nếu khách đã đăng nhập, hệ thống hiển thị huy hiệu 'Đã liên kết tài khoản' và tự động điền Họ tên, Số điện thoại và Email nhận mã vé. Nếu khách chưa đăng nhập, hệ thống tự động lưu trữ bản nháp đơn hàng vào sessionStorage (pending_booking_draft). Khi khách bấm thanh toán, hệ thống kích hoạt luồng đăng nhập nhanh bằng mã OTP gửi về Email; sau khi xác thực thành công, đơn hàng tự động tiếp tục mà không làm mất thông tin vé đã chọn.\n"
+        "• Bước 4 - Tóm tắt đơn hàng thời gian thực & Đồng hồ đếm ngược: Khung 'Tóm tắt đơn hàng' bên phải tự động tính toán tổng số lượng vé và tổng tiền thanh toán (VND). Khi khách nhấn 'Thanh toán VietQR (PayOS)', hệ thống gọi API POST /api/tickets/create, mở Modal hiển thị mã VietQR động chuẩn Napas 247 và kích hoạt đồng hồ đếm ngược 15 phút (900 giây) để khóa tạm thời slot vé.",
+        bold_prefix="1. Quy trình Đặt vé trực tuyến đa bước (/booking): "
+    )
+    
+    # 4.2.4.2. Hệ thống Quản lý Vé cá nhân và Đồng bộ Realtime SSE trên Hồ sơ (/profile)
+    helper.add_bullet_item(doc,
+        "Trang Hồ sơ cá nhân (UserProfilePage.tsx) đóng vai trò là chiếc ví di sản số (Digital Heritage Wallet) giúp du khách quản lý toàn bộ vé đã mua một cách tiện lợi và trực quan:\n"
+        "• Thống kê trực quan hai chỉ số vé: Ngay trên đầu trang hồ sơ hiển thị nổi bật hai chỉ số: TICKET VALIDITY (số lượng vé còn hiệu lực, đang sẵn sàng sử dụng để vào cổng) và TOTAL TICKET (tổng số lượng vé khách đã mua trong lịch sử tài khoản).\n"
+        "• Quản lý thông tin tài khoản an toàn: Khách có thể cập nhật Họ và tên, Số điện thoại. Tài khoản được bảo vệ bằng phương thức đăng nhập OTP gửi trực tiếp về Email (không dùng mật khẩu tĩnh), triệt tiêu hoàn toàn rủi ro lộ lọt mật khẩu.\n"
+        "• Tab 'My ticket' (Vé của tôi): Hiển thị lưới danh sách toàn bộ các vé điện tử đã mua kèm bộ lọc trạng thái 3 chế độ ('Tất cả', 'Còn hiệu lực', 'Đã sử dụng / Hết hạn'). Mỗi thẻ vé hiển thị đầy đủ: Mã vé định danh duy nhất (TKT-xxxxxx), loại vé, ngày tham quan, khung giờ đón tiếp, giá tiền và trạng thái hiện tại.\n"
+        "• Modal Chi tiết vé & Mã QR mã hóa AES-256: Khi bấm vào vé, modal mở ra hiển thị mã QR vé điện tử được mã hóa bảo mật bằng thuật toán AES-256 kèm chữ ký số HMAC-SHA256 để xuất trình tại cổng soát vé, nút 'In vé / Tải PDF' để lưu vé ngoại tuyến, và nút 'Hủy vé' trực tuyến (nếu vé chưa soát và còn trong thời hạn quy định).\n"
+        "• Cơ chế đồng bộ Realtime hai tầng (Two-Tier Realtime Synchronization): Để đảm bảo trải nghiệm tức thì khi du khách qua cổng, hệ thống triển khai cơ chế đồng bộ kép độc đáo: (1) Kênh Server-Sent Events (SSE): Khi nhân viên tại cổng quét vé thành công, máy chủ Backend lập tức phát sự kiện museum:tickets_updated qua luồng SSE. Trình duyệt của khách nhận tín hiệu và tự động cập nhật trạng thái thẻ vé sang 'Đã soát vé' (USED) trong vòng dưới 1ms mà không cần tải lại trang, đồng thời kích hoạt rung xúc giác trên điện thoại (navigator.vibrate([100, 50, 100])) và hiển thị thông báo Toast chúc mừng; (2) Cơ chế dự phòng Polling 2 giây: Khi khách mở modal QR vé đưa cho nhân viên, trình duyệt tự động thăm dò API mỗi 2 giây, đảm bảo vé vẫn được cập nhật trạng thái thành công ngay cả khi kết nối mạng di động 4G tại cổng bị suy hao.",
+        bold_prefix="2. Hệ thống Quản lý Vé cá nhân và Đồng bộ Realtime SSE (/profile): "
+    )
+    
+    # 4.2.4.3. Phân hệ Quản trị Vé tham quan, Bảng giá và Đơn hàng phía Admin (/admin)
+    helper.add_bullet_item(doc,
+        "Tại phân hệ Quản trị CMS (AdminTicketsPage.tsx), hệ thống tổ chức 3 phân nhóm chức năng chuyên sâu phục vụ công tác điều hành và tài chính của bảo tàng:\n"
+        "• Tab 'tickets' (Quản lý Danh sách & Soát vé): Hiển thị tổng quan các chỉ số tài chính và vận hành gồm: Tổng số vé (totalTickets), Số vé còn hạn (activeTickets), Số vé đã soát (usedTickets), Số vé đã hủy (cancelledTickets) và Tổng doanh thu vé thực tế (totalRevenue). Tích hợp bộ lọc đa tiêu chí (tìm theo mã vé, tên, email, SĐT; lọc theo trạng thái vé, loại vé và ngày tham quan). Quản trị viên có thể xem chi tiết vé, thực hiện soát vé thủ công hoặc kích hoạt nút 'Quét mã QR' để mở Camera soát vé trực tiếp.\n"
+        "• Tab 'pricing' (Quản lý Bảng giá & Khung giờ): Cho phép cán bộ bảo tàng cấu hình linh hoạt giá vé của từng đối tượng (Người lớn, Học sinh - Sinh viên, Người cao tuổi), chỉnh sửa các chính sách quyền lợi kèm theo, và thiết lập thời gian hoạt động của các khung giờ đón tiếp trong ngày mà không cần sửa mã nguồn.\n"
+        "• Tab 'orders' (Quản lý Đơn hàng & Giao dịch PayOS): Bảng theo dõi toàn bộ các đơn hàng đặt vé gồm: Mã đơn hàng PayOS, Họ tên khách, Số điện thoại, Tổng tiền (VND), Trạng thái đơn (Đã thanh toán / Chờ thanh toán / Đã hủy), và kênh thanh toán VietQR Napas 247, phục vụ công tác đối soát kế toán định kỳ.",
+        bold_prefix="3. Phân hệ Quản trị Vé tham quan, Bảng giá và Đơn hàng (/admin): "
+    )
+    
+    # 4.2.4.4. Quy trình Soát vé điện tử bằng Camera tại cổng bảo tàng và Chống gian lận
+    helper.add_bullet_item(doc,
+        "Tại cửa kiểm soát ra vào, nhân viên bảo tàng sử dụng camera điện thoại hoặc thiết bị quét cầm tay chạy module HTML5-QRCode [22] (AdminTicketScannerModal.tsx). "
+        "Khung hình camera được phân tích liên tục để bắt mã QR vé điện tử của khách. "
+        "Yêu cầu đối soát gửi đến API POST /api/tickets/validate-qr được máy chủ giải mã chuỗi AES-256 và so khớp chữ ký SHA-256 trong vòng dưới 150ms. "
+        "Nếu vé hợp lệ, trạng thái vé trong CSDL PostgreSQL lập tức chuyển từ PAID sang USED kèm mốc thời gian checked_in_at, phát âm thanh Bíp thành công, hiển thị dấu tích xanh to bản và mở barie đón khách. "
+        "Nếu vé giả mạo, sai ngày hoặc đã qua cổng trước đó, màn hình lập tức chuyển đỏ cảnh báo từ chối vào cổng, ngăn chặn triệt để mọi hành vi gian lận quay vòng vé.",
+        bold_prefix="4. Quy trình Soát vé điện tử bằng Camera tại cổng bảo tàng: "
     )
     
     helper.add_figure_placeholder(doc, "4.8",
         "Sơ đồ khối quy trình thanh toán VietQR PayOS và xác thực vé điện tử tại cổng soát vé",
-        "Chu trình khép kín: Khách đặt vé -> PayOS sinh mã VietQR Napas 247 [16], [17] -> Khách quét chuyển khoản -> Ngân hàng báo có -> Webhook ký số HMAC-SHA256 cập nhật CSDL -> Sinh vé điện tử mã QR mã hóa AES-256 gửi qua Email -> Nhân viên quét bằng camera (html5-qrcode) [22] -> Đối soát CSDL thời gian thực 150ms -> Chuyển trạng thái USED -> Mở cổng đón khách",
+        "Chu trình khép kín: Khách đặt vé -> PayOS sinh mã VietQR Napas 247 [16], [17] -> Khách quét chuyển khoản -> Ngân hàng báo có -> Webhook ký số HMAC-SHA256 cập nhật CSDL -> Sinh vé điện tử mã QR mã hóa AES-256 gửi qua Email -> Hiển thị tại /profile Tab My ticket -> Nhân viên quét bằng camera (html5-qrcode) [22] -> Đối soát CSDL thời gian thực 150ms -> Chuyển trạng thái USED -> Phát sự kiện SSE cập nhật máy khách -> Mở cổng đón khách",
         width_cm=15.0, height_cm=8.0
     )
     
-    # 4.2.4.2. Hệ thống mã QR Trưng bày và Trình quét Phygital khám phá Hiện vật 3D & Phòng 360°
+    # 4.2.4.5. Hệ thống mã QR Trưng bày và Trình quét Phygital khám phá Hiện vật 3D & Phòng 360°
     helper.add_bullet_item(doc,
         "Nhằm mang lại trải nghiệm tham quan thực địa sống động kết hợp vật lý - số (Phygital), hệ thống cung cấp giải pháp mã QR Trưng bày độc lập dành riêng cho du khách khám phá bảo tàng [39]:\n"
         "• Tự động sinh mã QR động trong CMS: Mọi gian phòng trong số 18 phòng trưng bày và từng hiện vật cổ vật 3D khi được khởi tạo hoặc cập nhật trong phân hệ Quản trị CMS đều tự động được gán mã định danh duy nhất và sinh mã QR động tuân thủ nghiêm ngặt tiêu chuẩn quốc tế ISO/IEC 18004 [39]. Mã QR chứa đường dẫn liên kết sâu (Deep Link URL), ví dụ: ?room=P-121 (dẫn trực tiếp vào không gian 360° phòng Văn hóa Champa) hoặc ?artifact=673f... (mở trực tiếp mô hình 3D tương tác cổ vật tương ứng).\n"
@@ -442,7 +471,7 @@ def add_chapter_4(doc, helper):
         "• Xử lý đa độ phân giải chống lóa sáng (Multi-resolution Glare Compensation): Khác với mã QR vé thông thường, mã QR tại bảo tàng thường được dán sau mặt kính tủ trưng bày hoặc dưới ánh đèn rọi phản chiếu mạnh. Trình quét được cải tiến với thuật toán lấy mẫu ở 3 kích thước mục tiêu khác nhau (1000px, 600px, 1400px), giúp loại bỏ nhiễu quang học và giải mã thành công trong chưa đầy 200ms với độ nhạy trên 99.2%.\n"
         "• Phản hồi đa giác quan (Multisensory Feedback): Khi quét trúng mã hợp lệ, hệ thống lập tức phát âm thanh Beep tần số 880Hz (nốt A5) trong 0.18 giây thông qua Web Audio API [21] và kích hoạt rung xúc giác trên điện thoại di động (navigator.vibrate([80, 40, 80])), mang lại cảm giác phản hồi công nghệ cao tức thì.\n"
         "• Phân luồng điều hướng thông minh (Smart Detection): Trình quét tự động phân tích cú pháp dữ liệu quét được. Nếu phát hiện du khách quét nhầm mã vé tham quan (chứa tiền tố TKT- hoặc đường dẫn /ticket/), hệ thống hiển thị thông báo hướng dẫn du khách đến quầy soát vé tại cổng. Ngược lại, nếu là mã di sản hợp lệ, hệ thống tự động bóc tách tham số để kích hoạt mở ngay modal mô hình 3D (.GLB) kèm thuyết minh âm thanh đa ngôn ngữ, hoặc dịch chuyển góc nhìn vào không gian ảnh cầu 360° tương ứng.",
-        bold_prefix="2. Hệ thống mã QR Trưng bày và Trình quét Phygital khám phá Hiện vật 3D & Phòng 360°: "
+        bold_prefix="5. Hệ thống mã QR Trưng bày và Trình quét Phygital khám phá Hiện vật 3D & Phòng 360°: "
     )
     
     # 4.2.5. Phân hệ Quản trị hệ thống, Nhận diện thương hiệu Đa bảo tàng và Vận hành
@@ -528,8 +557,8 @@ def add_chapter_4(doc, helper):
         width_cm=15.0, height_cm=7.5
     )
     helper.add_figure_placeholder(doc, "4.17",
-        "Giao diện Đặt vé tham quan trực tuyến và chọn loại vé",
-        "Form chọn ngày tham quan, số lượng vé người lớn / trẻ em / sinh viên và tự động tính tổng tiền thanh toán minh bạch",
+        "Giao diện Đặt vé tham quan trực tuyến và bảng tóm tắt đơn hàng PayOS (/booking)",
+        "Màn hình đặt vé tham quan với bộ chọn ngày, khung giờ đón tiếp (Sáng / Chiều), 3 hạng vé thực tế (Người lớn 30.000đ, HSSV 15.000đ, Người già & Trẻ em 15.000đ), form thông tin người nhận và bảng tóm tắt đơn hàng thời gian thực [16], [17]",
         width_cm=15.0, height_cm=7.5
     )
     helper.add_figure_placeholder(doc, "4.18",
@@ -538,8 +567,8 @@ def add_chapter_4(doc, helper):
         width_cm=15.0, height_cm=7.5
     )
     helper.add_figure_placeholder(doc, "4.19",
-        "Giao diện Vé điện tử với mã QR bảo mật AES-256",
-        "Mẫu vé điện tử hoàn chỉnh sau khi thanh toán thành công, hiển thị đầy đủ thông tin khách hàng và mã QR soát vé để xuất trình",
+        "Giao diện Hồ sơ cá nhân và Tab Quản lý Vé của tôi (Profile & My Tickets)",
+        "Giao diện trang cá nhân /profile hiển thị hai chỉ số TICKET VALIDITY (vé còn hạn) và TOTAL TICKET (tổng vé), thông tin tài khoản OTP Email, cùng Tab 'My ticket' với danh sách vé điện tử, bộ lọc trạng thái và mã QR bảo mật AES-256 [16], [17]",
         width_cm=15.0, height_cm=7.5
     )
     helper.add_figure_placeholder(doc, "4.20a",

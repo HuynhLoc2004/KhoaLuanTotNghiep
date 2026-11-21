@@ -390,60 +390,70 @@ def add_chapter_3(doc, helper):
     # UC-11
     helper.add_use_case_table(doc, "3.14", "Đặt vé tham quan trực tuyến",
         "Khách tham quan",
-        "Cho phép khách chọn ngày tham quan, số lượng vé người lớn/trẻ em và nhập thông tin liên hệ.",
-        "Khách truy cập trang 'Đặt vé' trên thanh điều hướng.",
-        "Đơn đặt vé được khởi tạo với trạng thái 'PENDING' và chuyển sang bước thanh toán.",
+        "Cho phép khách chọn ngày tham quan, chọn khung giờ đón tiếp (Sáng: 08:00 - 11:30, Chiều: 13:30 - 17:00), lựa chọn số lượng theo 3 hạng vé thực tế của Bảo tàng Lịch sử (Người lớn: 30.000 VNĐ, Học sinh - Sinh viên: 15.000 VNĐ, Người cao tuổi & Trẻ em: 15.000 VNĐ), tự động liên kết thông tin người nhận vé và xem bảng tóm tắt đơn hàng thời gian thực.",
+        "Khách truy cập trang 'Đặt vé tham quan' (/booking) trên thanh điều hướng Navbar.",
+        "Đơn đặt vé được khởi tạo với trạng thái 'PENDING', khóa số lượng vé tạm thời trong 15 phút và kích hoạt cổng thanh toán VietQR PayOS.",
         [
-            ("1. Khách chọn ngày tham quan, số lượng vé (Người lớn: 30.000 VNĐ, Trẻ em/Sinh viên: 15.000 VNĐ).", "2. Hệ thống tự động tính tổng tiền thanh toán."),
-            ("3. Khách nhập họ tên, email nhận vé và số điện thoại.", "4. Bấm 'Tiến hành thanh toán', hệ thống tạo đơn hàng và gọi API PayOS sinh mã VietQR.")
+            ("1. Khách chọn ngày tham quan trên bộ lịch (Date Picker) và chọn khung giờ đón tiếp (Buổi sáng 08:00 - 11:30 hoặc Buổi chiều 13:30 - 17:00).", "2. Hệ thống hiển thị lịch mở cửa (Thứ Ba đến Chủ Nhật, Thứ Hai đóng cửa định kỳ) và bảng giá chi tiết của 3 hạng vé chính thống."),
+            ("3. Khách chọn số lượng từng loại vé bằng nút bấm tăng giảm [- 0 +].", "4. Hệ thống tự động tính tổng tiền thanh toán theo thời gian thực và hiển thị bảng Tóm tắt đơn hàng."),
+            ("5. Khách kiểm tra thông tin người nhận vé (đã tự động điền sẵn nếu đã đăng nhập; hoặc tự động lưu bản nháp pending_booking_draft và kích hoạt đăng nhập OTP Email an toàn).", "6. Khách bấm 'Thanh toán VietQR (PayOS)', hệ thống gọi API POST /api/tickets/create, khởi tạo giao dịch PayOS và kích hoạt đồng hồ đếm ngược 15 phút.")
         ],
         [
-            ("Số lượng vé bằng 0 hoặc ngày tham quan trong quá khứ:", "Hệ thống báo lỗi và yêu cầu chọn lại ngày hợp lệ.")
+            ("Chọn ngày trong quá khứ hoặc ngày Thứ Hai (ngày đóng cửa bảo quản hiện vật):", "Hệ thống hiển thị cảnh báo giải thích chu đáo và hướng dẫn chọn ngày mở cửa phù hợp."),
+            ("Tổng số lượng vé bằng 0 hoặc vượt quá giới hạn (8 vé/lần):", "Nút thanh toán bị vô hiệu hóa kèm thông báo nhắc nhở chọn số lượng vé hợp lệ.")
         ]
     )
     
     # UC-12
     helper.add_use_case_table(doc, "3.15", "Thanh toán vé qua VietQR PayOS",
-        "Khách tham quan, Hệ thống PayOS",
-        "Quét mã QR bằng ứng dụng ngân hàng số để chuyển khoản tiền vé tự động.",
-        "Đơn hàng vé ở trạng thái PENDING với mã VietQR hiển thị trên màn hình.",
-        "Đơn hàng chuyển trạng thái 'PAID', vé điện tử được xuất và gửi tự động qua Email.",
+        "Khách tham quan, Hệ thống PayOS, Ngân hàng Napas 247",
+        "Khách quét mã VietQR động chuẩn Napas 247 bằng ứng dụng ngân hàng di động để thanh toán tiền vé tự động; hệ thống tiếp nhận Webhook ký số HMAC-SHA256 để xác thực giao dịch thời gian thực.",
+        "Đơn hàng vé ở trạng thái 'PENDING', modal thanh toán VietQR PayOS hiển thị đầy đủ mã QR, số tiền chính xác, nội dung chuyển khoản và đồng hồ đếm ngược 15 phút.",
+        "Đơn hàng chuyển trạng thái 'PAID', CSDL PostgreSQL sinh các bản ghi vé với mã định danh TKT-xxxxxx, chuỗi token mã hóa AES-256, tự động gửi Email hóa đơn vé điện tử và điều hướng du khách sang trang Hồ sơ cá nhân (/profile) Tab 'My ticket'.",
         [
-            ("1. Khách mở ứng dụng ngân hàng trên điện thoại, chọn Quét QR và quét mã hiển thị trên web.", "2. Ứng dụng ngân hàng tự động điền STK, tên chủ tài khoản, số tiền và mã đơn hàng."),
-            ("3. Khách xác nhận chuyển tiền trên app ngân hàng.", "4. Cổng PayOS nhận tiền thành công và phát Webhook về máy chủ bảo tàng. Hệ thống tự động kích hoạt vé và chuyển hướng sang trang vé thành công.")
+            ("1. Khách mở ứng dụng ngân hàng số hoặc ví điện tử bất kỳ quét mã VietQR Napas 247 hiển thị trên màn hình.", "2. Ứng dụng ngân hàng tự động điền số tài khoản thụ hưởng, tên chủ tài khoản bảo tàng, chính xác số tiền và mã giao dịch."),
+            ("3. Khách xác nhận chuyển tiền trên app ngân hàng.", "4. Ngân hàng báo có tới PayOS; PayOS phát tín hiệu Webhook kèm chữ ký số HMAC-SHA256 về máy chủ Backend bảo tàng."),
+            ("5. Backend xác thực tính toàn vẹn của chữ ký số, cập nhật trạng thái đơn hàng sang 'PAID', sinh mã vé TKT-xxxxxx, lưu vào CSDL PostgreSQL và gửi Email vé điện tử cho du khách.", "6. Trình duyệt khách tự động phát hiện thanh toán thành công, hiển thị thông báo chúc mừng và chuyển hướng đến Tab 'My ticket' trên trang /profile.")
         ],
         [
-            ("Hết thời gian thanh toán (15 phút) khách chưa chuyển:", "Đơn hàng tự động hủy và mã QR hết hiệu lực.")
+            ("Hết thời gian thanh toán (quá 15 phút khách chưa chuyển):", "Đơn hàng tự động hủy, mã VietQR bị vô hiệu hóa và hoàn lại vị trí vé trống cho hệ thống."),
+            ("Khách chủ động hủy giao dịch:", "Hệ thống ghi nhận trạng thái CANCELLED và cho phép khách đặt lại vé mới bất cứ lúc nào.")
         ]
     )
     
     # UC-13
-    helper.add_use_case_table(doc, "3.16", "Tra cứu và tải vé điện tử (Mã QR)",
+    helper.add_use_case_table(doc, "3.16", "Quản lý Hồ sơ cá nhân và Tab Vé của tôi (Profile & My Tickets)",
         "Khách tham quan",
-        "Khách xem lại vé đã mua, tải ảnh vé hoặc lưu mã QR vào điện thoại để xuất trình khi đến bảo tàng.",
-        "Khách đã thanh toán thành công hoặc tra cứu qua mã đơn hàng.",
-        "Thông tin vé chi tiết kèm mã QR hợp lệ được hiển thị để tải về máy.",
+        "Khách tham quan quản lý thông tin tài khoản, theo dõi hai chỉ số vé trực quan (TICKET VALIDITY - vé còn hiệu lực, TOTAL TICKET - tổng vé đã mua), lọc danh sách vé theo trạng thái, mở modal vé điện tử chứa mã QR bảo mật AES-256 để xuất trình tại cửa, in vé/tải vé PDF, và nhận cập nhật trạng thái vé tức thì qua Server-Sent Events (SSE) khi vừa được soát vé vào cổng.",
+        "Khách đã đăng nhập tài khoản bằng mã OTP Email an toàn và truy cập trang /profile.",
+        "Thông tin hồ sơ được lưu trữ; du khách quản lý đầy đủ danh sách vé điện tử và xuất trình mã QR thuận tiện.",
         [
-            ("1. Khách mở email hoặc vào mục 'Vé của tôi' trên website.", "2. Hệ thống hiển thị thẻ vé điện tử có họ tên, ngày tham quan, số lượng và mã QR bảo mật."),
-            ("3. Khách bấm 'Tải vé PDF / Ảnh QR'.", "4. Hệ thống xuất file ảnh vé sắc nét để lưu vào thư viện điện thoại.")
+            ("1. Khách truy cập trang /profile: Phía trên hiển thị thông tin tài khoản cùng hai chỉ số đo lường vé TICKET VALIDITY và TOTAL TICKET.", "2. Khách chuyển sang Tab 'My ticket': Hệ thống hiển thị danh sách toàn bộ vé đã mua kèm bộ lọc trạng thái ('Tất cả', 'Còn hiệu lực', 'Đã sử dụng / Hết hạn')."),
+            ("3. Khách nhấp vào từng thẻ vé: Màn hình mở Modal chi tiết vé hiển thị mã vé TKT-xxxxxx, loại vé, ngày tham quan, khung giờ đón tiếp, số tiền đã trả và mã QR Code bảo mật mã hóa AES-256.", "4. Khách có thể nhấn 'In vé / Tải PDF' để lưu về máy hoặc xuất trình mã QR trực tiếp cho nhân viên soát vé tại cổng."),
+            ("5. Khi nhân viên quét vé tại cổng, máy chủ phát sự kiện SSE museum:tickets_updated.", "6. Màn hình khách tự động chuyển trạng thái vé sang 'USED' trong vòng <1ms kèm rung xúc giác điện thoại (navigator.vibrate) và thông báo Toast thành công mà không cần làm mới trang.")
         ],
         [
-            ("Vé đã được sử dụng trước đó:", "Hệ thống hiển thị trạng thái vé 'ĐÃ SOÁT VÉ' kèm thời gian quét vé.")
+            ("Vé đã được sử dụng trước đó:", "Thẻ vé hiển thị nhãn xám 'ĐÃ SOÁT VÉ' kèm thời gian soát vé cụ thể, nút Hủy vé bị ẩn."),
+            ("Mất kết nối SSE:", "Cơ chế Polling tự động thăm dò API mỗi 2 giây khi Modal vé mở để đảm bảo không bỏ sót trạng thái soát vé thành công.")
         ]
     )
     
     # UC-14
-    helper.add_use_case_table(doc, "3.17", "Soát vé camera thời gian thực",
-        "Nhân viên soát vé, Quản trị viên",
-        "Sử dụng camera điện thoại của nhân viên để quét mã QR vé của khách tại cổng ra vào bảo tàng.",
-        "Nhân viên đăng nhập với quyền Staff/Admin và mở trang Soát vé.",
-        "Hệ thống kiểm tra tính hợp lệ của vé, tự động đổi trạng thái vé sang 'USED' và phát âm thanh thông báo.",
+    helper.add_use_case_table(doc, "3.17", "Soát vé camera thời gian thực và Kiểm soát vào cổng",
+        "Nhân viên soát vé (Staff), Quản trị viên (Admin)",
+        "Nhân viên bảo tàng sử dụng camera điện thoại hoặc thiết bị quét chuyên dụng mở module HTML5-QRCode quét mã QR vé của khách tại cổng ra vào; hệ thống đối soát CSDL thời gian thực, chuyển trạng thái vé sang 'USED' và phát âm thanh Bíp mở barie.",
+        "Nhân viên đăng nhập với tài khoản có quyền Staff hoặc Admin, mở giao diện Soát vé hoặc kích hoạt Modal Camera quét vé.",
+        "Vé hợp lệ được chuyển trạng thái sang 'USED' trong CSDL PostgreSQL, ghi nhận log checked_in_at, phát sự kiện Realtime SSE sang thiết bị du khách và mở cổng đón khách.",
         [
-            ("1. Nhân viên đưa camera điện thoại hướng vào mã QR trên vé của khách tham quan.", "2. Thư viện HTML5-QRCode tự động nhận diện và trích xuất chuỗi mã vé."),
-            ("3. Gửi chuỗi mã về API kiểm tra của máy chủ.", "4. Hệ thống kiểm tra chữ ký số SHA-256: nếu vé hợp lệ và chưa dùng thì chuyển trạng thái 'USED', hiển thị dấu tích xanh và phát chuông thành công.")
+            ("1. Nhân viên mở giao diện Soát vé, cấp quyền camera thiết bị. Khung ngắm quét mã hiển thị sẵn sàng.", "2. Nhân viên hướng camera vào mã QR trên vé điện tử (màn hình điện thoại hoặc vé in) của du khách."),
+            ("3. Thư viện HTML5-QRCode tự động nhận diện khung hình, giải mã Payload và trích xuất mã vé TKT-xxxxxx.", "4. Trình duyệt gửi yêu cầu POST /api/tickets/validate-qr về máy chủ kiểm tra."),
+            ("5. Máy chủ giải mã AES-256, kiểm tra chữ ký số SHA-256 và đối soát với CSDL PostgreSQL: kiểm tra trạng thái PAID, đúng ngày tham quan và đúng khung giờ.", "6. Cập nhật trạng thái vé từ PAID sang USED, ghi nhận thời gian checked_in_at và danh tính nhân viên soát vé."),
+            ("7. Máy chủ gửi phản hồi thành công <150ms: Màn hình điện thoại nhân viên hiện tích xanh to bản, phát chuông Bíp và rung máy; đồng thời bắn sự kiện SSE cập nhật tức thì màn hình du khách. Barie mở đón khách vào bảo tàng.", "8. Log kiểm soát được lưu vào bảng TicketValidationLogs phục vụ đối soát và thống kê Grafana.")
         ],
         [
-            ("Vé giả mạo hoặc vé đã bị sử dụng:", "Màn hình chuyển sang màu đỏ cảnh báo 'VÉ KHÔNG HỢP LỆ HOẶC ĐÃ ĐƯỢC SỬ DỤNG' kèm âm báo cảnh báo.")
+            ("Vé giả mạo hoặc sai định dạng:", "Màn hình chuyển đỏ cảnh báo 'MÃ VÉ KHÔNG HỢP LỆ TRONG HỆ THỐNG' kèm âm báo lỗi."),
+            ("Vé đã được quét trước đó (status == 'USED'):", "Màn hình báo động đỏ 'VÉ ĐÃ ĐƯỢC SỬ DỤNG VÀO LÚC [HH:mm:ss NGÀY DD/MM/YYYY]', ngăn chặn triệt để hành vi gian lận quay vòng vé."),
+            ("Vé không đúng ngày tham quan:", "Cảnh báo 'VÉ KHÔNG ÁP DỤNG CHO NGÀY HÔM NAY'.")
         ]
     )
     
@@ -721,26 +731,32 @@ def add_chapter_3(doc, helper):
     
     # Placeholders Hình 3.6 -> 3.11
     helper.add_body_p(doc,
-        "1. Quy trình đặt vé và thanh toán trực tuyến qua cổng VietQR PayOS (Hình 3.6): "
-        "Mô tả luồng giao tiếp bảo mật giữa Khách tham quan, máy chủ Backend Bảo tàng, cổng thanh toán trung gian PayOS [17] "
-        "và hệ thống ngân hàng Napas 24/7 [16]. Điểm đột phá là cơ chế Webhook đối soát tự động có kiểm tra chữ ký điện tử HMAC-SHA256, "
-        "cho phép hệ thống tự động xuất vé điện tử kèm mã QR mã hóa ngay khi người dùng hoàn tất chuyển khoản mà không cần nhân viên can thiệp thủ công."
+        "1. Quy trình đặt vé trực tuyến, thanh toán VietQR và quản lý Vé của tôi (Hình 3.6): "
+        "Mô tả chu trình nghiệp vụ khép kín từ khâu khách tham quan chọn lịch và khung giờ đón tiếp (Buổi sáng 08:00 - 11:30 hoặc Buổi chiều 13:30 - 17:00), "
+        "chọn số lượng theo 3 hạng vé thực tế của Bảo tàng Lịch sử TP.HCM (Người lớn: 30.000 VNĐ, Học sinh - Sinh viên: 15.000 VNĐ, Người cao tuổi & Trẻ em: 15.000 VNĐ), "
+        "tự động liên kết thông tin người nhận vé và kiểm tra bảng tóm tắt đơn hàng thời gian thực. "
+        "Khi bấm thanh toán, hệ thống kết nối cổng PayOS phát sinh mã VietQR Napas 247 [16], [17] với đồng hồ đếm ngược 15 phút. "
+        "Sau khi ngân hàng báo có, Webhook ký số HMAC-SHA256 cập nhật CSDL PostgreSQL [13], sinh mã định danh TKT-xxxxxx mã hóa AES-256 gửi qua Email, "
+        "và tự động điều hướng khách về trang Hồ sơ cá nhân (/profile) Tab 'My ticket' hiển thị hai chỉ số vé TICKET VALIDITY và TOTAL TICKET. "
+        "Đặc biệt, hệ thống tích hợp kênh Server-Sent Events (SSE) giúp màn hình vé của khách tự động đổi sang trạng thái 'Đã soát vé' (<1ms) kèm rung máy ngay khi nhân viên tại cổng quét vé thành công."
     )
     helper.add_figure_placeholder(doc, "3.6",
-        "Sơ đồ tuần tự quy trình đặt vé và thanh toán VietQR PayOS",
-        "Luồng gọi API từ Client -> Server Bảo tàng -> Cổng PayOS [17] -> Webhook ngân hàng cập nhật trạng thái đơn hàng [16]",
+        "Sơ đồ hoạt động quy trình đặt vé trực tuyến, thanh toán VietQR và quản lý Vé của tôi",
+        "Chu trình nghiệp vụ: Đặt vé /booking -> VietQR PayOS Napas 247 -> Lưu CSDL PostgreSQL -> Hồ sơ /profile Tab My tickets -> Đồng bộ Realtime SSE [16], [17]",
         width_cm=15.0, height_cm=8.0
     )
     
     helper.add_body_p(doc,
-        "2. Quy trình quét và kiểm tra mã vé QR thời gian thực tại cửa bảo tàng (Hình 3.7): "
-        "Mô tả quy trình nghiệp vụ của nhân viên bảo tàng sử dụng camera điện thoại di động quét mã vé QR trên điện thoại hoặc vé in của du khách [22]. "
-        "Hệ thống giải mã chuỗi Payload, kiểm tra tính hợp lệ của chữ ký số SHA-256, đối soát trạng thái vé trong cơ sở dữ liệu PostgreSQL [13], "
-        "và thực hiện hủy vé (cập nhật trạng thái 'Đã soát vé' kèm dấu thời gian thực) để ngăn chặn tuyệt đối hành vi gian lận quay vòng sử dụng vé nhiều lần."
+        "2. Quy trình soát vé điện tử và kiểm soát vào cổng thời gian thực (Hình 3.7): "
+        "Mô tả quy trình nghiệp vụ của nhân viên kiểm soát tại cửa bảo tàng sử dụng camera điện thoại di động chạy module quét HTML5-QRCode [22] "
+        "để quét mã QR vé trên điện thoại hoặc vé in của du khách. "
+        "Hệ thống giải mã chuỗi Payload, kiểm tra tính toàn vẹn của chữ ký số SHA-256, đối soát tính hợp lệ về ngày giờ và trạng thái vé trong CSDL PostgreSQL [13]. "
+        "Nếu hợp lệ, trạng thái vé được cập nhật tức thì từ PAID sang USED kèm thời gian checked_in_at, phát âm thanh Bíp thành công, mở barie đón khách và phát sự kiện SSE sang máy khách. "
+        "Nếu phát hiện vé giả mạo, sai ngày tham quan hoặc vé đã qua cổng trước đó, hệ thống lập tức hiển thị cảnh báo đỏ từ chối vào cổng, ngăn chặn triệt để hành vi quay vòng vé gian lận."
     )
     helper.add_figure_placeholder(doc, "3.7",
-        "Sơ đồ tuần tự quy trình soát vé QR bằng camera trực tiếp",
-        "Luồng quét mã vé tại cổng từ Mobile Browser Staff -> API đối soát -> Xác thực chữ ký SHA-256 -> Hủy vé qua thư viện HTML5-QRCode [22]",
+        "Sơ đồ hoạt động quy trình soát vé điện tử và kiểm soát vào cổng thời gian thực",
+        "Quy trình quét camera HTML5-QRCode tại cổng -> API đối soát chữ ký SHA-256 & CSDL PostgreSQL -> Cập nhật trạng thái USED -> Bắn sự kiện Realtime SSE chống gian lận [13], [22]",
         width_cm=15.0, height_cm=8.0
     )
     
