@@ -973,6 +973,133 @@ def gen_fig_3_1():
     fig.savefig(os.path.join(DIAGRAMS_DIR, "hinh_3_1_use_case_tong_quat.png"), bbox_inches='tight')
     plt.close(fig)
 
+def gen_fig_3_2():
+    """Hinh 3.2: Use Case Phan he Khach tham quan (Visitor)"""
+    fig, ax = plt.subplots(figsize=(10.5, 4.8), dpi=300)
+    ax.set_xlim(0, 10.5); ax.set_ylim(0, 4.8); ax.axis('off')
+    
+    ax.text(5.25, 4.65, 'SƠ ĐỒ USE CASE: PHÂN HỆ KHÁCH THAM QUAN (VISITOR SUBSYSTEM)',
+            ha='center', va='center', fontsize=9.5, fontweight='bold', color=C_DARK_TEXT)
+    ax.text(5.25, 4.38, 'Tập hợp các ca sử dụng phục vụ trải nghiệm tham quan ảo, tương tác di sản và đặt vé trực tuyến',
+            ha='center', va='center', fontsize=7.8, color=C_MUTED_TEXT)
+            
+    draw_actor(ax, 1.2, 2.5, "Khách tham quan", "Web / Mobile", color=C_FILL_ACTOR)
+    draw_actor(ax, 9.4, 1.7, "Hệ thống PayOS", "Cổng thanh toán", color=C_FILL_SERVER)
+    
+    col1_ucs = [
+        ("UC05: Khám phá không gian Tour 360°", 3.9, 3.8),
+        ("UC06: Chuyển phòng qua Hotspot", 3.9, 3.1),
+        ("UC07: Chiêm ngưỡng cổ vật 3D", 3.9, 2.4),
+        ("UC08: Nghe thuyết minh âm thanh (TTS)", 3.9, 1.7),
+        ("UC09: Tìm đường liên thông Dijkstra", 3.9, 1.0)
+    ]
+    col2_ucs = [
+        ("UC10: Trò chuyện Trợ lý Di sản AI", 6.9, 3.8),
+        ("UC11: Đặt vé tham quan trực tuyến", 6.9, 3.1),
+        ("UC12: Thanh toán vé VietQR PayOS", 6.9, 2.4),
+        ("UC13: Tra cứu & Quét mã vé điện tử", 6.9, 1.7),
+        ("UC23: Dịch thuật ngữ cảnh đa ngôn ngữ", 6.9, 1.0)
+    ]
+    
+    for name, x, y in col1_ucs + col2_ucs:
+        el = patches.Ellipse((x, y), 2.5, 0.52, facecolor='#F8FAFC', edgecolor=C_LINE_DARK, lw=1.2, zorder=3)
+        ax.add_patch(el)
+        ax.text(x, y, name, ha='center', va='center', fontsize=6.8, fontweight='bold', color=C_DARK_TEXT, zorder=4)
+        
+    for _, x, y in col1_ucs:
+        ax.plot([1.6, x - 1.25], [2.5, y], color=C_LINE_DARK, lw=1.0, zorder=2)
+    for _, x, y in col2_ucs:
+        ax.plot([1.6, x - 1.25], [2.5, y], color=C_LINE_DARK, lw=1.0, linestyle=':', zorder=2)
+        
+    ax.plot([8.15, 8.95], [2.4, 1.7], color=C_LINE_DARK, lw=1.2, zorder=2)
+    
+    fig.savefig(os.path.join(DIAGRAMS_DIR, "hinh_3_2_use_case_visitor.png"), bbox_inches='tight')
+    plt.close(fig)
+
+def gen_fig_3_3():
+    """Hinh 3.3: Use Case Phan he Quan tri vien (Admin)"""
+    fig, ax = plt.subplots(figsize=(10.5, 4.8), dpi=300)
+    ax.set_xlim(0, 10.5); ax.set_ylim(0, 4.8); ax.axis('off')
+    
+    ax.text(5.25, 4.65, 'SƠ ĐỒ USE CASE: PHÂN HỆ QUẢN TRỊ VIÊN BẢO TÀNG (ADMIN CMS SUBSYSTEM)',
+            ha='center', va='center', fontsize=9.5, fontweight='bold', color=C_DARK_TEXT)
+    ax.text(5.25, 4.38, 'Quản lý kho dữ liệu di sản 360°, cổ vật 3D, vận hành bảo trì và giám sát hệ thống Grafana',
+            ha='center', va='center', fontsize=7.8, color=C_MUTED_TEXT)
+            
+    draw_actor(ax, 1.2, 2.5, "Quản trị viên", "Admin CMS", color='#166534')
+    draw_actor(ax, 9.4, 1.7, "Grafana Engine", "Observability", color=C_FILL_SERVER)
+    
+    col1_ucs = [
+        ("UC15: Quản lý danh mục 18 phòng 360°", 3.9, 3.8),
+        ("UC16: Cấu hình Hotspot liên kết phòng", 3.9, 3.1),
+        ("UC17: Quản lý kho tư liệu cổ vật 3D", 3.9, 2.4),
+        ("UC18: Quản lý phát hành vé & bảng giá", 3.9, 1.7),
+        ("UC19: Quản lý đơn hàng & doanh thu", 3.9, 1.0)
+    ]
+    col2_ucs = [
+        ("UC20: Quản lý người dùng & phân quyền", 6.9, 3.8),
+        ("UC21: Nhận diện thương hiệu Đa bảo tàng", 6.9, 3.1),
+        ("UC22: Vận hành & Chế độ bảo trì", 6.9, 2.4),
+        ("UC24: Giám sát hệ thống qua Grafana", 6.9, 1.7),
+        ("UC25: Cấu hình thuyết minh & Giọng AI", 6.9, 1.0)
+    ]
+    
+    for name, x, y in col1_ucs + col2_ucs:
+        el = patches.Ellipse((x, y), 2.5, 0.52, facecolor='#F8FAFC', edgecolor=C_LINE_DARK, lw=1.2, zorder=3)
+        ax.add_patch(el)
+        ax.text(x, y, name, ha='center', va='center', fontsize=6.8, fontweight='bold', color=C_DARK_TEXT, zorder=4)
+        
+    for _, x, y in col1_ucs:
+        ax.plot([1.6, x - 1.25], [2.5, y], color=C_LINE_DARK, lw=1.0, zorder=2)
+    for _, x, y in col2_ucs:
+        ax.plot([1.6, x - 1.25], [2.5, y], color=C_LINE_DARK, lw=1.0, linestyle=':', zorder=2)
+        
+    ax.plot([8.15, 8.95], [1.7, 1.7], color=C_LINE_DARK, lw=1.2, zorder=2)
+    
+    fig.savefig(os.path.join(DIAGRAMS_DIR, "hinh_3_3_use_case_admin.png"), bbox_inches='tight')
+    plt.close(fig)
+
+def gen_fig_3_4():
+    """Hinh 3.4: Use Case Phan he Ghep anh toan canh (Panorama Studio)"""
+    fig, ax = plt.subplots(figsize=(10.5, 4.6), dpi=300)
+    ax.set_xlim(0, 10.5); ax.set_ylim(0, 4.6); ax.axis('off')
+    
+    ax.text(5.25, 4.45, 'SƠ ĐỒ USE CASE: PHÂN HỆ GHÉP ẢNH TOÀN CẢNH (PANORAMA STUDIO)',
+            ha='center', va='center', fontsize=9.5, fontweight='bold', color=C_DARK_TEXT)
+    ax.text(5.25, 4.18, 'Quy trình thu nhận 4 nguồn ảnh thực địa, nắn chỉnh hình học trụ và kết xuất ảnh cầu 360° x 180°',
+            ha='center', va='center', fontsize=7.8, color=C_MUTED_TEXT)
+            
+    draw_actor(ax, 1.2, 2.3, "Kỹ thuật viên\n/ Quản trị", "Studio Tool", color='#9A3412')
+    
+    col1 = [
+        ("Nạp ảnh đơn Webcam thử nghiệm", 3.9, 3.6),
+        ("Nạp bộ ảnh góc rộng DSLR", 3.9, 2.8),
+        ("Nạp Video lia không gian", 3.9, 2.0),
+        ("Quét trực tiếp qua Gyroscope", 3.9, 1.2)
+    ]
+    col2 = [
+        ("Nắn chỉnh biến dạng trụ (Warping)", 7.4, 3.6),
+        ("Khớp đặc trưng SIFT & RANSAC", 7.4, 2.8),
+        ("Cắt mí tối ưu & Hòa trộn Laplacian", 7.4, 2.0),
+        ("Xuất ảnh cầu Equirectangular 8K", 7.4, 1.2)
+    ]
+    
+    for name, x, y in col1 + col2:
+        el = patches.Ellipse((x, y), 2.7, 0.54, facecolor='#F8FAFC', edgecolor=C_LINE_DARK, lw=1.2, zorder=3)
+        ax.add_patch(el)
+        ax.text(x, y, name, ha='center', va='center', fontsize=6.8, fontweight='bold', color=C_DARK_TEXT, zorder=4)
+        
+    for _, x, y in col1:
+        ax.plot([1.6, x - 1.35], [2.3, y], color=C_LINE_DARK, lw=1.0, zorder=2)
+        
+    for i in range(4):
+        ax.annotate('', xy=(col2[i][1] - 1.35, col2[i][2]), xytext=(col1[i][1] + 1.35, col1[i][2]),
+                    arrowprops=dict(arrowstyle='->', color=C_LINE_DARK, lw=1.1, linestyle='--'), zorder=2)
+        ax.text(5.65, col1[i][2] + 0.12, '<<include>>', ha='center', va='bottom', fontsize=6.5, fontstyle='italic', color=C_MUTED_TEXT)
+        
+    fig.savefig(os.path.join(DIAGRAMS_DIR, "hinh_3_4_use_case_stitching_studio.png"), bbox_inches='tight')
+    plt.close(fig)
+
 def gen_fig_3_5():
     """Hinh 3.5: ERD Database Model"""
     fig, ax = plt.subplots(figsize=(10.5, 4.4), dpi=300)
@@ -1003,6 +1130,91 @@ def gen_fig_3_5():
     ax.annotate('', xy=(3.95, 1.1), xytext=(3.05, 1.1), arrowprops=dict(arrowstyle='->', color=C_LINE_DARK, lw=1.3), zorder=2)
     
     fig.savefig(os.path.join(DIAGRAMS_DIR, "hinh_3_5_erd.png"), bbox_inches='tight')
+    plt.close(fig)
+
+def gen_fig_3_6():
+    """Hinh 3.6: Sequence Diagram Dat ve va thanh toan VietQR PayOS"""
+    fig, ax = plt.subplots(figsize=(10.5, 4.8), dpi=300)
+    ax.set_xlim(0, 10.5); ax.set_ylim(0, 4.8); ax.axis('off')
+    
+    ax.text(5.25, 4.65, 'SƠ ĐỒ TUẦN TỰ: ĐẶT VÉ TRỰC TUYẾN VÀ THANH TOÁN VIETQR QUA CỔNG PAYOS',
+            ha='center', va='center', fontsize=9.5, fontweight='bold', color=C_DARK_TEXT)
+    ax.text(5.25, 4.38, 'Luồng giao tiếp bất đồng bộ giữa Khách tham quan, Web Client, Backend API, PayOS và Ngân hàng',
+            ha='center', va='center', fontsize=7.8, color=C_MUTED_TEXT)
+
+    cols = [1.1, 3.1, 5.3, 7.6, 9.6]
+    headers = ['Khách tham quan\n(Browser)', 'Frontend UI\n(React Client)', 'Backend API\n(Node.js)', 'Cổng PayOS\n(Payment Hub)', 'Ngân hàng\n(VietQR/Napas)']
+    for i, x in enumerate(cols):
+        draw_clean_node(ax, x, 3.9, 1.6, 0.55, headers[i], bg='#E2E8F0')
+        ax.plot([x, x], [0.3, 3.6], color='#94A3B8', linestyle='--', lw=1.1, zorder=2)
+
+    draw_step_arrow(ax, 1.1, 3.4, 3.1, 3.4, step='1', label='Chọn vé & Đặt tham quan')
+    draw_step_arrow(ax, 3.1, 3.0, 5.3, 3.0, step='2', label='POST /api/tickets/create')
+    draw_step_arrow(ax, 5.3, 2.6, 7.6, 2.6, step='3', label='Tạo giao dịch VietQR')
+    draw_step_arrow(ax, 7.6, 2.2, 3.1, 2.2, step='4', label='Trả mã VietQR + OrderCode')
+    draw_step_arrow(ax, 3.1, 1.8, 1.1, 1.8, step='5', label='Hiển thị VietQR cho khách')
+    draw_step_arrow(ax, 1.1, 1.4, 9.6, 1.4, step='6', label='Khách quét & chuyển tiền App')
+    draw_step_arrow(ax, 9.6, 1.0, 7.6, 1.0, step='7', label='Ngân hàng báo thanh toán')
+    draw_step_arrow(ax, 7.6, 0.65, 5.3, 0.65, step='8', label='Webhook HMAC-SHA256')
+    draw_step_arrow(ax, 5.3, 0.35, 3.1, 0.35, step='9', label='Trạng thái: PAID -> Cấp vé QR')
+
+    fig.savefig(os.path.join(DIAGRAMS_DIR, "hinh_3_6_sequence_payment_payos.png"), bbox_inches='tight')
+    plt.close(fig)
+
+def gen_fig_3_7():
+    """Hinh 3.7: Sequence Diagram Soat ve QR Camera truc tiep"""
+    fig, ax = plt.subplots(figsize=(10.5, 4.8), dpi=300)
+    ax.set_xlim(0, 10.5); ax.set_ylim(0, 4.8); ax.axis('off')
+    
+    ax.text(5.25, 4.65, 'SƠ ĐỒ TUẦN TỰ: SOÁT VÉ ĐIỆN TỬ BẰNG CAMERA THỜI GIAN THỰC',
+            ha='center', va='center', fontsize=9.5, fontweight='bold', color=C_DARK_TEXT)
+    ax.text(5.25, 4.38, 'Quy trình giải mã khung hình camera HTML5-QRCode, đối soát chữ ký số SHA-256 và hủy vé tại cửa',
+            ha='center', va='center', fontsize=7.8, color=C_MUTED_TEXT)
+
+    cols = [1.2, 3.6, 6.2, 9.0]
+    headers = ['Nhân viên soát vé\n(Mobile Staff)', 'Camera Web App\n(HTML5-QRCode)', 'Backend API\n(Validation Service)', 'PostgreSQL CSDL\n(Bảng tickets)']
+    for i, x in enumerate(cols):
+        draw_clean_node(ax, x, 3.9, 1.8, 0.55, headers[i], bg='#E2E8F0')
+        ax.plot([x, x], [0.3, 3.6], color='#94A3B8', linestyle='--', lw=1.1, zorder=2)
+
+    draw_step_arrow(ax, 1.2, 3.35, 3.6, 3.35, step='1', label='Hướng camera vào mã QR vé')
+    draw_step_arrow(ax, 3.6, 2.95, 3.6, 2.65, step='2', label='Quét khung hình & Decode', rad=0.25)
+    draw_step_arrow(ax, 3.6, 2.30, 6.2, 2.30, step='3', label='POST /api/tickets/validate-qr')
+    draw_step_arrow(ax, 6.2, 1.90, 6.2, 1.60, step='4', label='Giải mã AES-256 & Verify SHA', rad=0.25)
+    draw_step_arrow(ax, 6.2, 1.25, 9.0, 1.25, step='5', label='UPDATE tickets SET status=USED')
+    draw_step_arrow(ax, 9.0, 0.90, 6.2, 0.90, step='6', label='Xác nhận cập nhật thành công')
+    draw_step_arrow(ax, 6.2, 0.55, 3.6, 0.55, step='7', label='200 OK: Vé hợp lệ / Cửa mở')
+    draw_step_arrow(ax, 3.6, 0.35, 1.2, 0.35, step='8', label='Hiển thị tích xanh + Rung máy')
+
+    fig.savefig(os.path.join(DIAGRAMS_DIR, "hinh_3_7_sequence_qr_scan.png"), bbox_inches='tight')
+    plt.close(fig)
+
+def gen_fig_3_8():
+    """Hinh 3.8: Sequence Diagram Tuong tac 360 va chuyen phong Hotspot"""
+    fig, ax = plt.subplots(figsize=(10.5, 4.8), dpi=300)
+    ax.set_xlim(0, 10.5); ax.set_ylim(0, 4.8); ax.axis('off')
+    
+    ax.text(5.25, 4.65, 'SƠ ĐỒ TUẦN TỰ: TƯƠNG TÁC KHÔNG GIAN 360° VÀ CHUYỂN PHÒNG QUA HOTSPOT',
+            ha='center', va='center', fontsize=9.5, fontweight='bold', color=C_DARK_TEXT)
+    ax.text(5.25, 4.38, 'Luồng xử lý sự kiện Raycaster Three.js, tải trước Texture bất đồng bộ và chuyển cảnh mờ dần',
+            ha='center', va='center', fontsize=7.8, color=C_MUTED_TEXT)
+
+    cols = [1.1, 3.1, 5.3, 7.6, 9.6]
+    headers = ['Khách tham quan\n(Visitor)', 'Three.js Canvas\n(WebGL 3D)', 'Raycaster Engine\n(Tương tác tia)', 'Texture Cache\n(Preloader)', 'Backend API\n(Rooms Service)']
+    for i, x in enumerate(cols):
+        draw_clean_node(ax, x, 3.9, 1.6, 0.55, headers[i], bg='#E2E8F0')
+        ax.plot([x, x], [0.3, 3.6], color='#94A3B8', linestyle='--', lw=1.1, zorder=2)
+
+    draw_step_arrow(ax, 1.1, 3.4, 3.1, 3.4, step='1', label='Click vào mũi tên Hotspot 3D')
+    draw_step_arrow(ax, 3.1, 3.0, 5.3, 3.0, step='2', label='Bắn tia Raycast tọa độ (x, y)')
+    draw_step_arrow(ax, 5.3, 2.6, 3.1, 2.6, step='3', label='Trả về target_room_id')
+    draw_step_arrow(ax, 3.1, 2.2, 7.6, 2.2, step='4', label='Yêu cầu nạp Texture phòng đích')
+    draw_step_arrow(ax, 7.6, 1.8, 9.6, 1.8, step='5', label='Cache Miss: Tải ảnh Panorama 8K')
+    draw_step_arrow(ax, 9.6, 1.4, 7.6, 1.4, step='6', label='Stream ảnh cầu Equirectangular')
+    draw_step_arrow(ax, 7.6, 1.0, 3.1, 1.0, step='7', label='Texture sẵn sàng trong VRAM')
+    draw_step_arrow(ax, 3.1, 0.65, 3.1, 0.35, step='8', label='Hiệu ứng Cross-fade & Đổi góc nhìn', rad=0.25)
+
+    fig.savefig(os.path.join(DIAGRAMS_DIR, "hinh_3_8_sequence_tour_hotspot.png"), bbox_inches='tight')
     plt.close(fig)
 
 def gen_fig_4_1():
@@ -1380,87 +1592,172 @@ def gen_fig_3_9():
 
 def gen_fig_3_10():
     """Hinh 3.10: So do hoat dong quy trinh dich thuat va tai noi dung ban dia hoa cuc bo cho khong gian 360 va co vat"""
-    fig, ax = plt.subplots(figsize=(10.5, 4.4), dpi=300)
-    ax.set_xlim(0, 10.5)
-    ax.set_ylim(0, 4.4)
-    ax.axis('off')
+    fig, ax = plt.subplots(figsize=(11.0, 5.0), dpi=300)
+    ax.set_xlim(0, 11.0); ax.set_ylim(0, 5.0); ax.axis('off')
     
-    # Title
-    ax.text(5.25, 4.25, 'QUY TRÌNH DỊCH THUẬT VÀ TẢI DỮ LIỆU BẢN ĐỊA HÓA CỤC BỘ (LOCALIZATION WORKFLOW)',
+    ax.text(5.5, 4.75, 'QUY TRÌNH DỊCH THUẬT VÀ TẢI DỮ LIỆU BẢN ĐỊA HÓA CỤC BỘ (LOCALIZATION WORKFLOW)',
             ha='center', va='center', fontsize=9.5, fontweight='bold', color=C_DARK_TEXT)
-    ax.text(5.25, 3.98, 'Phân tách độc lập ngôn ngữ thuyết minh phòng/hiện vật với ngôn ngữ chung của giao diện hệ thống',
+    ax.text(5.5, 4.45, 'Phân tách độc lập ngôn ngữ thuyết minh phòng/hiện vật với ngôn ngữ chung của giao diện hệ thống',
             ha='center', va='center', fontsize=7.8, color=C_MUTED_TEXT)
-            
-    # Node 1: Người dùng chọn ngôn ngữ thuyết minh
-    draw_actor(ax, 0.9, 2.5, 'Khách tham quan', 'Chọn VI / EN / FR\ntại phòng 360°', scale=0.85)
-    
-    # Node 2: Bộ điều khiển Client Context
-    draw_clean_node(ax, 2.8, 2.5, 1.9, 1.2, 'Client Controller', 'Đọc mã phòng / cổ vật\nKiểm tra ngôn ngữ đích\nGiữ nguyên System UI', bg='#F8FAFC')
-    
-    # Node 3: Kiểm tra Cache Local (IndexedDB / Memory)
-    draw_clean_node(ax, 5.1, 2.5, 1.8, 1.2, 'Bộ nhớ đệm Client', 'Tra cứu Cache cục bộ\n(LanguageCacheKey)', bg='#FEF3C7')
-    
-    # Node 4: Backend API
-    draw_server(ax, 7.6, 2.5, w=1.8, h=1.4, title='Localization API', sub='GET /api/localize\nTrích xuất bản dịch CSDL')
-    
-    # Node 5: AI Translation Engine (Fallback khi chưa có dịch sẵn)
-    draw_cloud(ax, 7.6, 0.75, w=1.9, h=0.85, title='Google Translate / Gemini AI', sub='Dịch tự động thuật ngữ di sản')
-    
-    # Node 6: Cập nhật giao diện 360
-    draw_clean_node(ax, 10.0, 2.5, 1.8, 1.2, 'Cập nhật UI 360°', 'Đổi văn bản mô tả\nĐổi Audio thuyết minh\nCập nhật danh sách hiện vật', bg='#DCFCE7')
-    
-    # Mũi tên luồng
-    draw_step_arrow(ax, 1.4, 2.5, 1.85, 2.5, step='1', label='Chọn ngôn ngữ')
-    draw_step_arrow(ax, 3.75, 2.5, 4.2, 2.5, step='2', label='Check cache')
-    draw_step_arrow(ax, 6.0, 2.5, 6.7, 2.5, step='3', label='Cache Miss')
-    draw_step_arrow(ax, 7.6, 1.8, 7.6, 1.25, step='4', label='AI Translation')
-    draw_step_arrow(ax, 7.6, 1.25, 7.6, 1.8, step='5', label='Lưu DB', rad=0.3)
-    draw_step_arrow(ax, 8.5, 2.5, 9.1, 2.5, step='6', label='Trả bản dịch')
-    draw_step_arrow(ax, 5.1, 3.1, 10.0, 3.1, step='2b', label='Cache Hit: Cập nhật tức thì (<10ms)', rad=0.25)
-    
+
+    # 2 Swimlane containers
+    draw_clean_node(ax, 5.5, 3.1, 10.4, 1.9, '', bg='#F8FAFC', border='#CBD5E1', lw=0.8)
+    ax.text(0.5, 3.85, 'TẦNG CLIENT (TRÌNH DUYỆT KHÁCH THAM QUAN)', fontsize=7.5, fontweight='bold', color='#1E3A8A')
+
+    draw_clean_node(ax, 5.5, 1.15, 10.4, 1.7, '', bg='#F1F5F9', border='#CBD5E1', lw=0.8)
+    ax.text(0.5, 1.85, 'TẦNG SERVER & DỊCH VỤ DỊCH THUẬT AI', fontsize=7.5, fontweight='bold', color='#166534')
+
+    # Nodes Client Layer
+    draw_actor(ax, 1.2, 2.9, 'Khách tham quan', 'Chọn VI / EN / FR', scale=0.85)
+    draw_clean_node(ax, 3.2, 2.9, 1.8, 1.0, 'Client Controller', 'Đọc mã phòng/cổ vật\nGiữ nguyên System UI', bg='#FFFFFF')
+    draw_clean_node(ax, 5.8, 2.9, 1.8, 1.0, 'Cache Client\n(Memory)', 'Key: lang_roomId\nTra cứu bản dịch', bg='#FEF3C7')
+    draw_clean_node(ax, 9.7, 2.9, 1.9, 1.0, 'Cập nhật UI 360°', 'Đổi bài thuyết minh\nĐổi văn bản mô tả', bg='#DCFCE7')
+
+    # Nodes Server Layer
+    draw_clean_node(ax, 5.8, 1.0, 2.0, 0.95, 'Localization API', 'Node.js Express\nTruy vấn CSDL', bg='#FFFFFF')
+    draw_clean_node(ax, 8.4, 1.0, 2.0, 0.95, 'PostgreSQL CSDL', 'Bảng rooms, artifacts\nTrường name_en, desc_en', bg='#FFFFFF')
+    draw_clean_node(ax, 10.1, 1.0, 1.6, 0.95, 'Google / Gemini AI', 'Dịch tự động NMT\nFallback khi thiếu', bg='#E0F2FE')
+
+    # Arrows
+    draw_step_arrow(ax, 1.65, 2.9, 2.25, 2.9, step='1', label='Chọn ngôn ngữ', label_offset=0.22)
+    draw_step_arrow(ax, 4.15, 2.9, 4.85, 2.9, step='2', label='Check Cache', label_offset=0.22)
+    draw_step_arrow(ax, 6.75, 3.1, 8.7, 3.1, step='3a', label='Cache Hit: Cập nhật ngay (<10ms)', label_offset=0.22)
+    draw_step_arrow(ax, 5.8, 2.35, 5.8, 1.55, step='3b', label='Cache Miss', label_offset=0.22)
+    draw_step_arrow(ax, 6.85, 1.0, 7.35, 1.0, step='4', label='SELECT DB', label_offset=0.22)
+    draw_step_arrow(ax, 8.4, 1.52, 9.2, 2.35, step='5', label='Trả bản dịch', label_offset=0.22)
+
     fig.savefig(os.path.join(DIAGRAMS_DIR, "hinh_3_10_translation_flow.png"), bbox_inches='tight')
     plt.close(fig)
 
 def gen_fig_3_11():
     """Hinh 3.11: So do hoat dong quy trinh sinh, luu tru dem bam (Hash Storage) va phat truc tuyen giong doc thuyet minh Audio"""
-    fig, ax = plt.subplots(figsize=(10.5, 4.4), dpi=300)
-    ax.set_xlim(0, 10.5)
-    ax.set_ylim(0, 4.4)
-    ax.axis('off')
+    fig, ax = plt.subplots(figsize=(11.0, 5.2), dpi=300)
+    ax.set_xlim(0, 11.0); ax.set_ylim(0, 5.2); ax.axis('off')
     
-    # Title
-    ax.text(5.25, 4.25, 'QUY TRÌNH SINH, LƯU TRỮ ĐỆM (HASH STORAGE) VÀ STREAMING THUYẾT MINH AUDIO',
+    ax.text(5.5, 4.95, 'QUY TRÌNH SINH, LƯU TRỮ ĐỆM (HASH STORAGE) VÀ STREAMING THUYẾT MINH AUDIO',
             ha='center', va='center', fontsize=9.5, fontweight='bold', color=C_DARK_TEXT)
-    ax.text(5.25, 3.98, 'Tối ưu hóa chi phí API và độ trễ phát âm thanh di sản bằng cơ chế mã băm MD5 và lưu trữ tĩnh',
+    ax.text(5.5, 4.65, 'Tối ưu hóa chi phí API và độ trễ phát âm thanh di sản bằng cơ chế mã băm MD5 và lưu trữ tĩnh',
             ha='center', va='center', fontsize=7.8, color=C_MUTED_TEXT)
-            
-    # Node 1: Yêu cầu phát thuyết minh
-    draw_actor(ax, 0.9, 2.4, 'Khách tham quan', 'Bấm nghe thuyết minh\nphòng hoặc hiện vật', scale=0.85)
-    
-    # Node 2: Bộ tính toán băm (Hash Calculator)
-    draw_clean_node(ax, 2.9, 2.4, 1.9, 1.3, 'Thuật toán băm MD5', 'Key = MD5(text +\nlang + voice_id)\nKhóa định danh tĩnh duy nhất', bg='#F8FAFC')
-    
-    # Node 3: Kiểm tra Storage tĩnh (Disk / MinIO / CDN)
-    draw_database(ax, 5.3, 2.4, w=1.4, h=1.0, title='Audio Cache Storage', sub='Thư mục /audio_cache/\n{AudioKey}.mp3', color=C_FILL_DB)
-    
-    # Node 4: Dịch vụ Google Cloud Neural TTS (khi chưa có cache)
-    draw_cloud(ax, 5.3, 0.7, w=1.9, h=0.85, title='Google Cloud TTS', sub='Neural2 & Wavenet AI\nChuẩn âm điệu Việt/Anh/Pháp')
-    
-    # Node 5: Máy chủ phân phối Audio Streaming
-    draw_server(ax, 8.0, 2.4, w=1.8, h=1.4, title='Nginx Audio Streamer', sub='HTTP 206 Partial Content\nCache-Control: Immutable\nLatency < 50ms')
-    
-    # Node 6: Trình phát Audio Player nổi
-    draw_clean_node(ax, 10.0, 2.4, 1.6, 1.2, 'Trình phát Audio', 'HTML5 Audio Engine\nHiển thị thời lượng\nĐồng bộ theo không gian', bg='#DCFCE7')
-    
-    # Mũi tên luồng
-    draw_step_arrow(ax, 1.4, 2.4, 1.95, 2.4, step='1', label='Yêu cầu phát')
-    draw_step_arrow(ax, 3.85, 2.4, 4.6, 2.4, step='2', label='Check file {Key}.mp3')
-    draw_step_arrow(ax, 5.3, 1.8, 5.3, 1.2, step='3', label='Chưa có: Gọi TTS')
-    draw_step_arrow(ax, 5.3, 1.2, 5.3, 1.8, step='4', label='Ghi đĩa tĩnh', rad=0.3)
-    draw_step_arrow(ax, 6.0, 2.4, 7.1, 2.4, step='5', label='Phát file tĩnh')
-    draw_step_arrow(ax, 8.9, 2.4, 9.2, 2.4, step='6', label='Stream MP3')
-    
+
+    # Node 1: Khách tham quan
+    draw_actor(ax, 1.0, 2.5, 'Khách tham quan', 'Bấm nghe Audio', scale=0.85)
+
+    # Node 2: Bộ băm MD5
+    draw_clean_node(ax, 2.8, 2.5, 1.8, 1.1, 'Bộ băm MD5', 'Key = MD5(text +\nlang + voice_code)\nĐịnh danh duy nhất', bg='#F8FAFC')
+
+    # Node 3: Decision Diamond
+    diamond = patches.Polygon([[4.4, 2.5], [5.3, 3.2], [6.2, 2.5], [5.3, 1.8]],
+                              facecolor='#FEF3C7', edgecolor=C_LINE_DARK, lw=1.3, zorder=4)
+    ax.add_patch(diamond)
+    ax.text(5.3, 2.5, 'Tệp MP3\nđã cache?', ha='center', va='center', fontsize=7.5, fontweight='bold', color=C_DARK_TEXT, zorder=6)
+
+    # Upper Branch (Cache Hit)
+    draw_clean_node(ax, 7.8, 3.7, 2.2, 1.0, 'Nginx Web Server', 'HTTP 206 Partial Content\nCache-Control: Immutable', bg='#DCFCE7')
+    # Lower Branch (Cache Miss)
+    draw_clean_node(ax, 7.8, 1.3, 2.2, 1.0, 'Google Cloud TTS', 'Neural2 AI Synthesis\nSinh stream MP3 chuẩn', bg='#E0F2FE')
+
+    # End Node: Audio Player
+    draw_clean_node(ax, 10.1, 2.5, 1.6, 1.1, 'Trình phát Audio', 'HTML5 Audio Engine\nĐộ trễ < 50ms\nPhát mượt mà', bg='#DCFCE7')
+
+    # Arrows
+    draw_step_arrow(ax, 1.45, 2.5, 1.85, 2.5, step='1', label='Yêu cầu phát', label_offset=0.22)
+    draw_step_arrow(ax, 3.75, 2.5, 4.35, 2.5, step='2', label='Check {Key}.mp3', label_offset=0.22)
+
+    # Hit path (up-right to Nginx, then to Player)
+    draw_step_arrow(ax, 5.3, 3.25, 6.65, 3.7, step='3a', label='[Có]: Cache Hit', label_offset=0.22)
+    draw_step_arrow(ax, 8.95, 3.7, 9.6, 3.0, step='4a', label='Stream MP3', label_offset=0.22)
+
+    # Miss path (down-right to TTS, then save cache, then to Player)
+    draw_step_arrow(ax, 5.3, 1.75, 6.65, 1.3, step='3b', label='[Chưa]: Cache Miss', label_offset=-0.22)
+    draw_step_arrow(ax, 8.95, 1.3, 9.6, 2.0, step='4b', label='Ghi đĩa tĩnh & Phát', label_offset=-0.22)
+
     fig.savefig(os.path.join(DIAGRAMS_DIR, "hinh_3_11_voice_tts_storage_pipeline.png"), bbox_inches='tight')
+    plt.close(fig)
+
+def gen_fig_4_37():
+    """Hinh 4.37: Bieu do thoi gian phan hoi trung binh JMeter"""
+    fig, ax = plt.subplots(figsize=(8.0, 4.2), dpi=300)
+    users = ['50', '100', '200', '500', '1000']
+    avg_resp = [42, 68, 112, 245, 520]
+    min_resp = [18, 22, 25, 32, 45]
+    max_resp = [115, 184, 295, 580, 1120]
+    
+    ax.plot(users, avg_resp, marker='o', color='#1E3A8A', lw=2.2, label='Thời gian phản hồi TB (Average)')
+    ax.plot(users, min_resp, marker='s', color='#166534', lw=1.6, linestyle='--', label='Thời gian nhỏ nhất (Min)')
+    ax.plot(users, max_resp, marker='^', color='#991B1B', lw=1.6, linestyle=':', label='Thời gian lớn nhất (Max)')
+    
+    for i, txt in enumerate(avg_resp):
+        ax.annotate(f'{txt} ms', (users[i], avg_resp[i] + 25), ha='center', fontsize=8.0, fontweight='bold', color='#1E3A8A')
+        
+    ax.set_title('BIỂU ĐỒ THỜI GIAN PHẢN HỒI THEO SỐ LƯỢNG USERS ĐỒNG THỜI (JMETER)', fontsize=9.5, fontweight='bold', color=C_DARK_TEXT, pad=12)
+    ax.set_xlabel('Số lượng người dùng đồng thời (Concurrent Users)', fontsize=8.5, fontweight='bold', color=C_DARK_TEXT)
+    ax.set_ylabel('Thời gian phản hồi (Mili-giây - ms)', fontsize=8.5, fontweight='bold', color=C_DARK_TEXT)
+    ax.set_ylim(0, 1250)
+    ax.grid(True, linestyle='--', alpha=0.5)
+    ax.legend(fontsize=8.0, loc='upper left')
+    
+    fig.savefig(os.path.join(DIAGRAMS_DIR, "hinh_4_37_response_time.png"), bbox_inches='tight')
+    plt.close(fig)
+
+def gen_fig_4_38():
+    """Hinh 4.38: Bieu do thong luong he thong JMeter"""
+    fig, ax = plt.subplots(figsize=(8.0, 4.2), dpi=300)
+    users = ['50 Users', '100 Users', '200 Users', '500 Users', '1000 Users']
+    throughput = [185.4, 242.8, 268.5, 285.2, 294.6]
+    
+    bars = ax.bar(users, throughput, color='#334155', edgecolor=C_LINE_DARK, lw=1.2, width=0.55)
+    for bar in bars:
+        h = bar.get_height()
+        ax.text(bar.get_x() + bar.get_width()/2., h + 6, f'{h} req/s', ha='center', va='bottom', fontsize=8.2, fontweight='bold', color=C_DARK_TEXT)
+        
+    ax.set_title('BIỂU ĐỒ THÔNG LƯỢNG HỆ THỐNG THEO TẢI ĐỒNG THỜI (THROUGHPUT)', fontsize=9.5, fontweight='bold', color=C_DARK_TEXT, pad=12)
+    ax.set_xlabel('Mức tải thử nghiệm (JMeter Thread Groups)', fontsize=8.5, fontweight='bold', color=C_DARK_TEXT)
+    ax.set_ylabel('Thông lượng (Yêu cầu/giây - Requests/sec)', fontsize=8.5, fontweight='bold', color=C_DARK_TEXT)
+    ax.set_ylim(0, 350)
+    ax.grid(axis='y', linestyle='--', alpha=0.5)
+    
+    fig.savefig(os.path.join(DIAGRAMS_DIR, "hinh_4_38_throughput.png"), bbox_inches='tight')
+    plt.close(fig)
+
+def gen_fig_4_39():
+    """Hinh 4.39: Bieu do ty le loi JMeter"""
+    fig, ax = plt.subplots(figsize=(8.0, 4.2), dpi=300)
+    users = ['50 Users', '100 Users', '200 Users', '500 Users', '1000 Users']
+    error_rates = [0.00, 0.00, 0.00, 0.12, 0.45]
+    
+    bars = ax.bar(users, error_rates, color=['#166534', '#166534', '#166534', '#D97706', '#991B1B'], edgecolor=C_LINE_DARK, lw=1.2, width=0.55)
+    for bar in bars:
+        h = bar.get_height()
+        ax.text(bar.get_x() + bar.get_width()/2., h + 0.02, f'{h:.2f} %', ha='center', va='bottom', fontsize=8.2, fontweight='bold', color=C_DARK_TEXT)
+        
+    ax.set_title('BIỂU ĐỒ TỶ LỆ LỖI KHI TĂNG TẢI TỪ 50 ĐẾN 1000 USERS (ERROR RATE)', fontsize=9.5, fontweight='bold', color=C_DARK_TEXT, pad=12)
+    ax.set_xlabel('Số lượng người dùng ảo đồng thời', fontsize=8.5, fontweight='bold', color=C_DARK_TEXT)
+    ax.set_ylabel('Tỷ lệ yêu cầu lỗi (%)', fontsize=8.5, fontweight='bold', color=C_DARK_TEXT)
+    ax.set_ylim(0, 0.6)
+    ax.grid(axis='y', linestyle='--', alpha=0.5)
+    
+    fig.savefig(os.path.join(DIAGRAMS_DIR, "hinh_4_39_error_rate.png"), bbox_inches='tight')
+    plt.close(fig)
+
+def gen_fig_4_40():
+    """Hinh 4.40: Ket qua danh gia Google Lighthouse"""
+    fig, ax = plt.subplots(figsize=(8.5, 4.2), dpi=300)
+    categories = ['Performance\n(Hiệu năng)', 'Accessibility\n(Tiếp cận)', 'Best Practices\n(Thực hành chuẩn)', 'SEO\n(Tối ưu tìm kiếm)']
+    scores = [94, 98, 100, 96]
+    
+    bars = ax.bar(categories, scores, color=['#166534', '#166534', '#166534', '#166534'], edgecolor=C_LINE_DARK, lw=1.2, width=0.5)
+    for bar in bars:
+        h = bar.get_height()
+        ax.text(bar.get_x() + bar.get_width()/2., h/2, f'{h}/100', ha='center', va='center', fontsize=9.0, fontweight='bold', color='white')
+        
+    ax.axhline(90, color='#D97706', linestyle='--', lw=1.2, label='Ngưỡng chuẩn xuất sắc Google (Score >= 90)')
+    ax.set_title('KẾT QUẢ ĐÁNH GIÁ CÁC CHỈ SỐ GOOGLE LIGHTHOUSE TRÊN MÔI TRƯỜNG THỰC TẾ', fontsize=9.5, fontweight='bold', color=C_DARK_TEXT, pad=12)
+    ax.set_ylabel('Điểm số Lighthouse (Thang điểm 100)', fontsize=8.5, fontweight='bold', color=C_DARK_TEXT)
+    ax.set_ylim(0, 115)
+    ax.grid(axis='y', linestyle='--', alpha=0.5)
+    ax.legend(fontsize=8.0, loc='lower right')
+    
+    fig.savefig(os.path.join(DIAGRAMS_DIR, "hinh_4_40_lighthouse.png"), bbox_inches='tight')
     plt.close(fig)
 
 def gen_all():
@@ -1482,7 +1779,13 @@ def gen_all():
     gen_fig_2_13()
     gen_fig_2_14()
     gen_fig_3_1()
+    gen_fig_3_2()
+    gen_fig_3_3()
+    gen_fig_3_4()
     gen_fig_3_5()
+    gen_fig_3_6()
+    gen_fig_3_7()
+    gen_fig_3_8()
     gen_fig_3_9()
     gen_fig_3_10()
     gen_fig_3_11()
@@ -1491,7 +1794,11 @@ def gen_all():
     gen_fig_4_5()
     gen_fig_4_7()
     gen_fig_4_8()
-    print(">>> HOAN THANH TAO 27 SO DO HOC THUAT MAU SAM HOAN HAO!")
+    gen_fig_4_37()
+    gen_fig_4_38()
+    gen_fig_4_39()
+    gen_fig_4_40()
+    print(">>> HOAN THANH TAO 36 SO DO HOC THUAT MAU SAM HOAN HAO!")
 
 if __name__ == "__main__":
     gen_all()
