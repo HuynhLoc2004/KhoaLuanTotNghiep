@@ -20,7 +20,7 @@
       "datasource": { "type": "prometheus", "uid": "Prometheus" },
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "palette-classic" },
+          "color": { "fixedColor": "#D4A017", "mode": "fixed" },
           "mappings": [],
           "unit": "s"
         }
@@ -36,7 +36,7 @@
       },
       "pluginVersion": "10.4.0",
       "targets": [
-        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "nodejs_process_uptime_seconds", "refId": "A" }
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "time() - nodejs_process_start_time_seconds", "refId": "A" }
       ],
       "title": "Thời gian hoạt động (Uptime)",
       "type": "stat"
@@ -45,15 +45,7 @@
       "datasource": { "type": "prometheus", "uid": "Prometheus" },
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "thresholds" },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              { "color": "green", "value": null },
-              { "color": "orange", "value": 50 },
-              { "color": "red", "value": 80 }
-            ]
-          },
+          "color": { "fixedColor": "#E5BA55", "mode": "fixed" },
           "unit": "percent"
         }
       },
@@ -77,15 +69,7 @@
       "datasource": { "type": "prometheus", "uid": "Prometheus" },
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "thresholds" },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              { "color": "blue", "value": null },
-              { "color": "orange", "value": 500000000 },
-              { "color": "red", "value": 1000000000 }
-            ]
-          },
+          "color": { "fixedColor": "#5794F2", "mode": "fixed" },
           "unit": "bytes"
         }
       },
@@ -109,7 +93,7 @@
       "datasource": { "type": "prometheus", "uid": "Prometheus" },
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "palette-classic" },
+          "color": { "fixedColor": "#C59B27", "mode": "fixed" },
           "unit": "bytes"
         }
       },
@@ -124,7 +108,7 @@
       },
       "pluginVersion": "10.4.0",
       "targets": [
-        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "nodejs_process_heap_used_bytes", "refId": "A" }
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "nodejs_nodejs_heap_size_used_bytes", "refId": "A" }
       ],
       "title": "Heap Memory Sử dụng",
       "type": "stat"
@@ -143,12 +127,26 @@
           "custom": {
             "drawStyle": "line",
             "fillOpacity": 15,
-            "gradientMode": "none",
+            "gradientMode": "opacity",
             "lineInterpolation": "smooth",
             "lineWidth": 2
           },
           "unit": "bytes"
-        }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Resident RSS" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "#5794F2", "mode": "fixed" } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Heap Used" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "#D4A017", "mode": "fixed" } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Heap Total" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "#6E7681", "mode": "fixed" } }]
+          }
+        ]
       },
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 6 },
       "id": 7,
@@ -157,9 +155,9 @@
         "tooltip": { "mode": "multi", "sort": "none" }
       },
       "targets": [
-        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "nodejs_process_heap_total_bytes", "legendFormat": "Heap Total", "refId": "A" },
-        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "nodejs_process_heap_used_bytes", "legendFormat": "Heap Used", "refId": "B" },
-        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "nodejs_process_resident_memory_bytes", "legendFormat": "Resident RSS", "refId": "C" }
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "nodejs_process_resident_memory_bytes", "legendFormat": "Resident RSS", "refId": "A" },
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "nodejs_nodejs_heap_size_used_bytes", "legendFormat": "Heap Used", "refId": "B" },
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "nodejs_nodejs_heap_size_total_bytes", "legendFormat": "Heap Total", "refId": "C" }
       ],
       "title": "Diễn biến Bộ nhớ RAM / Heap (Node.js)",
       "type": "timeseries"
@@ -176,7 +174,17 @@
             "lineWidth": 2
           },
           "unit": "percent"
-        }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "User CPU" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "#D4A017", "mode": "fixed" } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "System CPU" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "#5794F2", "mode": "fixed" } }]
+          }
+        ]
       },
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 6 },
       "id": 8,
@@ -194,11 +202,12 @@
   ],
   "refresh": "10s",
   "schemaVersion": 39,
+  "style": "dark",
   "tags": ["infrastructure", "vps", "nodejs"],
   "time": { "from": "now-1h", "to": "now" },
   "timepicker": { "refresh_intervals": ["5s", "10s", "30s", "1m"] },
   "timezone": "browser",
   "title": "1. Giám sát Hạ tầng VPS & Container",
   "uid": "museum-infra-01",
-  "version": 1
+  "version": 2
 }

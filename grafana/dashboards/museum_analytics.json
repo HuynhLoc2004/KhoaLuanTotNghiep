@@ -204,42 +204,61 @@
       "collapsed": false,
       "gridPos": { "h": 1, "w": 24, "x": 0, "y": 15 },
       "id": 8,
-      "title": "TIẾN ĐỘ SỐ HÓA & DANH SÁCH ĐƠN HÀNG MỚI NHẤT",
+      "title": "CƠ CẤU ĐƠN HÀNG & DANH SÁCH GIAO DỊCH MỚI NHẤT",
       "type": "row"
     },
     {
       "datasource": { "type": "postgres", "uid": "PostgreSQL-ReadOnly" },
       "fieldConfig": {
         "defaults": {
-          "color": { "fixedColor": "#D4A017", "mode": "fixed" },
-          "max": 30,
-          "min": 0,
+          "color": { "mode": "palette-classic" },
+          "mappings": [],
           "unit": "short"
-        }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "paid" },
+            "properties": [
+              { "id": "color", "value": { "fixedColor": "#D4A017", "mode": "fixed" } },
+              { "id": "displayName", "value": "Đã thanh toán" }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "expired" },
+            "properties": [
+              { "id": "color", "value": { "fixedColor": "#6E7681", "mode": "fixed" } },
+              { "id": "displayName", "value": "Hết hạn" }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "pending" },
+            "properties": [
+              { "id": "color", "value": { "fixedColor": "#E5BA55", "mode": "fixed" } },
+              { "id": "displayName", "value": "Chờ xử lý" }
+            ]
+          }
+        ]
       },
       "gridPos": { "h": 9, "w": 8, "x": 0, "y": 16 },
       "id": 9,
       "options": {
-        "displayMode": "gradient",
-        "minVizHeight": 10,
-        "minVizWidth": 0,
-        "namePlacement": "auto",
-        "orientation": "horizontal",
+        "displayLabels": ["percent", "name"],
+        "legend": { "displayMode": "table", "placement": "bottom", "values": ["value", "percent"] },
+        "pieType": "donut",
         "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
-        "showUnfilled": true,
-        "valueMode": "color"
+        "tooltip": { "mode": "single", "sort": "none" }
       },
       "pluginVersion": "10.4.0",
       "targets": [
         {
           "datasource": { "type": "postgres", "uid": "PostgreSQL-ReadOnly" },
           "format": "table",
-          "rawSql": "SELECT '1. Gian Phòng 360°' as \"Danh mục\", COUNT(*) as \"Số lượng\" FROM rooms UNION ALL SELECT '2. Hiện Vật Di Sản', COUNT(*) FROM artifacts UNION ALL SELECT '3. Hiện Vật Đã Có 3D', COUNT(*) FROM artifacts WHERE model_3d_url IS NOT NULL AND model_3d_url != '' UNION ALL SELECT '4. Tài Khoản Quản Trị', COUNT(*) FROM users;",
+          "rawSql": "SELECT status as \"Trạng thái\", count(*) as \"Số đơn\" FROM orders GROUP BY status;",
           "refId": "A"
         }
       ],
-      "title": "Tiến Độ Số Hóa Gian Phòng & Cổ Vật 3D",
-      "type": "bargauge"
+      "title": "Tỷ Lệ Trạng Thái Đơn Đặt Vé (PayOS / VietQR)",
+      "type": "piechart"
     },
     {
       "datasource": { "type": "postgres", "uid": "PostgreSQL-ReadOnly" },

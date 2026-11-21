@@ -20,7 +20,7 @@
       "datasource": { "type": "prometheus", "uid": "Prometheus" },
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "palette-classic" },
+          "color": { "fixedColor": "#5794F2", "mode": "fixed" },
           "unit": "reqps"
         }
       },
@@ -44,15 +44,7 @@
       "datasource": { "type": "prometheus", "uid": "Prometheus" },
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "thresholds" },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              { "color": "red", "value": null },
-              { "color": "orange", "value": 90 },
-              { "color": "green", "value": 98 }
-            ]
-          },
+          "color": { "fixedColor": "#D4A017", "mode": "fixed" },
           "unit": "percent"
         }
       },
@@ -80,9 +72,8 @@
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              { "color": "green", "value": null },
-              { "color": "orange", "value": 1 },
-              { "color": "red", "value": 5 }
+              { "color": "#6E7681", "value": null },
+              { "color": "#EF4444", "value": 1 }
             ]
           },
           "unit": "short"
@@ -99,7 +90,7 @@
       },
       "pluginVersion": "10.4.0",
       "targets": [
-        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "sum(increase(http_requests_total{status_code=~\"5..\"}[5m])) or vector(0)", "refId": "A" }
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "sum(http_requests_total{status_code=~\"5..\"}) or vector(0)", "refId": "A" }
       ],
       "title": "Số lượng Lỗi Server (5xx)",
       "type": "stat"
@@ -108,15 +99,7 @@
       "datasource": { "type": "prometheus", "uid": "Prometheus" },
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "thresholds" },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              { "color": "green", "value": null },
-              { "color": "orange", "value": 0.5 },
-              { "color": "red", "value": 1 }
-            ]
-          },
+          "color": { "fixedColor": "#E5BA55", "mode": "fixed" },
           "unit": "s"
         }
       },
@@ -149,13 +132,27 @@
         "defaults": {
           "custom": {
             "drawStyle": "line",
-            "fillOpacity": 20,
-            "gradientMode": "none",
+            "fillOpacity": 15,
+            "gradientMode": "opacity",
             "lineInterpolation": "smooth",
             "lineWidth": 2
           },
           "unit": "reqps"
-        }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "HTTP 200" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "#D4A017", "mode": "fixed" } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "HTTP 304" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "#5794F2", "mode": "fixed" } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "HTTP 404" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "#E5BA55", "mode": "fixed" } }]
+          }
+        ]
       },
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 6 },
       "id": 7,
@@ -164,7 +161,9 @@
         "tooltip": { "mode": "multi", "sort": "none" }
       },
       "targets": [
-        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "sum by (status_code) (rate(http_requests_total[1m]))", "legendFormat": "HTTP {{status_code}}", "refId": "A" }
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "sum(rate(http_requests_total{status_code=\"200\"}[1m]))", "legendFormat": "HTTP 200", "refId": "A" },
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "sum(rate(http_requests_total{status_code=\"304\"}[1m]))", "legendFormat": "HTTP 304", "refId": "B" },
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "sum(rate(http_requests_total{status_code=\"404\"}[1m]))", "legendFormat": "HTTP 404", "refId": "C" }
       ],
       "title": "Lưu lượng API theo Mã phản hồi HTTP (Status Code)",
       "type": "timeseries"
@@ -181,7 +180,21 @@
             "lineWidth": 2
           },
           "unit": "s"
-        }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "p50 (Trung vị)" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "#5794F2", "mode": "fixed" } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "p95" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "#D4A017", "mode": "fixed" } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "p99" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "#E5BA55", "mode": "fixed" } }]
+          }
+        ]
       },
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 6 },
       "id": 8,
@@ -200,11 +213,12 @@
   ],
   "refresh": "10s",
   "schemaVersion": 39,
-  "tags": ["api", "telemetry", "apm"],
+  "style": "dark",
+  "tags": ["apm", "api", "telemetry"],
   "time": { "from": "now-1h", "to": "now" },
   "timepicker": { "refresh_intervals": ["5s", "10s", "30s", "1m"] },
   "timezone": "browser",
-  "title": "2. Giám sát Hiệu năng API & Mạng (APM)",
+  "title": "2. Đo lường Hiệu năng API & Độ trễ Mạng (APM)",
   "uid": "museum-apm-02",
-  "version": 1
+  "version": 2
 }

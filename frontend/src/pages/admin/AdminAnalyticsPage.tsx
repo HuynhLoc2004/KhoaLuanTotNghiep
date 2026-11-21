@@ -387,6 +387,18 @@ export const AdminAnalyticsPage: React.FC = () => {
   // Tab con nghiệp vụ chuẩn Admin: Ưu tiên 3 Dashboard Grafana Live, không tự vẽ biểu đồ thủ công
   type AnalyticsSubTab = 'grafana-analytics' | 'grafana-infra' | 'grafana-apm' | 'tickets' | 'rooms' | 'artifacts';
   const [subTab, setSubTab] = useState<AnalyticsSubTab>('grafana-analytics');
+  const [tabTransitioning, setTabTransitioning] = useState<boolean>(false);
+
+  const handleSubTabChange = (newTab: AnalyticsSubTab) => {
+    if (newTab === subTab) return;
+    setTabTransitioning(true);
+    setTimeout(() => {
+      setSubTab(newTab);
+      setTimeout(() => {
+        setTabTransitioning(false);
+      }, 400);
+    }, 200);
+  };
 
   // Đảm bảo cookie museum_admin_token và auth_token luôn có sẵn để iframe Grafana và các sub-request Nginx luôn xác thực thành công
   useEffect(() => {
@@ -1162,7 +1174,7 @@ export const AdminAnalyticsPage: React.FC = () => {
               key={tab.id}
               type="button"
               className={`analytics-subtab-btn ${isActive ? 'active' : ''}`}
-              onClick={() => setSubTab(tab.id as any)}
+              onClick={() => handleSubTabChange(tab.id as any)}
             >
               {tab.label}
             </button>
@@ -1241,13 +1253,45 @@ export const AdminAnalyticsPage: React.FC = () => {
         </div>
       )}
 
-      {/* ========================================================
-          TAB 1: TỔNG QUAN & BIỂU ĐỒ DIỄN BIẾN
-          ======================================================== */}
-      {/* ========================================================
-          TAB 1: BẢNG ĐIỀU KHIỂN GRAFANA - NGHIỆP VỤ & DOANH THU
-          ======================================================== */}
-      {subTab === 'grafana-analytics' && (
+      {/* 4. KHUNG HIỂN THỊ NỘI DUNG TAB VỚI KÍCH THƯỚC CỐ ĐỊNH & HIỆU ỨNG CHUYỂN TAB MƯỢT MÀ */}
+      <div className="analytics-tab-viewport" style={{ minHeight: '860px', position: 'relative' }}>
+        {tabTransitioning && (
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              zIndex: 50,
+              backgroundColor: 'rgba(17, 18, 23, 0.85)',
+              backdropFilter: 'blur(4px)',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 16,
+              borderRadius: 8,
+              transition: 'opacity 0.25s ease'
+            }}
+          >
+            <div
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: '50%',
+                border: '3px solid rgba(212, 160, 23, 0.2)',
+                borderTopColor: '#D4A017',
+                animation: 'spin 0.8s linear infinite'
+              }}
+            />
+            <span style={{ fontSize: 13, color: '#E5BA55', fontWeight: 500, letterSpacing: '0.4px' }}>
+              Đang tải dữ liệu viễn trắc hệ thống...
+            </span>
+          </div>
+        )}
+
+        {/* ========================================================
+            TAB 1: BẢNG ĐIỀU KHIỂN GRAFANA - NGHIỆP VỤ & DOANH THU
+            ======================================================== */}
+        {subTab === 'grafana-analytics' && (
         <div style={{ marginTop: 6, borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-card)' }}>
           <div
             style={{
@@ -1410,7 +1454,7 @@ export const AdminAnalyticsPage: React.FC = () => {
           TAB 2: DOANH THU & GIAO DỊCH VÉ CHI TIẾT (CỐ ĐỊNH CHIỀU CAO)
           ======================================================== */}
       {subTab === 'tickets' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, minHeight: '780px' }}>
           {/* Bộ lọc vé */}
           <div className="analytics-filter-toolbar">
             <div className="analytics-filter-controls">
@@ -1565,7 +1609,7 @@ export const AdminAnalyticsPage: React.FC = () => {
           TAB 3: GIAN PHÒNG TOUR 360° (CỐ ĐỊNH CHIỀU CAO)
           ======================================================== */}
       {subTab === 'rooms' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, minHeight: '780px' }}>
           <div
             style={{
               background: 'var(--bg-card)',
@@ -1720,7 +1764,7 @@ export const AdminAnalyticsPage: React.FC = () => {
           TAB 4: CỔ VẬT & BẢO VẬT 3D (CỐ ĐỊNH CHIỀU CAO & BẢNG CHUẨN MỰC)
           ======================================================== */}
       {subTab === 'artifacts' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, minHeight: '780px' }}>
           {/* Hai bảng tóm tắt thời kỳ & phân loại: định dạng BẢNG chuẩn, cùng chiều cao */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: 16 }}>
             {/* Phân bố theo thời kỳ lịch sử */}
@@ -1962,6 +2006,7 @@ export const AdminAnalyticsPage: React.FC = () => {
         </div>
       )}
 
+      </div>
     </div>
   );
 };
