@@ -680,34 +680,92 @@ def add_chapter_3(doc, helper):
     # 3.4. Thiết kế kiến trúc tổng thể và các luồng tuần tự
     helper.add_heading_2(doc, "3.4. Thiết kế kiến trúc tổng thể và các luồng tuần tự (Sequence Diagrams)")
     helper.add_body_p(doc,
-        "Để đảm bảo tính nhất quán giữa các phân hệ, các sơ đồ tuần tự dưới đây làm rõ luồng thông điệp bất đồng bộ diễn ra trong các quy trình nghiệp vụ trọng tâm của hệ thống:"
+        "Để đảm bảo tính nhất quán và toàn vẹn giữa các phân hệ Client, Backend và các dịch vụ bên thứ ba, "
+        "các sơ đồ tuần tự và sơ đồ hoạt động dưới đây làm rõ luồng thông điệp bất đồng bộ diễn ra trong các quy trình nghiệp vụ trọng tâm của hệ thống:"
     )
     
     # Placeholders Hình 3.6 -> 3.11
+    helper.add_body_p(doc,
+        "1. Quy trình đặt vé và thanh toán trực tuyến qua cổng VietQR PayOS (Hình 3.6): "
+        "Mô tả luồng giao tiếp bảo mật giữa Khách tham quan, máy chủ Backend Bảo tàng, cổng thanh toán trung gian PayOS [17] "
+        "và hệ thống ngân hàng Napas 24/7 [16]. Điểm đột phá là cơ chế Webhook đối soát tự động có kiểm tra chữ ký điện tử HMAC-SHA256, "
+        "cho phép hệ thống tự động xuất vé điện tử kèm mã QR mã hóa ngay khi người dùng hoàn tất chuyển khoản mà không cần nhân viên can thiệp thủ công."
+    )
     helper.add_figure_placeholder(doc, "3.6",
         "Sơ đồ tuần tự quy trình đặt vé và thanh toán VietQR PayOS",
         "Luồng gọi API từ Client -> Server Bảo tàng -> Cổng PayOS [17] -> Webhook ngân hàng cập nhật trạng thái đơn hàng [16]",
         width_cm=15.0, height_cm=8.0
+    )
+    
+    helper.add_body_p(doc,
+        "2. Quy trình quét và kiểm tra mã vé QR thời gian thực tại cửa bảo tàng (Hình 3.7): "
+        "Mô tả quy trình nghiệp vụ của nhân viên bảo tàng sử dụng camera điện thoại di động quét mã vé QR trên điện thoại hoặc vé in của du khách [22]. "
+        "Hệ thống giải mã chuỗi Payload, kiểm tra tính hợp lệ của chữ ký số SHA-256, đối soát trạng thái vé trong cơ sở dữ liệu PostgreSQL [13], "
+        "và thực hiện hủy vé (cập nhật trạng thái 'Đã soát vé' kèm dấu thời gian thực) để ngăn chặn tuyệt đối hành vi gian lận quay vòng sử dụng vé nhiều lần."
     )
     helper.add_figure_placeholder(doc, "3.7",
         "Sơ đồ tuần tự quy trình soát vé QR bằng camera trực tiếp",
         "Luồng quét mã vé tại cổng từ Mobile Browser Staff -> API đối soát -> Xác thực chữ ký SHA-256 -> Hủy vé qua thư viện HTML5-QRCode [22]",
         width_cm=15.0, height_cm=8.0
     )
+    
+    helper.add_body_p(doc,
+        "3. Quy trình tương tác không gian 360° và chuyển phòng qua Hotspot (Hình 3.8): "
+        "Hotspot (điểm neo tương tác) đóng vai trò là cơ chế cốt lõi để 'ghim vị trí' và liên kết các gian phòng trưng bày liên hoàn trong chuyến tham quan ảo [7], [37], [38]. "
+        "Hệ thống quản lý hai luồng nghiệp vụ gắn liền với Hotspot:"
+    )
+    helper.add_bullet_item(doc,
+        "Admin truy cập bảng điều khiển CMS, mở công cụ cấu hình Hotspot của gian phòng hiện tại. "
+        "Admin xoay camera 360° đến đúng vị trí cửa thông phòng hoặc bậc tam cấp thực tế, sau đó nhấp đúp chuột lên màn hình. "
+        "Hệ thống bắt tọa độ pixel, dùng kỹ thuật Raycaster tính toán giao điểm trên mặt cầu 3D để suy biến ra cặp góc cầu (Pitch, Yaw). "
+        "Admin chọn gian phòng đích (targetRoomId) từ danh mục 18 phòng và lưu vào MongoDB [14].",
+        bold_prefix="• Luồng cấu hình ghim điểm của Quản trị viên (Admin Hotspot Pinning): "
+    )
+    helper.add_bullet_item(doc,
+        "Khách tham quan di chuyển trong không gian 360°, nhìn thấy các biểu tượng mũi tên 3D phát sáng nhấp nháy tại các cửa phòng. "
+        "Khi khách nhấp chuột vào Hotspot, quy trình tuần tự 8 bước trong Hình 3.8 được kích hoạt: "
+        "(1) Bắt sự kiện click chuột; (2) Three.js Canvas phóng tia Raycast theo vector hướng nhìn; "
+        "(3) Raycaster Engine xác định va chạm và trích xuất target_room_id; (4) Yêu cầu nạp trước Texture phòng đích; "
+        "(5) Kiểm tra Texture Cache Preloader; (6) Nạp ảnh Panorama WebP từ Backend; "
+        "(7) Sẵn sàng Texture trên VRAM; và (8) Thực thi hiệu ứng mờ dần (Cross-fade) chuyển cảnh mượt mà, "
+        "xoay camera về góc nhìn xuất phát và đồng bộ hóa vị trí người dùng trên Mini-map.",
+        bold_prefix="• Luồng chuyển cảnh của Khách tham quan (Visitor Navigation Transition): "
+    )
     helper.add_figure_placeholder(doc, "3.8",
         "Sơ đồ tuần tự quy trình tương tác không gian 360° và chuyển phòng qua Hotspot",
         "Luồng sự kiện Three.js [7], [8] Raycaster bắt sự kiện click -> Chuyển đổi trạng thái phòng -> Nạp Texture mới mượt mà",
         width_cm=15.0, height_cm=8.0
+    )
+    
+    helper.add_body_p(doc,
+        "4. Quy trình giám sát hệ thống và nhúng Dashboard Grafana vào phân hệ Quản trị (Hình 3.9): "
+        "Làm rõ kiến trúc giám sát thời gian thực kết hợp giữa Grafana và CSDL PostgreSQL thông qua Nginx Reverse Proxy [18], [32]. "
+        "Bảo vệ an ninh tuyệt đối cho hệ thống bằng cơ chế xác thực JWT, cấm truy cập trực tiếp từ Internet vào cổng nội bộ 3000 của Grafana, "
+        "và sử dụng tài khoản kết nối PostgreSQL chỉ có quyền đọc (Read-Only) để ngăn ngừa rủi ro can thiệp dữ liệu tài chính."
     )
     helper.add_figure_placeholder(doc, "3.9",
         "Sơ đồ tuần tự quy trình giám sát hệ thống và nhúng Dashboard Grafana vào cổng Quản trị",
         "Luồng gọi API xác thực JWT, Nginx Reverse Proxy, kiểm tra cờ allow_embedding, kết nối CSDL PostgreSQL Read-Only và hiển thị Dashboard [32]",
         width_cm=15.0, height_cm=8.0
     )
+    
+    helper.add_body_p(doc,
+        "5. Quy trình dịch thuật và tải nội dung bản địa hóa cục bộ (Hình 3.10): "
+        "Mô tả kiến trúc phân làn 2 tầng độc lập (2-Tier Swimlanes). Hệ thống phân tách hoàn toàn ngôn ngữ thuyết minh phòng/hiện vật "
+        "khỏi ngôn ngữ chung của giao diện hệ thống. Nhờ bộ nhớ đệm cục bộ Client (LanguageCacheKey), các lần xem lại ngôn ngữ đã chọn "
+        "được phản hồi tức thì dưới 10ms, tiết kiệm tối đa chi phí gọi API Google Translate / Gemini AI [36]."
+    )
     helper.add_figure_placeholder(doc, "3.10",
         "Sơ đồ hoạt động quy trình dịch thuật và tải nội dung bản địa hóa cục bộ cho không gian 360° và cổ vật",
         "Quy trình chuyển đổi ngôn ngữ độc lập tại phòng xem 360°, đối soát Cache cục bộ, gọi API dịch thuật Google/Gemini và cập nhật UI mượt mà [36]",
         width_cm=15.0, height_cm=8.0
+    )
+    
+    helper.add_body_p(doc,
+        "6. Quy trình sinh, lưu trữ đệm băm (Hash Storage) và streaming thuyết minh âm thanh (Hình 3.11): "
+        "Áp dụng cơ chế mã băm MD5 duy nhất cho tổ hợp (text + lang + voice_id) để định danh các tệp giọng đọc thuyết minh tĩnh [31]. "
+        "Máy chủ Nginx đóng vai trò phân phối trực tiếp qua giao thức HTTP 206 Partial Content đối với các tệp MP3 đã lưu trong đĩa cứng, "
+        "giúp độ trễ phát âm thanh giảm xuống dưới 50ms và không phát sinh chi phí gọi dịch vụ đám mây cho các yêu cầu nghe lặp lại."
     )
     helper.add_figure_placeholder(doc, "3.11",
         "Sơ đồ hoạt động quy trình sinh, lưu trữ đệm băm (Hash Storage) và phát trực tuyến giọng đọc thuyết minh Audio",

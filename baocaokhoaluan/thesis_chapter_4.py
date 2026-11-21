@@ -465,6 +465,14 @@ def add_chapter_4(doc, helper):
         "Màn hình thực tế ảo 360° x 180° của phòng trưng bày, cho phép xoay tự do, phóng to và quan sát không gian chi tiết [7]",
         width_cm=15.0, height_cm=8.0
     )
+    helper.add_body_p(doc,
+        "Cơ chế hiển thị và tương tác Hotspot chuyển cảnh trong không gian 360° (Hình 4.12): "
+        "Các điểm Hotspot được dựng dưới dạng Three.js Sprite hoặc đối tượng hình học 3D gắn cố định tại tọa độ cầu (Pitch, Yaw) [7], [37]. "
+        "Để thu hút sự chú ý của du khách, hệ thống cài đặt hiệu ứng hoạt họa phát sáng nhấp nháy (Pulsing Glow Animation) chu kỳ 1.5 giây. "
+        "Khi người dùng rê chuột (Hover) hoặc chạm vào biểu tượng, hệ thống tự động phóng to nhẹ (tỷ lệ 1.2x) và hiển thị nhãn tên phòng đích "
+        "kèm tổng số lượng hiện vật đang trưng bày bên trong. Khi nhấp chọn, hệ thống kích hoạt luồng chuyển cảnh mượt mà 4 pha (Cross-fade) "
+        "với độ trễ chuyển tiếp dưới 350ms, đồng thời gọi lệnh texture.dispose() để giải phóng VRAM phòng cũ, đảm bảo thiết bị di động không bị nóng máy hay tràn RAM [38]."
+    )
     helper.add_figure_placeholder(doc, "4.12",
         "Giao diện Điểm nối chuyển cảnh (Hotspot) và bảng thông tin tương tác",
         "Hiệu ứng nhấp nháy phát sáng của mũi tên Hotspot và bảng tóm tắt hiện vật khi người dùng tương tác trong không gian 360°",
@@ -519,6 +527,17 @@ def add_chapter_4(doc, helper):
         "Giao diện Quản lý danh mục 18 gian phòng trưng bày 360°",
         "Lưới danh sách 18 phòng kèm các nút chỉnh sửa thông tin, tải lên ảnh Panorama mới và cấu hình vị trí trên sơ đồ mặt bằng",
         width_cm=15.0, height_cm=7.5
+    )
+    helper.add_body_p(doc,
+        "Công cụ cấu hình Hotspot trực quan trong phân hệ Quản trị viên (Hình 4.23): "
+        "Để đơn giản hóa tối đa quy trình ghim điểm chuyển phòng mà không đòi hỏi cán bộ bảo tàng phải am hiểu lập trình, "
+        "hệ thống tích hợp công cụ tương tác trực tiếp ngay trong không gian 360° [14], [37]. "
+        "Quản trị viên chỉ cần xoay góc nhìn camera đến vị trí cửa thông phòng, bậc cửa hoặc hiện vật mong muốn, "
+        "sau đó nhấp đúp chuột lên màn hình. Hệ thống tự động kích hoạt thuật toán Raycaster để bắt điểm giao cắt trên mặt cầu, "
+        "tự động tính toán cặp góc (Pitch, Yaw) và mở bảng điều khiển nổi (Drawer). "
+        "Tại đây, Quản trị viên chọn gian phòng đích (targetRoomId) từ danh mục 18 phòng, chọn kiểu biểu tượng điều hướng "
+        "(Mũi tên đi tới, Mũi tên rẽ trái, Mũi tên rẽ phải hoặc Ký hiệu thông tin) và thiết lập góc nhìn ban đầu khi bước vào phòng mới. "
+        "Sau khi bấm 'Lưu cấu hình', dữ liệu được cập nhật tức thì vào CSDL MongoDB và hiển thị điểm Hotspot mẫu để kiểm định ngay lập tức."
     )
     helper.add_figure_placeholder(doc, "4.23",
         "Giao diện Cấu hình tọa độ Hotspot và thiết lập liên kết phòng",

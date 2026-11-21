@@ -59,7 +59,9 @@ def add_references_and_appendices(doc, helpers):
         (33, 'GitHub Inc., "GitHub Actions Documentation: Continuous Integration and Continuous Delivery (CI/CD) Automation," 2024. Available: https://docs.github.com/actions. [Accessed: 27/10/2026].'),
         (34, 'Cloudflare Inc., "Cloudflare R2 Object Storage Documentation: S3-Compatible Cloud Storage Architecture," 2024. Available: https://developers.cloudflare.com/r2. [Accessed: 28/10/2026].'),
         (35, 'Prometheus Authors, "Prometheus: Monitoring System and Time Series Database Documentation," The Linux Foundation, 2024. Available: https://prometheus.io/docs. [Accessed: 15/10/2026].'),
-        (36, 'Google Cloud, "Cloud Translation API Documentation: Neural Machine Translation (NMT) and Advanced Localization," 2024. Available: https://cloud.google.com/translate. [Accessed: 20/10/2026].')
+        (36, 'Google Cloud, "Cloud Translation API Documentation: Neural Machine Translation (NMT) and Advanced Localization," 2024. Available: https://cloud.google.com/translate. [Accessed: 20/10/2026].'),
+        (37, 'M. Petroff, "Pannellum: A lightweight web-based panorama viewer," Journal of Open Source Software, vol. 4, no. 40, p. 1628, 2019. DOI: 10.21105/joss.01628. Available: https://pannellum.org. [Accessed: 18/10/2026].'),
+        (38, 'O. El-Said and H. Aziz, "Virtual Tours in Heritage Tourism: Spatial Navigation and User Experience in 360° Virtual Museums," Journal of Heritage Tourism, vol. 17, no. 2, pp. 120-142, 2022. DOI: 10.1080/1743873X.2021.1893796. Available: https://tandfonline.com. [Accessed: 22/10/2026].')
     ]
 
     for ref_id, citation_text in references_data:

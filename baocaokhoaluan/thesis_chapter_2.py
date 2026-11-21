@@ -312,6 +312,83 @@ def add_chapter_2(doc, helper):
         width_cm=15.0, height_cm=7.5
     )
     
+    # 2.1.9. Nguyên lý ghim điểm định vị Hotspot và cơ chế chuyển cảnh không gian thực tế ảo 360°
+    helper.add_heading_3(doc, "2.1.9. Nguyên lý ghim điểm định vị Hotspot và cơ chế chuyển cảnh không gian thực tế ảo 360°")
+    helper.add_body_p(doc,
+        "Trong các hệ thống tham quan bảo tàng thực tế ảo dựa trên phép chiếu toàn cảnh Equirectangular, "
+        "Hotspot (điểm neo tương tác) đóng vai trò là cầu nối không gian và trạm tương tác thông tin sống còn [7], [37], [38]. "
+        "Nếu không có hệ thống Hotspot, người dùng chỉ có thể đứng yên tại một điểm duy nhất để xoay nhìn xung quanh mà không thể tự do di chuyển qua các gian phòng trưng bày liên hoàn. "
+        "Đề tài phân loại Hotspot thành hai nhóm đối tượng chuyên biệt:"
+    )
+    helper.add_bullet_item(doc,
+        "Đóng vai trò như các 'cổng dịch chuyển không gian ảo' (Spatial Teleportation Gateways) được đặt tại các vị trí cửa ra vào, lối đi thông phòng hoặc bậc tam cấp thực tế. "
+        "Mỗi điểm chuyển cảnh chứa thông tin định danh phòng đích (targetRoomId), góc nhìn ban đầu khi bước vào phòng (targetPitch, targetYaw) và nhãn hiển thị trực quan hướng dẫn khách.",
+        bold_prefix="1. Hotspot chuyển cảnh (Navigation Hotspot): "
+    )
+    helper.add_bullet_item(doc,
+        "Được ghim trực tiếp lên bề mặt tủ kính, bệ đá hoặc hiện vật trong bức ảnh 360°. "
+        "Khi khách tham quan nhấp chuột, hệ thống kích hoạt cửa sổ Modal hiển thị thông tin xuất xứ, kích thước, niên đại, "
+        "kích hoạt trình xem mô hình cổ vật 3D xoay 360° (.GLB) và phát thuyết minh âm thanh đa ngôn ngữ.",
+        bold_prefix="2. Hotspot thông tin hiện vật (Information / Artifact Hotspot): "
+    )
+    helper.add_body_p(doc,
+        "Về mặt bản chất toán học, một điểm Hotspot trong không gian cầu Three.js/WebGL bán kính R được định vị bằng hệ tọa độ cầu hai chiều (Pitch, Yaw) [7], [37]:"
+    )
+    helper.add_bullet_item(doc,
+        "Đại diện cho góc nâng vĩ độ (Elevation angle) theo trục thẳng đứng Y, nhận giá trị trong khoảng [-90°, +90°]. "
+        "Góc 0° tương ứng với đường chân trời ngang tầm mắt người quan sát; góc +90° hướng thẳng lên đỉnh trần nhà (Zenith); và góc -90° hướng vuông góc xuống sàn nhà (Nadir).",
+        bold_prefix="• Góc Pitch (Vĩ độ): "
+    )
+    helper.add_bullet_item(doc,
+        "Đại diện cho góc phương vị kinh độ (Azimuth angle) quay quanh trục thẳng đứng Y của không gian 3D, nhận giá trị trong khoảng [-180°, +180°]. "
+        "Góc Yaw xác định góc xoay la bàn 360 độ xung quanh tâm vị trí đứng của người tham quan.",
+        bold_prefix="• Góc Yaw (Kinh độ): "
+    )
+    helper.add_body_p(doc,
+        "Để quản trị viên có thể ghim điểm Hotspot dễ dàng và chính xác ngay trên giao diện Web mà không cần tính toán thủ công, hệ thống cài đặt thuật toán biến đổi toán học hai chiều:"
+    )
+    helper.add_body_p(doc,
+        "Chiều 1 - Từ cú nhấp chuột 2D màn hình suy biến tọa độ cầu (Dành cho Quản trị viên ghim phòng): "
+        "Khi Admin nhấp chuột tại điểm (x_screen, y_screen) trên khung nhìn trình duyệt có kích thước (W_viewport, H_viewport), "
+        "tọa độ pixel được chuẩn hóa sang Tọa độ thiết bị chuẩn (Normalized Device Coordinates - NDC) trong miền [-1, 1]:"
+    )
+    helper.add_equation(doc, "x_{ndc} = (2 · x_{screen} / W_{viewport}) - 1,    y_{ndc} = 1 - (2 · y_{screen} / H_{viewport})", "2.15")
+    helper.add_body_p(doc,
+        "Từ tọa độ NDC, công cụ Three.js Raycaster phóng một tia bức xạ từ tâm quang học của Camera xuyên qua mặt phẳng chiếu 3D. "
+        "Điểm giao cắt P(X, Y, Z) giữa tia và mặt cầu bán kính R (thỏa mãn X² + Y² + Z² = R²) cho phép tính toán chính xác góc Pitch và Yaw để lưu trữ vào cơ sở dữ liệu MongoDB [14]:"
+    )
+    helper.add_equation(doc, "Pitch = arcsin(Y / R) · (180° / π)", "2.16")
+    helper.add_equation(doc, "Yaw = arctan2(X, Z) · (180° / π)", "2.17")
+    helper.add_body_p(doc,
+        "Chiều 2 - Từ tọa độ cầu trong CSDL định vị đối tượng 3D Mesh/Sprite (Dành cho Khách tham quan): "
+        "Khi hiển thị không gian phòng, hệ thống đọc danh sách Hotspot từ API và biến đổi ngược từ cặp góc (Pitch, Yaw) thành vector tọa độ không gian Descartes 3D để ghim biểu tượng mũi tên hoặc vòng tròn nhấp nháy:"
+    )
+    helper.add_equation(doc, "X = R · cos(Pitch · π / 180°) · sin(Yaw · π / 180°)", "2.18")
+    helper.add_equation(doc, "Y = R · sin(Pitch · π / 180°)", "2.19")
+    helper.add_equation(doc, "Z = R · cos(Pitch · π / 180°) · cos(Yaw · π / 180°)", "2.20")
+    helper.add_body_p(doc,
+        "Giải thuật chuyển cảnh mượt mà giữa các gian phòng (Smooth Room Teleportation & Transition): "
+        "Khi người dùng nhấp vào Hotspot chuyển phòng, nếu thay đổi trực tiếp ảnh Texture sẽ gây ra hiện tượng sụt giảm khung hình đột ngột (Frame Drop) và nháy trắng giao diện do GPU phải phân bổ bộ nhớ giải nén ảnh Panorama độ phân giải cao 8K. "
+        "Đề tài áp dụng kỹ thuật chuyển tiếp 4 pha kết hợp điều chế độ mờ đục Alpha và tải trước bất đồng bộ [7], [37], [38]:"
+    )
+    helper.add_bullet_item(doc,
+        "Trình duyệt kích hoạt đối tượng TextureLoader tải ngầm tệp ảnh Panorama WebP của phòng đích vào bộ nhớ đệm VRAM.",
+        bold_prefix="• Pha 1 - Tải trước bất đồng bộ (Asynchronous Preload): "
+    )
+    helper.add_bullet_item(doc,
+        "Độ mờ đục (Opacity) của chất liệu mặt cầu hiện tại được giảm dần từ 1.0 về 0.0 trong thời gian 300ms theo hàm làm mượt Cubic-Bezier, tạo cảm giác không gian mờ dần tự nhiên.",
+        bold_prefix="• Pha 2 - Làm mờ khung cảnh (Fade-Out Canvas): "
+    )
+    helper.add_bullet_item(doc,
+        "Hoán đổi Texture bề mặt cầu sang ảnh của phòng đích; đồng thời gọi hàm texture.dispose() đối với phòng cũ để giải phóng VRAM, triệt tiêu nguy cơ rò rỉ bộ nhớ (Memory Leak) trên điện thoại thông minh. "
+        "Góc nhìn của camera được tái định vị về góc (targetPitch, targetYaw) do Admin đã thiết lập.",
+        bold_prefix="• Pha 3 - Hoán đổi chất liệu và góc nhìn (Swap Texture & Orient Camera): "
+    )
+    helper.add_bullet_item(doc,
+        "Độ mờ đục tăng dần từ 0.0 lên 1.0; đồng thời phát tín hiệu kích hoạt đồng bộ hóa vị trí gian phòng mới trên Sơ đồ mặt bằng Mini-map và cập nhật danh sách hiện vật trưng bày tương ứng.",
+        bold_prefix="• Pha 4 - Làm sáng không gian và đồng bộ UI (Fade-In & State Sync): "
+    )
+    
     # 2.2. Công nghệ và nền tảng phát triển hệ thống
     helper.add_heading_2(doc, "2.2. Công nghệ và nền tảng phát triển hệ thống")
     
