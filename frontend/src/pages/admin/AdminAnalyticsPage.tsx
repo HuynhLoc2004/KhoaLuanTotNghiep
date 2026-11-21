@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   RefreshCw,
   Download,
@@ -394,6 +394,28 @@ export const AdminAnalyticsPage: React.FC = () => {
     if (newTab === subTab) return;
     setSubTab(newTab);
     setMountedTabs((prev) => new Set(prev).add(newTab));
+  };
+
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  const handleGrafanaIframeLoad = (iframe: HTMLIFrameElement | null) => {
+    if (!iframe) return;
+    try {
+      const iframeWin = iframe.contentWindow;
+      if (iframeWin) {
+        iframeWin.addEventListener(
+          'wheel',
+          (e: WheelEvent) => {
+            if (contentRef.current) {
+              contentRef.current.scrollTop += e.deltaY;
+            }
+          },
+          { passive: true }
+        );
+      }
+    } catch {
+      // Cross-origin fallback
+    }
   };
 
   // Đảm bảo cookie museum_admin_token và auth_token luôn có sẵn để iframe Grafana và các sub-request Nginx luôn xác thực thành công
@@ -1069,7 +1091,7 @@ export const AdminAnalyticsPage: React.FC = () => {
   };
 
   return (
-    <div className="admin-content admin-analytics-page" style={{ padding: '24px 28px', minHeight: '100%', display: 'flex', flexDirection: 'column' }}>
+    <div ref={contentRef} className="admin-content admin-analytics-page" style={{ minHeight: '100%', display: 'flex', flexDirection: 'column' }}>
       {/* 1. HEADER & THAO TÁC TRANG CHUẨN ADMIN */}
       <div className="analytics-header">
         <div className="analytics-title-group">
@@ -1318,6 +1340,8 @@ export const AdminAnalyticsPage: React.FC = () => {
             </div>
 
             <iframe
+              ref={(el) => { if (el) handleGrafanaIframeLoad(el); }}
+              onLoad={(e) => handleGrafanaIframeLoad(e.currentTarget)}
               src={`/grafana/d/museum-analytics-03?kiosk&theme=dark&token=${encodeURIComponent(adminToken)}`}
               className="grafana-embed-iframe iframe-analytics"
               title="Bảng điều khiển Nghiệp vụ Di sản & Doanh thu Vé"
@@ -1359,6 +1383,8 @@ export const AdminAnalyticsPage: React.FC = () => {
             </div>
 
             <iframe
+              ref={(el) => { if (el) handleGrafanaIframeLoad(el); }}
+              onLoad={(e) => handleGrafanaIframeLoad(e.currentTarget)}
               src={`/grafana/d/museum-infra-01?kiosk&theme=dark&token=${encodeURIComponent(adminToken)}`}
               className="grafana-embed-iframe iframe-standard"
               title="Bảng điều khiển Hạ tầng VPS & Container"
@@ -1400,6 +1426,8 @@ export const AdminAnalyticsPage: React.FC = () => {
             </div>
 
             <iframe
+              ref={(el) => { if (el) handleGrafanaIframeLoad(el); }}
+              onLoad={(e) => handleGrafanaIframeLoad(e.currentTarget)}
               src={`/grafana/d/museum-apm-02?kiosk&theme=dark&token=${encodeURIComponent(adminToken)}`}
               className="grafana-embed-iframe iframe-standard"
               title="Bảng điều khiển Hiệu năng API & Mạng (APM)"

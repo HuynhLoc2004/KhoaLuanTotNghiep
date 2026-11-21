@@ -478,18 +478,18 @@
 /* Custom Scrollbar for admin content and sidebar */
 .admin-content::-webkit-scrollbar,
 .sidebar-nav::-webkit-scrollbar {
-  width: 7px;
-  height: 7px;
+  width: 8px;
+  height: 8px;
 }
 
 .admin-content::-webkit-scrollbar-track,
 .sidebar-nav::-webkit-scrollbar-track {
-  background: transparent;
+  background: rgba(0, 0, 0, 0.2);
 }
 
 .admin-content::-webkit-scrollbar-thumb,
 .sidebar-nav::-webkit-scrollbar-thumb {
-  background: var(--border-color);
+  background: rgba(255, 255, 255, 0.22);
   border-radius: 4px;
 }
 
@@ -7471,9 +7471,10 @@ select option {
 .grafana-iframe-container {
   margin-top: 6px;
   border-radius: 8px;
-  overflow: hidden;
+  overflow: visible;
   border: 1px solid var(--border-color);
   background-color: var(--bg-card);
+  margin-bottom: 30px;
 }
 
 .grafana-card-header {
@@ -7520,36 +7521,33 @@ select option {
 
 .grafana-embed-iframe {
   width: 100%;
-  height: 860px;
+  height: 940px;
   border: none;
   background-color: #111217;
   display: block;
 }
 
 .grafana-embed-iframe.iframe-analytics {
-  height: 1180px;
+  height: 1360px;
 }
 
 .grafana-embed-iframe.iframe-standard {
-  height: 800px;
+  height: 940px;
 }
 
 .analytics-tab-viewport {
   flex: 1;
   display: flex;
   flex-direction: column;
-  min-height: calc(100vh - 240px);
-  min-height: calc(100dvh - 240px);
+  min-height: auto;
   position: relative;
 }
 
-/* Khung tab bảng biểu nội bộ full chiều cao cố định, không co giật dù ít hay nhiều dữ liệu */
+/* Khung tab bảng biểu nội bộ ổn định, không co giật dù ít hay nhiều dữ liệu */
 .analytics-tab-content-full {
   display: flex;
   flex-direction: column;
   flex: 1;
-  min-height: calc(100vh - 300px);
-  min-height: calc(100dvh - 300px);
   gap: 14px;
 }
 
@@ -7558,13 +7556,12 @@ select option {
   border: 1px solid var(--border-color);
   border-radius: 8px;
   overflow: hidden;
-  flex: 1;
-  min-height: calc(100vh - 400px);
-  min-height: calc(100dvh - 400px);
+  min-height: 460px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   box-shadow: var(--shadow-sm);
+  margin-bottom: 30px;
 }
 
 .analytics-table-scroll-full {
@@ -8722,6 +8719,7 @@ select, select.form-control {
    ========================================================================== */
 .admin-analytics-page {
   box-sizing: border-box;
+  padding: 20px 24px 80px !important;
 }
 
 .analytics-header {
