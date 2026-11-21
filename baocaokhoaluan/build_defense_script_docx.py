@@ -428,8 +428,14 @@ def main():
     add_body_p(doc, "Kính chúc Quý Thầy Cô dồi dào sức khỏe và hạnh phúc. Nhóm nghiên cứu chúng em kính mời Quý Thầy Cô cùng bước vào phần Trình diễn Web Demo thực tế và rất mong nhận được những ý kiến đóng góp quý báu từ Hội đồng!")
 
     # Save document
-    doc.save(DOCX_OUT)
-    print(f"DOCUMENT CREATED SUCCESSFULLY AT: {DOCX_OUT}")
+    try:
+        doc.save(DOCX_OUT)
+        print(f"DOCUMENT CREATED SUCCESSFULLY AT: {DOCX_OUT}")
+    except PermissionError:
+        backup_out = DOCX_OUT.replace(".docx", "_CapNhat.docx")
+        doc.save(backup_out)
+        print(f"=== TỆP ĐANG ĐƯỢC MỞ TRONG WORD! ĐÃ LƯU BẢN CẬP NHẬT MỚI TẠI: {backup_out} ===")
+        print(f"=== (Vui lòng đóng file trong Word để hệ thống có thể ghi đè trực tiếp vào {DOCX_OUT}) ===")
 
 if __name__ == "__main__":
     main()

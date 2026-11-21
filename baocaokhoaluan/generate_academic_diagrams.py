@@ -1987,6 +1987,20 @@ def gen_fig_4_40():
     fig.savefig(os.path.join(DIAGRAMS_DIR, "hinh_4_40_lighthouse.png"), bbox_inches='tight')
     plt.close(fig)
 
+# OVERRIDE WITH CLEAN MINIMALIST UML ACADEMIC DIAGRAMS (NO TEXT OVERLAP, NO GAUDY COLORS)
+try:
+    from baocaokhoaluan.update_academic_diagrams import (
+        gen_fig_4_5,
+        gen_fig_3_6,
+        gen_fig_3_7,
+        gen_fig_3_10,
+        gen_fig_3_11,
+        gen_fig_3_12,
+        gen_fig_3_13,
+    )
+except ImportError:
+    pass
+
 def gen_all():
     print(">>> DANG TAO TOAN BO SO DO CHUYEN NGHIEP CHUAN HOC THUAT (MAU SAM, TEXT DEN)...")
     gen_fig_1_1()
