@@ -590,6 +590,26 @@ export async function initPostgresTables(): Promise<boolean> {
         `).catch(() => {});
       }
 
+      // Khởi tạo tài khoản Read-Only cho Grafana từ biến môi trường
+      const readonlyUser = process.env.POSTGRES_READONLY_USER || 'grafana_reader';
+      const readonlyPass = process.env.POSTGRES_READONLY_PASSWORD || 'change-me-grafana-pg-2026';
+
+      try {
+        const userExists = await client.query(`SELECT 1 FROM pg_roles WHERE rolname = $1`, [readonlyUser]);
+        if (userExists.rowCount === 0) {
+          await client.query(`CREATE USER "${readonlyUser}" WITH PASSWORD '${readonlyPass}'`);
+          console.log(`[PostgreSQL] Đã khởi tạo người dùng Read-Only (${readonlyUser}) cho Grafana thành công.`);
+        } else {
+          await client.query(`ALTER USER "${readonlyUser}" WITH PASSWORD '${readonlyPass}'`);
+        }
+        await client.query(`GRANT CONNECT ON DATABASE museum TO "${readonlyUser}"`);
+        await client.query(`GRANT USAGE ON SCHEMA public TO "${readonlyUser}"`);
+        await client.query(`GRANT SELECT ON ALL TABLES IN SCHEMA public TO "${readonlyUser}"`);
+        await client.query(`ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO "${readonlyUser}"`);
+      } catch (err: any) {
+        console.warn('[PostgreSQL] Chú ý thiết lập quyền Grafana Read-Only:', err.message);
+      }
+
       return true;
     } finally {
       client.release();

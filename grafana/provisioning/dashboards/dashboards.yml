@@ -1,0 +1,11 @@
+apiVersion: 1
+
+providers:
+  - name: 'Museum Dashboards'
+    orgId: 1
+    folder: 'Bảo Tàng Lịch Sử TP.HCM'
+    type: file
+    disableDeletion: false
+    editable: true
+    options:
+      path: /var/lib/grafana/dashboards

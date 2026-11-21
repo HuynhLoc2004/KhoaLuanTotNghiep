@@ -1,0 +1,338 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "liveNow": true,
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "id": 1,
+      "title": "TỔNG QUAN DOANH THU & VÉ THAM QUAN (CSDL POSTGRESQL)",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "PostgreSQL-ReadOnly" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "gold", "value": null }
+            ]
+          },
+          "unit": "currencyVND"
+        }
+      },
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 1 },
+      "id": 2,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto"
+      },
+      "pluginVersion": "10.4.0",
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "PostgreSQL-ReadOnly" },
+          "format": "table",
+          "rawSql": "SELECT COALESCE(SUM(total_amount), 0) as total FROM orders WHERE status = 'paid';",
+          "refId": "A"
+        }
+      ],
+      "title": "Tổng Doanh Thu Vé Đã Thanh Toán",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "PostgreSQL-ReadOnly" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "unit": "ticket"
+        }
+      },
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 1 },
+      "id": 3,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto"
+      },
+      "pluginVersion": "10.4.0",
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "PostgreSQL-ReadOnly" },
+          "format": "table",
+          "rawSql": "SELECT COUNT(*) as total FROM museum_tickets;",
+          "refId": "A"
+        }
+      ],
+      "title": "Tổng Số Vé Đã Phát Hành",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "PostgreSQL-ReadOnly" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "unit": "ticket"
+        }
+      },
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 1 },
+      "id": 4,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto"
+      },
+      "pluginVersion": "10.4.0",
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "PostgreSQL-ReadOnly" },
+          "format": "table",
+          "rawSql": "SELECT COUNT(*) as total FROM museum_tickets WHERE is_used = true;",
+          "refId": "A"
+        }
+      ],
+      "title": "Số Vé Đã Soát Vào Cổng",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "unit": "short"
+        }
+      },
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 1 },
+      "id": 5,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto"
+      },
+      "pluginVersion": "10.4.0",
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "Prometheus" },
+          "expr": "museum_active_visitors or vector(1)",
+          "refId": "A"
+        }
+      ],
+      "title": "Khách Tham Quan Trực Tuyến (SSE)",
+      "type": "stat"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 5 },
+      "id": 6,
+      "title": "QUY MÔ DI SẢN & SỐ HÓA KHÔNG GIAN 360°",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "PostgreSQL-ReadOnly" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "unit": "short"
+        }
+      },
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 6 },
+      "id": 7,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto"
+      },
+      "pluginVersion": "10.4.0",
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "PostgreSQL-ReadOnly" },
+          "format": "table",
+          "rawSql": "SELECT COUNT(*) as total FROM rooms;",
+          "refId": "A"
+        }
+      ],
+      "title": "Gian Phòng 360°",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "PostgreSQL-ReadOnly" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "unit": "short"
+        }
+      },
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 6 },
+      "id": 8,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto"
+      },
+      "pluginVersion": "10.4.0",
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "PostgreSQL-ReadOnly" },
+          "format": "table",
+          "rawSql": "SELECT COUNT(*) as total FROM artifacts;",
+          "refId": "A"
+        }
+      ],
+      "title": "Cổ Vật & Hiện Vật Di Sản",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "PostgreSQL-ReadOnly" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "unit": "short"
+        }
+      },
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 6 },
+      "id": 9,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto"
+      },
+      "pluginVersion": "10.4.0",
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "PostgreSQL-ReadOnly" },
+          "format": "table",
+          "rawSql": "SELECT COUNT(*) as total FROM artifacts WHERE model_3d_url IS NOT NULL AND model_3d_url != '';",
+          "refId": "A"
+        }
+      ],
+      "title": "Hiện Vật Đã Số Hóa 3D",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "PostgreSQL-ReadOnly" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "unit": "short"
+        }
+      },
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 6 },
+      "id": 10,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto"
+      },
+      "pluginVersion": "10.4.0",
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "PostgreSQL-ReadOnly" },
+          "format": "table",
+          "rawSql": "SELECT COUNT(*) as total FROM users;",
+          "refId": "A"
+        }
+      ],
+      "title": "Tài Khoản Người Dùng",
+      "type": "stat"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 10 },
+      "id": 11,
+      "title": "CHI TIẾT DOANH THU & ĐƠN HÀNG GẦN NHẤT",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "PostgreSQL-ReadOnly" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "unit": "currencyVND"
+        }
+      },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 11 },
+      "id": 12,
+      "options": {
+        "legend": { "displayMode": "table", "placement": "bottom", "values": ["value", "percent"] },
+        "pieType": "pie",
+        "tooltip": { "mode": "single", "sort": "none" }
+      },
+      "pluginVersion": "10.4.0",
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "PostgreSQL-ReadOnly" },
+          "format": "table",
+          "rawSql": "SELECT ticket_title as \"Loại vé\", SUM(total_price) as \"Doanh thu\" FROM order_items GROUP BY ticket_title;",
+          "refId": "A"
+        }
+      ],
+      "title": "Cơ Cấu Doanh Thu Theo Loại Vé",
+      "type": "piechart"
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "PostgreSQL-ReadOnly" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "custom": {
+            "align": "auto",
+            "cellOptions": { "type": "auto" },
+            "inspect": false
+          },
+          "mappings": []
+        }
+      },
+      "gridPos": { "h": 8, "w": 16, "x": 8, "y": 11 },
+      "id": 13,
+      "options": {
+        "footer": { "countRows": false, "fields": "", "reducer": ["sum"], "show": false },
+        "showHeader": true
+      },
+      "pluginVersion": "10.4.0",
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "PostgreSQL-ReadOnly" },
+          "format": "table",
+          "rawSql": "SELECT order_code as \"Mã Đơn\", customer_name as \"Khách hàng\", customer_phone as \"SĐT\", total_amount as \"Số tiền (VNĐ)\", payment_method as \"Cổng TT\", status as \"Trạng thái\", to_char(created_at, 'HH24:MI DD/MM/YYYY') as \"Thời gian\" FROM orders ORDER BY created_at DESC LIMIT 10;",
+          "refId": "A"
+        }
+      ],
+      "title": "Danh Sách Đơn Hàng Đặt Vé Gần Nhất (PayOS / VietQR)",
+      "type": "table"
+    }
+  ],
+  "refresh": "15s",
+  "schemaVersion": 39,
+  "tags": ["museum", "analytics", "tickets", "heritage"],
+  "time": { "from": "now-7d", "to": "now" },
+  "timepicker": { "refresh_intervals": ["10s", "30s", "1m", "5m"] },
+  "timezone": "browser",
+  "title": "3. Thống kê Hoạt động & Nghiệp vụ Di sản",
+  "uid": "museum-analytics-03",
+  "version": 1
+}

@@ -138,6 +138,7 @@ services:
     restart: always
     depends_on:
       - backend
+      - grafana
     ports:
       - "80:80"
       - "443:443"
@@ -145,6 +146,55 @@ services:
       - certbot_data:/var/www/certbot
       - /etc/letsencrypt:/etc/letsencrypt:ro
       - ./maintenance_flag:/var/www/maintenance
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "3"
+
+  prometheus:
+    image: prom/prometheus:v2.51.0
+    container_name: museum_prometheus
+    restart: always
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=15d'
+      - '--web.enable-lifecycle'
+    depends_on:
+      - backend
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "3"
+
+  grafana:
+    image: grafana/grafana:10.4.0
+    container_name: museum_grafana
+    restart: always
+    depends_on:
+      - prometheus
+      - postgres
+    env_file:
+      - .env
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-change-me-grafana-2026}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_ROOT_URL=%(protocol)s://%(domain)s/grafana/
+      - GF_SERVER_SERVE_FROM_SUB_PATH=true
+      - GF_SECURITY_ALLOW_EMBEDDING=true
+      - POSTGRES_READONLY_USER=${POSTGRES_READONLY_USER:-grafana_reader}
+      - POSTGRES_READONLY_PASSWORD=${POSTGRES_READONLY_PASSWORD:-change-me-grafana-pg-2026}
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/grafana.ini:/etc/grafana/grafana.ini:ro
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
     logging:
       driver: "json-file"
       options:
@@ -163,4 +213,8 @@ volumes:
   rabbitmq_data:
     driver: local
   certbot_data:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
     driver: local

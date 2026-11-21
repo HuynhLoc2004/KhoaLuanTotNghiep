@@ -2,7 +2,9 @@ import React, { useState, useEffect, useMemo } from 'react';
 import {
   RefreshCw,
   Download,
-  Search
+  Search,
+  Activity,
+  ExternalLink
 } from 'lucide-react';
 import XLSX from 'xlsx-js-style';
 import { api } from '../../services/api';
@@ -382,7 +384,7 @@ export const AdminAnalyticsPage: React.FC = () => {
   const { showToast } = useToast();
 
   // Tab con nghiệp vụ (Tối giản chuẩn Admin, không icon lòe loẹt)
-  const [subTab, setSubTab] = useState<'overview' | 'tickets' | 'rooms' | 'artifacts'>('overview');
+  const [subTab, setSubTab] = useState<'overview' | 'tickets' | 'rooms' | 'artifacts' | 'grafana'>('overview');
 
   // Bộ lọc thời gian chuẩn
   const [timeRange, setTimeRange] = useState<string>('month');
@@ -1139,7 +1141,8 @@ export const AdminAnalyticsPage: React.FC = () => {
           { id: 'overview', label: t('analytics.tabOverview', 'Tổng quan & Xu hướng') },
           { id: 'tickets', label: t('analytics.tabTickets', 'Doanh thu & Giao dịch vé') },
           { id: 'rooms', label: t('analytics.tabRooms', 'Gian phòng Tour 360°') },
-          { id: 'artifacts', label: t('analytics.tabArtifacts', 'Cổ vật & Bảo vật 3D') }
+          { id: 'artifacts', label: t('analytics.tabArtifacts', 'Cổ vật & Bảo vật 3D') },
+          { id: 'grafana', label: 'Bảng điều khiển Grafana (Live)' }
         ].map((tab) => {
           const isActive = subTab === tab.id;
           return (
@@ -1988,6 +1991,59 @@ export const AdminAnalyticsPage: React.FC = () => {
               />
             </div>
           </div>
+        </div>
+      )}
+
+      {/* 5. TAB BẢNG ĐIỀU KHIỂN GRAFANA GIÁM SÁT REAL-TIME */}
+      {subTab === 'grafana' && (
+        <div style={{ marginTop: 18, borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-card)' }}>
+          <div
+            style={{
+              padding: '12px 18px',
+              borderBottom: '1px solid var(--border-color)',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              backgroundColor: 'var(--bg-subtle)'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <Activity size={18} style={{ color: 'var(--accent-gold)' }} />
+              <div>
+                <span style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text-main)' }}>
+                  Hệ thống Giám sát & Đo lường Viễn trắc Real-time (Grafana & Prometheus Engine)
+                </span>
+                <span style={{ display: 'block', fontSize: 11, color: 'var(--text-muted)' }}>
+                  Kết nối CSDL PostgreSQL (Read-Only) • 3 Bảng điều khiển dựng sẵn: Hạ tầng VPS, APM API & Nghiệp vụ Di sản
+                </span>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={() => {
+                const token = localStorage.getItem('token') || '';
+                window.open(`/grafana/?token=${encodeURIComponent(token)}`, '_blank');
+              }}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}
+            >
+              <ExternalLink size={13} />
+              <span>Mở tab riêng</span>
+            </button>
+          </div>
+
+          <iframe
+            src={`/grafana/?token=${encodeURIComponent(localStorage.getItem('token') || '')}`}
+            style={{
+              width: '100%',
+              height: '820px',
+              border: 'none',
+              backgroundColor: '#111217',
+              display: 'block'
+            }}
+            title="Bảng điều khiển Giám sát Grafana"
+          />
         </div>
       )}
     </div>

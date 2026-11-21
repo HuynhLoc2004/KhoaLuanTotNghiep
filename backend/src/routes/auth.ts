@@ -69,6 +69,49 @@ export const requireAdmin = (req: AuthRequest, res: Response, next: NextFunction
 };
 
 /**
+ * Endpoint dành riêng cho Nginx auth_request để kiểm duyệt quyền Admin trước khi proxy vào Grafana
+ */
+authRouter.get('/verify-admin', async (req: Request, res: Response) => {
+  try {
+    let token = '';
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.split(' ')[1];
+    } else if (req.headers.cookie) {
+      const match = req.headers.cookie.match(/(?:^|;\s*)(?:auth_token|token)=([^;]+)/);
+      if (match) token = match[1];
+    }
+    
+    // Hỗ trợ token từ query param nếu mở tab mới trực tiếp (?token=...)
+    if (!token && req.query.token && typeof req.query.token === 'string') {
+      token = req.query.token;
+    }
+
+    if (!token) {
+      return res.status(401).send('Missing admin authentication token');
+    }
+
+    // Kiểm tra token thu hồi trong Redis
+    const isRevoked = await isTokenRevokedInRedis(token);
+    if (isRevoked) {
+      return res.status(401).send('Token has been revoked');
+    }
+
+    const decoded = jwt.verify(token, JWT_SECRET) as any;
+    if (!decoded || decoded.role !== 'admin') {
+      return res.status(403).send('Forbidden: Admin privilege required');
+    }
+
+    // Trả về 200 OK kèm Header danh tính để Nginx truyền cho Grafana Auth Proxy
+    res.setHeader('X-Auth-User', decoded.username || decoded.email || 'admin');
+    res.setHeader('X-Auth-Role', 'Admin');
+    return res.status(200).send('OK');
+  } catch {
+    return res.status(401).send('Invalid or expired admin token');
+  }
+});
+
+/**
  * Helper sinh Token JWT
  */
 const generateToken = (user: IUser) => {

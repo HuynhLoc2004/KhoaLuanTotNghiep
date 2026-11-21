@@ -36,6 +36,7 @@ import { initRealtimeRedisSubscriber } from './services/realtimeSync.js';
 import { initPostgresTables, getPgStatus } from './db/postgres.js';
 import { runStartupDataSync } from './db/syncEngine.js';
 import { connectRabbitMQ, getRabbitMQStatus } from './services/rabbitmq.js';
+import { metricsMiddleware, getPrometheusMetrics, register } from './services/metrics.js';
 
 dotenv.config({ path: path.join(process.cwd(), '..', '.env') });
 dotenv.config();
@@ -51,6 +52,19 @@ app.use(cors({
 
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
+// Prometheus HTTP Metrics Middleware (Đo lường thời gian đáp ứng và lưu lượng API)
+app.use(metricsMiddleware);
+
+// Cổng xuất số liệu định dạng Prometheus cho Grafana/Prometheus thu thập (Scrape)
+app.get('/metrics', async (_req, res) => {
+  try {
+    res.setHeader('Content-Type', register.contentType);
+    res.send(await getPrometheusMetrics());
+  } catch (err: any) {
+    res.status(500).send(err?.message || 'Error generating prometheus metrics');
+  }
+});
 
 import fs from 'fs';
 import { PanoramaModel } from './models/Panorama.js';
