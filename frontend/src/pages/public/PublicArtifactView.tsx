@@ -118,7 +118,7 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
         const segments = path.split('/artifact/');
         if (segments[1]) return segments[1].split('/')[0];
       }
-    } catch {}
+    } catch { }
     return null;
   }, [propArtifactId]);
 
@@ -201,7 +201,7 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
       try {
         const p = JSON.parse(artifact.translations);
         if (p && typeof p === 'object' && !Array.isArray(p)) return p;
-      } catch {}
+      } catch { }
       return {};
     }
     if (typeof artifact.translations === 'object' && !Array.isArray(artifact.translations)) {
@@ -222,9 +222,9 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
       const hasDbData = Boolean(
         trans &&
         ((trans.name && trans.name.trim()) ||
-         (trans.description && trans.description.trim()) ||
-         (trans.narrationScript && trans.narrationScript.trim()) ||
-         (trans.audioNarrationUrl && trans.audioNarrationUrl.trim()))
+          (trans.description && trans.description.trim()) ||
+          (trans.narrationScript && trans.narrationScript.trim()) ||
+          (trans.audioNarrationUrl && trans.audioNarrationUrl.trim()))
       );
 
       const code = artifact.code || '';
@@ -733,13 +733,13 @@ export const PublicArtifactView: React.FC<PublicArtifactViewProps> = ({
                 src={
                   artifact.thumbnailUrl
                     ? (artifact.thumbnailUrl.startsWith('http')
-                        ? artifact.thumbnailUrl
-                        : `${API_ROOT}${artifact.thumbnailUrl}`)
+                      ? artifact.thumbnailUrl
+                      : `${API_ROOT}${artifact.thumbnailUrl}`)
                     : artifact.images?.[0]
-                    ? (artifact.images[0].startsWith('http')
+                      ? (artifact.images[0].startsWith('http')
                         ? artifact.images[0]
                         : `${API_ROOT}${artifact.images[0]}`)
-                    : '/placeholder.jpg'
+                      : '/placeholder.jpg'
                 }
                 alt={displayName}
                 className="hero-image"
