@@ -4,7 +4,10 @@ import {
   Download,
   Search,
   Activity,
-  ExternalLink
+  ExternalLink,
+  Server,
+  BarChart3,
+  Cpu
 } from 'lucide-react';
 import XLSX from 'xlsx-js-style';
 import { api } from '../../services/api';
@@ -385,6 +388,15 @@ export const AdminAnalyticsPage: React.FC = () => {
 
   // Tab con nghiệp vụ (Tối giản chuẩn Admin, không icon lòe loẹt)
   const [subTab, setSubTab] = useState<'overview' | 'tickets' | 'rooms' | 'artifacts' | 'grafana'>('overview');
+  const [selectedGrafanaDashboard, setSelectedGrafanaDashboard] = useState<'analytics' | 'infra' | 'apm'>('analytics');
+
+  // Đảm bảo cookie auth_token luôn có sẵn để iframe Grafana và các sub-request Nginx luôn xác thực thành công
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      document.cookie = `auth_token=${encodeURIComponent(token)}; path=/; max-age=604800; SameSite=Lax`;
+    }
+  }, []);
 
   // Bộ lọc thời gian chuẩn
   const [timeRange, setTimeRange] = useState<string>('month');
@@ -1997,47 +2009,147 @@ export const AdminAnalyticsPage: React.FC = () => {
       {/* 5. TAB BẢNG ĐIỀU KHIỂN GRAFANA GIÁM SÁT REAL-TIME */}
       {subTab === 'grafana' && (
         <div style={{ marginTop: 18, borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-card)' }}>
+          {/* Header & Bộ chọn Dashboard */}
           <div
             style={{
-              padding: '12px 18px',
+              padding: '14px 18px',
               borderBottom: '1px solid var(--border-color)',
               display: 'flex',
+              flexWrap: 'wrap',
               justifyContent: 'space-between',
               alignItems: 'center',
+              gap: 12,
               backgroundColor: 'var(--bg-subtle)'
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <Activity size={18} style={{ color: 'var(--accent-gold)' }} />
+              <Activity size={20} style={{ color: 'var(--accent-gold)' }} />
               <div>
-                <span style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text-main)' }}>
-                  Hệ thống Giám sát & Đo lường Viễn trắc Real-time (Grafana & Prometheus Engine)
-                </span>
-                <span style={{ display: 'block', fontSize: 11, color: 'var(--text-muted)' }}>
-                  Kết nối CSDL PostgreSQL (Read-Only) • 3 Bảng điều khiển dựng sẵn: Hạ tầng VPS, APM API & Nghiệp vụ Di sản
+                <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span>Hệ thống Giám sát & Đo lường Viễn trắc Real-time (Grafana & Prometheus)</span>
+                  <span style={{ fontSize: 10.5, padding: '2px 8px', borderRadius: 10, backgroundColor: 'rgba(212, 160, 23, 0.15)', color: 'var(--accent-gold)', border: '1px solid rgba(212, 160, 23, 0.3)' }}>
+                    PostgreSQL Read-Only Mode
+                  </span>
+                </div>
+                <span style={{ display: 'block', fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
+                  Tự động thu thập viễn trắc hệ thống VPS, lưu lượng mạng API và phân tích số liệu nghiệp vụ bảo tàng
                 </span>
               </div>
             </div>
 
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => {
+                  const token = localStorage.getItem('token') || '';
+                  const uid =
+                    selectedGrafanaDashboard === 'analytics'
+                      ? 'museum-analytics-03'
+                      : selectedGrafanaDashboard === 'infra'
+                      ? 'museum-infra-01'
+                      : 'museum-apm-02';
+                  window.open(`/grafana/d/${uid}?token=${encodeURIComponent(token)}`, '_blank');
+                }}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}
+              >
+                <ExternalLink size={13} />
+                <span>Mở toàn màn hình</span>
+              </button>
+            </div>
+          </div>
+
+          {/* 3 Tab chọn Bảng điều khiển Grafana */}
+          <div
+            style={{
+              padding: '10px 18px',
+              display: 'flex',
+              gap: 8,
+              borderBottom: '1px solid var(--border-color)',
+              backgroundColor: 'var(--bg-main)',
+              overflowX: 'auto'
+            }}
+          >
             <button
               type="button"
-              className="btn btn-secondary btn-sm"
-              onClick={() => {
-                const token = localStorage.getItem('token') || '';
-                window.open(`/grafana/?token=${encodeURIComponent(token)}`, '_blank');
+              onClick={() => setSelectedGrafanaDashboard('analytics')}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 8,
+                padding: '8px 14px',
+                borderRadius: 6,
+                fontSize: 12.5,
+                fontWeight: selectedGrafanaDashboard === 'analytics' ? 600 : 400,
+                border: selectedGrafanaDashboard === 'analytics' ? '1px solid var(--accent-gold)' : '1px solid var(--border-color)',
+                backgroundColor: selectedGrafanaDashboard === 'analytics' ? 'rgba(212, 160, 23, 0.12)' : 'var(--bg-card)',
+                color: selectedGrafanaDashboard === 'analytics' ? 'var(--accent-gold)' : 'var(--text-muted)',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease'
               }}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}
             >
-              <ExternalLink size={13} />
-              <span>Mở tab riêng</span>
+              <BarChart3 size={15} />
+              <span>1. Nghiệp vụ Di sản & Doanh thu Vé</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setSelectedGrafanaDashboard('infra')}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 8,
+                padding: '8px 14px',
+                borderRadius: 6,
+                fontSize: 12.5,
+                fontWeight: selectedGrafanaDashboard === 'infra' ? 600 : 400,
+                border: selectedGrafanaDashboard === 'infra' ? '1px solid var(--accent-gold)' : '1px solid var(--border-color)',
+                backgroundColor: selectedGrafanaDashboard === 'infra' ? 'rgba(212, 160, 23, 0.12)' : 'var(--bg-card)',
+                color: selectedGrafanaDashboard === 'infra' ? 'var(--accent-gold)' : 'var(--text-muted)',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              <Server size={15} />
+              <span>2. Hạ tầng VPS & Container Docker</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setSelectedGrafanaDashboard('apm')}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 8,
+                padding: '8px 14px',
+                borderRadius: 6,
+                fontSize: 12.5,
+                fontWeight: selectedGrafanaDashboard === 'apm' ? 600 : 400,
+                border: selectedGrafanaDashboard === 'apm' ? '1px solid var(--accent-gold)' : '1px solid var(--border-color)',
+                backgroundColor: selectedGrafanaDashboard === 'apm' ? 'rgba(212, 160, 23, 0.12)' : 'var(--bg-card)',
+                color: selectedGrafanaDashboard === 'apm' ? 'var(--accent-gold)' : 'var(--text-muted)',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              <Cpu size={15} />
+              <span>3. Hiệu năng API & Độ trễ Mạng (APM)</span>
             </button>
           </div>
 
+          {/* Iframe hiển thị Dashboard tương ứng với giao diện Kiosk sạch sẽ */}
           <iframe
-            src={`/grafana/?token=${encodeURIComponent(localStorage.getItem('token') || '')}`}
+            key={selectedGrafanaDashboard}
+            src={`/grafana/d/${
+              selectedGrafanaDashboard === 'analytics'
+                ? 'museum-analytics-03'
+                : selectedGrafanaDashboard === 'infra'
+                ? 'museum-infra-01'
+                : 'museum-apm-02'
+            }?kiosk=tv&token=${encodeURIComponent(localStorage.getItem('token') || '')}`}
             style={{
               width: '100%',
-              height: '820px',
+              height: '840px',
               border: 'none',
               backgroundColor: '#111217',
               display: 'block'

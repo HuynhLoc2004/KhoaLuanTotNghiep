@@ -87,6 +87,21 @@ authRouter.get('/verify-admin', async (req: Request, res: Response) => {
       token = req.query.token;
     }
 
+    // Đọc token từ header X-Original-URI do Nginx truyền vào nếu có
+    const origUri = (req.headers['x-original-uri'] as string) || '';
+    if (!token && origUri.includes('token=')) {
+      const match = origUri.match(/[?&]token=([^&]+)/);
+      if (match) token = match[1];
+    }
+
+    if (token) {
+      try {
+        token = decodeURIComponent(token);
+      } catch {
+        // Giữ nguyên token gốc nếu không cần decode
+      }
+    }
+
     if (!token) {
       return res.status(401).send('Missing admin authentication token');
     }
