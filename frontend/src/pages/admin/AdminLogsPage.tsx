@@ -661,25 +661,15 @@ export const AdminLogsPage: React.FC = () => {
             onTouchStart={(e) => e.stopPropagation()}
             onTouchEnd={(e) => e.stopPropagation()}
             onClick={(e) => e.stopPropagation()}
-            style={{
-              width: 820,
-              maxWidth: 'calc(100vw - 24px)',
-              height: 640,
-              maxHeight: 'calc(100vh - 40px)',
-              display: 'flex',
-              flexDirection: 'column',
-              boxSizing: 'border-box',
-              overflow: 'hidden'
-            }}
           >
             {/* Modal Header */}
             <div className="inspector-header">
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', minWidth: 0, flex: 1 }}>
                 {renderLevelBadge(selectedLog.level)}
                 <span className="log-module-tag">
                   {MODULE_LABELS[selectedLog.module] || selectedLog.module}
                 </span>
-                <span className="inspector-id">ID: {selectedLog._id}</span>
+                <span className="inspector-id" title={selectedLog._id}>ID: {selectedLog._id}</span>
               </div>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>

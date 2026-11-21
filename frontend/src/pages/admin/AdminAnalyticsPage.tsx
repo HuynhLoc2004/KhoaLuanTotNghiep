@@ -387,17 +387,13 @@ export const AdminAnalyticsPage: React.FC = () => {
   // Tab con nghiệp vụ chuẩn Admin: Ưu tiên 3 Dashboard Grafana Live, không tự vẽ biểu đồ thủ công
   type AnalyticsSubTab = 'grafana-analytics' | 'grafana-infra' | 'grafana-apm' | 'tickets' | 'rooms' | 'artifacts';
   const [subTab, setSubTab] = useState<AnalyticsSubTab>('grafana-analytics');
+  const [mountedTabs, setMountedTabs] = useState<Set<AnalyticsSubTab>>(new Set(['grafana-analytics']));
   const [tabTransitioning, setTabTransitioning] = useState<boolean>(false);
 
   const handleSubTabChange = (newTab: AnalyticsSubTab) => {
     if (newTab === subTab) return;
-    setTabTransitioning(true);
-    setTimeout(() => {
-      setSubTab(newTab);
-      setTimeout(() => {
-        setTabTransitioning(false);
-      }, 400);
-    }, 200);
+    setSubTab(newTab);
+    setMountedTabs((prev) => new Set(prev).add(newTab));
   };
 
   // Đảm bảo cookie museum_admin_token và auth_token luôn có sẵn để iframe Grafana và các sub-request Nginx luôn xác thực thành công
@@ -1289,166 +1285,127 @@ export const AdminAnalyticsPage: React.FC = () => {
         )}
 
         {/* ========================================================
-            TAB 1: BẢNG ĐIỀU KHIỂN GRAFANA - NGHIỆP VỤ & DOANH THU
+            TAB 1: BẢNG ĐIỀU KHIỂN GRAFANA - NGHIỆP VỤ & DOANH THU (KEEP-ALIVE)
             ======================================================== */}
-        {subTab === 'grafana-analytics' && (
-        <div style={{ marginTop: 6, borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-card)' }}>
+        {mountedTabs.has('grafana-analytics') && (
           <div
-            style={{
-              padding: '12px 18px',
-              borderBottom: '1px solid var(--border-color)',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              backgroundColor: 'var(--bg-subtle)'
-            }}
+            className="grafana-iframe-container"
+            style={{ display: subTab === 'grafana-analytics' ? 'block' : 'none' }}
           >
-            <div>
-              <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span>Bảng điều khiển Nghiệp vụ Di sản & Doanh thu Vé</span>
-                <span style={{ fontSize: 10.5, padding: '2px 8px', borderRadius: 4, backgroundColor: 'rgba(212, 160, 23, 0.12)', color: 'var(--accent-gold)', border: '1px solid rgba(212, 160, 23, 0.25)' }}>
-                  PostgreSQL Read-Only Mode
+            <div className="grafana-card-header">
+              <div className="grafana-header-info">
+                <div className="grafana-header-title">
+                  <span>Bảng điều khiển Nghiệp vụ Di sản & Doanh thu Vé</span>
+                  <span style={{ fontSize: 10.5, padding: '2px 8px', borderRadius: 4, backgroundColor: 'rgba(212, 160, 23, 0.12)', color: 'var(--accent-gold)', border: '1px solid rgba(212, 160, 23, 0.25)' }}>
+                    PostgreSQL Read-Only Mode
+                  </span>
+                </div>
+                <span className="grafana-header-desc">
+                  Động cơ Grafana phân tích số liệu thực tế vé tham quan, doanh thu thanh toán PayOS/VietQR và tỷ lệ số hóa di sản 3D
                 </span>
               </div>
-              <span style={{ display: 'block', fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
-                Động cơ Grafana phân tích số liệu thực tế vé tham quan, doanh thu thanh toán PayOS/VietQR và tỷ lệ số hóa di sản 3D
-              </span>
+
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm grafana-fullscreen-btn"
+                onClick={() => {
+                  window.open(`/grafana/d/museum-analytics-03?token=${encodeURIComponent(adminToken)}`, '_blank');
+                }}
+              >
+                <ExternalLink size={13} />
+                <span>Mở toàn màn hình</span>
+              </button>
             </div>
 
-            <button
-              type="button"
-              className="btn btn-secondary btn-sm"
-              onClick={() => {
-                window.open(`/grafana/d/museum-analytics-03?token=${encodeURIComponent(adminToken)}`, '_blank');
-              }}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}
-            >
-              <ExternalLink size={13} />
-              <span>Mở toàn màn hình</span>
-            </button>
+            <iframe
+              src={`/grafana/d/museum-analytics-03?kiosk&theme=dark&token=${encodeURIComponent(adminToken)}`}
+              className="grafana-embed-iframe"
+              title="Bảng điều khiển Nghiệp vụ Di sản & Doanh thu Vé"
+            />
           </div>
+        )}
 
-          <iframe
-            src={`/grafana/d/museum-analytics-03?kiosk&theme=dark&token=${encodeURIComponent(adminToken)}`}
-            style={{
-              width: '100%',
-              height: '860px',
-              border: 'none',
-              backgroundColor: '#111217',
-              display: 'block'
-            }}
-            title="Bảng điều khiển Nghiệp vụ Di sản & Doanh thu Vé"
-          />
-        </div>
-      )}
-
-      {/* ========================================================
-          TAB 2: BẢNG ĐIỀU KHIỂN GRAFANA - HẠ TẦNG VPS & CONTAINER
-          ======================================================== */}
-      {subTab === 'grafana-infra' && (
-        <div style={{ marginTop: 6, borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-card)' }}>
+        {/* ========================================================
+            TAB 2: BẢNG ĐIỀU KHIỂN GRAFANA - HẠ TẦNG VPS & CONTAINER (KEEP-ALIVE)
+            ======================================================== */}
+        {mountedTabs.has('grafana-infra') && (
           <div
-            style={{
-              padding: '12px 18px',
-              borderBottom: '1px solid var(--border-color)',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              backgroundColor: 'var(--bg-subtle)'
-            }}
+            className="grafana-iframe-container"
+            style={{ display: subTab === 'grafana-infra' ? 'block' : 'none' }}
           >
-            <div>
-              <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span>Bảng điều khiển Giám sát Hạ tầng VPS & Container Docker</span>
-                <span style={{ fontSize: 10.5, padding: '2px 8px', borderRadius: 4, backgroundColor: 'rgba(212, 160, 23, 0.12)', color: 'var(--accent-gold)', border: '1px solid rgba(212, 160, 23, 0.25)' }}>
-                  Prometheus Scraper
+            <div className="grafana-card-header">
+              <div className="grafana-header-info">
+                <div className="grafana-header-title">
+                  <span>Bảng điều khiển Giám sát Hạ tầng VPS & Container Docker</span>
+                  <span style={{ fontSize: 10.5, padding: '2px 8px', borderRadius: 4, backgroundColor: 'rgba(212, 160, 23, 0.12)', color: 'var(--accent-gold)', border: '1px solid rgba(212, 160, 23, 0.25)' }}>
+                    Prometheus Scraper
+                  </span>
+                </div>
+                <span className="grafana-header-desc">
+                  Giám sát dung lượng RAM RSS, Heap Memory, thời gian Uptime và tần suất CPU NodeJS theo thời gian thực
                 </span>
               </div>
-              <span style={{ display: 'block', fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
-                Giám sát dung lượng RAM RSS, Heap Memory, thời gian Uptime và tần suất CPU NodeJS theo thời gian thực
-              </span>
+
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm grafana-fullscreen-btn"
+                onClick={() => {
+                  window.open(`/grafana/d/museum-infra-01?token=${encodeURIComponent(adminToken)}`, '_blank');
+                }}
+              >
+                <ExternalLink size={13} />
+                <span>Mở toàn màn hình</span>
+              </button>
             </div>
 
-            <button
-              type="button"
-              className="btn btn-secondary btn-sm"
-              onClick={() => {
-                window.open(`/grafana/d/museum-infra-01?token=${encodeURIComponent(adminToken)}`, '_blank');
-              }}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}
-            >
-              <ExternalLink size={13} />
-              <span>Mở toàn màn hình</span>
-            </button>
+            <iframe
+              src={`/grafana/d/museum-infra-01?kiosk&theme=dark&token=${encodeURIComponent(adminToken)}`}
+              className="grafana-embed-iframe"
+              title="Bảng điều khiển Hạ tầng VPS & Container"
+            />
           </div>
+        )}
 
-          <iframe
-            src={`/grafana/d/museum-infra-01?kiosk&theme=dark&token=${encodeURIComponent(adminToken)}`}
-            style={{
-              width: '100%',
-              height: '860px',
-              border: 'none',
-              backgroundColor: '#111217',
-              display: 'block'
-            }}
-            title="Bảng điều khiển Hạ tầng VPS & Container"
-          />
-        </div>
-      )}
-
-      {/* ========================================================
-          TAB 3: BẢNG ĐIỀU KHIỂN GRAFANA - HIỆU NĂNG API & MẠNG (APM)
-          ======================================================== */}
-      {subTab === 'grafana-apm' && (
-        <div style={{ marginTop: 6, borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-card)' }}>
+        {/* ========================================================
+            TAB 3: BẢNG ĐIỀU KHIỂN GRAFANA - HIỆU NĂNG API & MẠNG (KEEP-ALIVE)
+            ======================================================== */}
+        {mountedTabs.has('grafana-apm') && (
           <div
-            style={{
-              padding: '12px 18px',
-              borderBottom: '1px solid var(--border-color)',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              backgroundColor: 'var(--bg-subtle)'
-            }}
+            className="grafana-iframe-container"
+            style={{ display: subTab === 'grafana-apm' ? 'block' : 'none' }}
           >
-            <div>
-              <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span>Bảng điều khiển Hiệu năng API & Độ trễ Mạng (APM Telemetry)</span>
-                <span style={{ fontSize: 10.5, padding: '2px 8px', borderRadius: 4, backgroundColor: 'rgba(212, 160, 23, 0.12)', color: 'var(--accent-gold)', border: '1px solid rgba(212, 160, 23, 0.25)' }}>
-                  Prometheus & Express APM
+            <div className="grafana-card-header">
+              <div className="grafana-header-info">
+                <div className="grafana-header-title">
+                  <span>Bảng điều khiển Hiệu năng API & Độ trễ Mạng (APM Telemetry)</span>
+                  <span style={{ fontSize: 10.5, padding: '2px 8px', borderRadius: 4, backgroundColor: 'rgba(212, 160, 23, 0.12)', color: 'var(--accent-gold)', border: '1px solid rgba(212, 160, 23, 0.25)' }}>
+                    Prometheus & Express APM
+                  </span>
+                </div>
+                <span className="grafana-header-desc">
+                  Đo lường lưu lượng mạng Request/giây (RPS), phân vị độ trễ p50/p95/p99 và tỷ lệ mã trạng thái HTTP 2xx/4xx/5xx
                 </span>
               </div>
-              <span style={{ display: 'block', fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
-                Đo lường lưu lượng mạng Request/giây (RPS), phân vị độ trễ p50/p95/p99 và tỷ lệ mã trạng thái HTTP 2xx/4xx/5xx
-              </span>
+
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm grafana-fullscreen-btn"
+                onClick={() => {
+                  window.open(`/grafana/d/museum-apm-02?token=${encodeURIComponent(adminToken)}`, '_blank');
+                }}
+              >
+                <ExternalLink size={13} />
+                <span>Mở toàn màn hình</span>
+              </button>
             </div>
 
-            <button
-              type="button"
-              className="btn btn-secondary btn-sm"
-              onClick={() => {
-                window.open(`/grafana/d/museum-apm-02?token=${encodeURIComponent(adminToken)}`, '_blank');
-              }}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}
-            >
-              <ExternalLink size={13} />
-              <span>Mở toàn màn hình</span>
-            </button>
+            <iframe
+              src={`/grafana/d/museum-apm-02?kiosk&theme=dark&token=${encodeURIComponent(adminToken)}`}
+              className="grafana-embed-iframe"
+              title="Bảng điều khiển Hiệu năng API & Mạng (APM)"
+            />
           </div>
-
-          <iframe
-            src={`/grafana/d/museum-apm-02?kiosk&theme=dark&token=${encodeURIComponent(adminToken)}`}
-            style={{
-              width: '100%',
-              height: '860px',
-              border: 'none',
-              backgroundColor: '#111217',
-              display: 'block'
-            }}
-            title="Bảng điều khiển Hiệu năng API & Mạng (APM)"
-          />
-        </div>
-      )}
+        )}
 
       {/* ========================================================
           TAB 2: DOANH THU & GIAO DỊCH VÉ CHI TIẾT (CỐ ĐỊNH CHIỀU CAO)

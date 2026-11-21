@@ -35,6 +35,10 @@
         "graphMode": "none",
         "justifyMode": "auto",
         "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "text": {
+          "titleSize": 12,
+          "valueSize": 24
+        },
         "textMode": "auto"
       },
       "pluginVersion": "10.4.0",
@@ -64,6 +68,10 @@
         "graphMode": "none",
         "justifyMode": "auto",
         "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "text": {
+          "titleSize": 12,
+          "valueSize": 24
+        },
         "textMode": "auto"
       },
       "pluginVersion": "10.4.0",
@@ -93,6 +101,10 @@
         "graphMode": "none",
         "justifyMode": "auto",
         "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "text": {
+          "titleSize": 12,
+          "valueSize": 24
+        },
         "textMode": "auto"
       },
       "pluginVersion": "10.4.0",
@@ -119,16 +131,20 @@
       "id": 5,
       "options": {
         "colorMode": "value",
-        "graphMode": "area",
+        "graphMode": "none",
         "justifyMode": "auto",
         "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "text": {
+          "titleSize": 12,
+          "valueSize": 24
+        },
         "textMode": "auto"
       },
       "pluginVersion": "10.4.0",
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "Prometheus" },
-          "expr": "museum_active_visitors or vector(1)",
+          "expr": "sum(museum_active_visitors) or vector(0)",
           "refId": "A"
         }
       ],
@@ -323,7 +339,7 @@
       "type": "table"
     }
   ],
-  "refresh": "15s",
+  "refresh": "30s",
   "schemaVersion": 39,
   "style": "dark",
   "tags": ["museum", "analytics", "tickets", "heritage"],
@@ -332,5 +348,5 @@
   "timezone": "browser",
   "title": "3. Thống kê Hoạt động & Nghiệp vụ Di sản",
   "uid": "museum-analytics-03",
-  "version": 3
+  "version": 4
 }

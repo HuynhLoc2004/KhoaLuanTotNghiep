@@ -28,9 +28,13 @@
       "id": 2,
       "options": {
         "colorMode": "value",
-        "graphMode": "area",
+        "graphMode": "none",
         "justifyMode": "auto",
         "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "text": {
+          "titleSize": 12,
+          "valueSize": 24
+        },
         "textMode": "auto"
       },
       "pluginVersion": "10.4.0",
@@ -55,6 +59,10 @@
         "graphMode": "none",
         "justifyMode": "auto",
         "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "text": {
+          "titleSize": 12,
+          "valueSize": 24
+        },
         "textMode": "auto"
       },
       "pluginVersion": "10.4.0",
@@ -86,6 +94,10 @@
         "graphMode": "none",
         "justifyMode": "auto",
         "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "text": {
+          "titleSize": 12,
+          "valueSize": 24
+        },
         "textMode": "auto"
       },
       "pluginVersion": "10.4.0",
@@ -107,9 +119,13 @@
       "id": 5,
       "options": {
         "colorMode": "value",
-        "graphMode": "area",
+        "graphMode": "none",
         "justifyMode": "auto",
         "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "text": {
+          "titleSize": 12,
+          "valueSize": 24
+        },
         "textMode": "auto"
       },
       "pluginVersion": "10.4.0",
@@ -211,7 +227,7 @@
       "type": "timeseries"
     }
   ],
-  "refresh": "10s",
+  "refresh": "30s",
   "schemaVersion": 39,
   "style": "dark",
   "tags": ["apm", "api", "telemetry"],
@@ -220,5 +236,5 @@
   "timezone": "browser",
   "title": "2. Đo lường Hiệu năng API & Độ trễ Mạng (APM)",
   "uid": "museum-apm-02",
-  "version": 3
+  "version": 4
 }

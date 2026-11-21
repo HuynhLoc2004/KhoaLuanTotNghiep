@@ -7435,6 +7435,130 @@ select option {
     justify-content: center;
     padding: 8px !important;
   }
+
+  /* Log Inspector Modal trên điện thoại & màn hình nhỏ */
+  .log-inspector-modal {
+    width: 95vw !important;
+    max-width: 95vw !important;
+    height: 85vh !important;
+    max-height: 85vh !important;
+    border-radius: 8px !important;
+  }
+  .inspector-header {
+    padding: 10px 14px !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+  }
+  .inspector-id {
+    font-size: 11px !important;
+    max-width: 140px !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+  .inspector-body {
+    padding: 12px 14px !important;
+  }
+  .inspector-grid-props {
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+  }
+}
+
+/* ==========================================================================
+   GRAFANA RESPONSIVE EMBED STYLES
+   ========================================================================== */
+.grafana-iframe-container {
+  margin-top: 6px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-card);
+}
+
+.grafana-card-header {
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  background-color: var(--bg-subtle);
+}
+
+.grafana-card-header .grafana-header-info {
+  min-width: 0;
+  flex: 1;
+}
+
+.grafana-card-header .grafana-header-title {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.grafana-card-header .grafana-header-desc {
+  display: block;
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
+  line-height: 1.4;
+}
+
+.grafana-fullscreen-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.grafana-embed-iframe {
+  width: 100%;
+  height: 860px;
+  border: none;
+  background-color: #111217;
+  display: block;
+}
+
+@media (max-width: 768px) {
+  .grafana-card-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    padding: 12px 14px !important;
+    gap: 10px !important;
+  }
+  .grafana-card-header .grafana-header-info {
+    width: 100% !important;
+  }
+  .grafana-fullscreen-btn {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+  .grafana-embed-iframe {
+    height: 640px !important;
+  }
+  .analytics-tab-viewport {
+    min-height: 640px !important;
+  }
+  .analytics-subtabs {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .analytics-subtabs::-webkit-scrollbar {
+    display: none;
+  }
+  .analytics-title {
+    font-size: 16px !important;
+  }
+  .analytics-subtitle {
+    font-size: 11.5px !important;
+  }
 }
 
 /* ==========================================================================
