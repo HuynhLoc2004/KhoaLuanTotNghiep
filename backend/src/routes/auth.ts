@@ -1,6 +1,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import mongoose from 'mongoose';
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import { User, IUser, seedDefaultAdmin, isAllowedAdminEmail } from '../models/User.js';
 import { Role } from '../models/Role.js';
 import { OtpToken } from '../models/OtpToken.js';
@@ -12,7 +13,11 @@ import {
   checkOtpCooldown,
   setOtpCooldown,
   revokeTokenInRedis,
-  isTokenRevokedInRedis
+  isTokenRevokedInRedis,
+  storeRefreshTokenInRedis,
+  isRefreshTokenValidInRedis,
+  revokeRefreshTokenInRedis,
+  revokeAllRefreshTokensForUser
 } from '../services/redis.js';
 import { pgPool, logAudit } from '../db/postgres.js';
 import { pgUpsertUser } from '../db/syncEngine.js';
@@ -20,6 +25,10 @@ import { pgUpsertUser } from '../db/syncEngine.js';
 export const authRouter = Router();
 
 const JWT_SECRET = process.env.JWT_SECRET || 'museum_hcmc_secret_heritage_jwt_2026';
+const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || (JWT_SECRET + '_refresh_rotation_2026');
+const ACCESS_TOKEN_EXPIRY = '15m'; // 15 phút theo chuẩn OAuth 2.0 / RFC 6749
+const REFRESH_TOKEN_EXPIRY = '7d'; // 7 ngày
+const REFRESH_TOKEN_TTL_SECONDS = 7 * 86400;
 const OTP_COOLDOWN_SECONDS = 60; // Chống spam: 60s cooldown giữa các lần gửi
 const OTP_EXPIRY_MINUTES = 5; // Hạn sử dụng mã OTP: 5 phút
 
@@ -130,20 +139,61 @@ authRouter.get('/verify-admin', async (req: Request, res: Response) => {
 });
 
 /**
- * Helper sinh Token JWT
+ * Helper sinh Access Token (15 phút - Chuẩn OAuth 2.0 / RFC 6749)
  */
-const generateToken = (user: IUser) => {
+export const generateAccessToken = (user: { id: string; username: string; email: string; role: string; permissions?: string[] }) => {
   return jwt.sign(
     {
-      id: user._id,
+      id: user.id,
       username: user.username,
       email: user.email,
       role: user.role,
-      permissions: user.permissions
+      permissions: user.permissions || ['*'],
+      type: 'access'
     },
     JWT_SECRET,
-    { expiresIn: '7d' }
+    { expiresIn: ACCESS_TOKEN_EXPIRY }
   );
+};
+
+/**
+ * Helper sinh Refresh Token (7 ngày - Kèm JTI bảo vệ chống Replay Attack)
+ */
+export const generateRefreshToken = (user: { id: string; email: string }, jti: string) => {
+  return jwt.sign(
+    {
+      id: user.id,
+      email: user.email,
+      jti,
+      type: 'refresh'
+    },
+    JWT_REFRESH_SECRET,
+    { expiresIn: REFRESH_TOKEN_EXPIRY }
+  );
+};
+
+/**
+ * Thiết lập HttpOnly Cookie an toàn cho Refresh Token
+ */
+const setRefreshTokenCookie = (res: Response, req: Request, refreshToken: string) => {
+  const isHttps = req.secure || req.headers['x-forwarded-proto'] === 'https';
+  res.cookie('refreshToken', refreshToken, {
+    httpOnly: true,
+    secure: isHttps,
+    sameSite: 'lax',
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 ngày
+    path: '/'
+  });
+};
+
+const generateToken = (user: any) => {
+  return generateAccessToken({
+    id: user._id || user.id,
+    username: user.username,
+    email: user.email,
+    role: user.role,
+    permissions: user.permissions
+  });
 };
 
 // ==============================================================================
@@ -422,7 +472,25 @@ authRouter.post('/verify-otp', async (req: Request, res: Response) => {
       permissions: ['*']
     };
 
-    const token = jwt.sign(payloadUser, JWT_SECRET, { expiresIn: '7d' });
+    const jti = crypto.randomUUID();
+    const accessToken = generateAccessToken(payloadUser);
+    const refreshToken = generateRefreshToken(payloadUser, jti);
+
+    // Lưu Refresh Token vào Redis
+    await storeRefreshTokenInRedis(payloadUser.id, jti, REFRESH_TOKEN_TTL_SECONDS);
+
+    // Ghi Refresh Token vào HttpOnly Cookie
+    setRefreshTokenCookie(res, req, refreshToken);
+
+    // Đồng bộ cookie cho Nginx proxy (nhúng Grafana)
+    const isHttps = req.secure || req.headers['x-forwarded-proto'] === 'https';
+    res.cookie('museum_admin_token', accessToken, {
+      httpOnly: false,
+      secure: isHttps,
+      sameSite: 'lax',
+      maxAge: 15 * 60 * 1000,
+      path: '/'
+    });
 
     // Ghi nhật ký kiểm toán vào PostgreSQL
     await logAudit('LOGIN_SUCCESS', 'auth', {
@@ -433,13 +501,146 @@ authRouter.post('/verify-otp', async (req: Request, res: Response) => {
 
     return res.json({
       success: true,
-      message: 'Đăng nhập thành công với quyền Quản trị viên Toàn quyền (Xác thực PostgreSQL & Redis)',
-      token,
+      message: 'Đăng nhập thành công với quyền Quản trị viên (Cơ chế 2 Token: Access 15m + Refresh 7d)',
+      token: accessToken,
       user: payloadUser
     });
   } catch (err: any) {
     console.error('[Verify OTP Error]:', err);
     return res.status(500).json({ success: false, message: err.message || 'Lỗi xác thực OTP' });
+  }
+});
+
+// ==============================================================================
+// 2. CẤP LẠI TOKEN VỚI REFRESH TOKEN ROTATION (CHUẨN OAUTH 2.0 / RFC 8725)
+// ==============================================================================
+authRouter.post('/refresh-token', async (req: Request, res: Response) => {
+  try {
+    // 1. Đọc Refresh Token từ HttpOnly Cookie (hoặc body fallback)
+    const refreshToken = req.cookies?.refreshToken || req.body?.refreshToken;
+
+    if (!refreshToken || typeof refreshToken !== 'string') {
+      return res.status(401).json({
+        success: false,
+        message: 'Không tìm thấy Refresh Token. Vui lòng đăng nhập lại.'
+      });
+    }
+
+    // 2. Xác thực chữ ký Refresh Token
+    let decoded: any;
+    try {
+      decoded = jwt.verify(refreshToken, JWT_REFRESH_SECRET);
+    } catch {
+      return res.status(401).json({
+        success: false,
+        message: 'Refresh Token không hợp lệ hoặc đã hết hạn.'
+      });
+    }
+
+    if (!decoded || decoded.type !== 'refresh' || !decoded.id || !decoded.jti) {
+      return res.status(401).json({
+        success: false,
+        message: 'Cấu trúc Refresh Token không hợp lệ.'
+      });
+    }
+
+    // 3. Kiểm tra xem Refresh Token có còn hợp lệ trong Redis không
+    const isValidInRedis = await isRefreshTokenValidInRedis(decoded.id, decoded.jti);
+    if (!isValidInRedis) {
+      // BẢO VỆ CHỐNG REPLAY ATTACK: Nếu token đã dùng lại, có thể kẻ gian đã đánh cắp phiên!
+      // Thu hồi toàn bộ Refresh Token của user này
+      await revokeAllRefreshTokensForUser(decoded.id);
+      res.clearCookie('refreshToken', { path: '/' });
+      res.clearCookie('museum_admin_token', { path: '/' });
+      return res.status(401).json({
+        success: false,
+        message: 'Phát hiện Refresh Token đã bị thu hồi hoặc sử dụng lại. Vì lý do an toàn, phiên làm việc đã bị hủy.'
+      });
+    }
+
+    // 4. TOKEN ROTATION: Hủy ngay Refresh Token cũ
+    await revokeRefreshTokenInRedis(decoded.id, decoded.jti);
+
+    // 5. Truy vấn thông tin người dùng mới nhất từ PostgreSQL hoặc MongoDB
+    let payloadUser: any = null;
+    try {
+      const pgRes = await pgPool.query(`
+        SELECT u.id, u.username, u.email, u.full_name, u.role_id, r.name as role_name, r.permissions
+        FROM users u
+        LEFT JOIN roles r ON u.role_id = r.id
+        WHERE u.id = $1 OR u.email = $2
+        LIMIT 1;
+      `, [decoded.id, decoded.email]);
+
+      if (pgRes.rows.length > 0) {
+        const u = pgRes.rows[0];
+        payloadUser = {
+          id: u.id,
+          username: u.username,
+          email: u.email,
+          fullName: u.full_name || u.username,
+          role: u.role_id === 'role-superadmin' || u.role_id === 'admin' || !u.role_id ? 'admin' : u.role_id,
+          permissions: u.permissions || ['*']
+        };
+      }
+    } catch {}
+
+    if (!payloadUser) {
+      const user = (await User.findById(decoded.id)) || (await User.findOne({ email: decoded.email }));
+      if (user) {
+        payloadUser = {
+          id: user._id.toString(),
+          username: user.username,
+          email: user.email,
+          fullName: user.fullName || user.username,
+          role: user.role || 'client',
+          permissions: user.permissions || ['*']
+        };
+      }
+    }
+
+    if (!payloadUser) {
+      payloadUser = {
+        id: decoded.id,
+        username: decoded.username || 'user',
+        email: decoded.email,
+        role: 'admin',
+        permissions: ['*']
+      };
+    }
+
+    // 6. Sinh cặp Token mới (Access Token 15 phút + Refresh Token 7 ngày mới)
+    const newJti = crypto.randomUUID();
+    const newAccessToken = generateAccessToken(payloadUser);
+    const newRefreshToken = generateRefreshToken(payloadUser, newJti);
+
+    // 7. Lưu Refresh Token mới vào Redis
+    await storeRefreshTokenInRedis(payloadUser.id, newJti, REFRESH_TOKEN_TTL_SECONDS);
+
+    // 8. Cập nhật HttpOnly Cookie mới cho trình duyệt
+    setRefreshTokenCookie(res, req, newRefreshToken);
+
+    const isHttps = req.secure || req.headers['x-forwarded-proto'] === 'https';
+    res.cookie('museum_admin_token', newAccessToken, {
+      httpOnly: false,
+      secure: isHttps,
+      sameSite: 'lax',
+      maxAge: 15 * 60 * 1000,
+      path: '/'
+    });
+
+    return res.json({
+      success: true,
+      message: 'Làm mới Token thành công (Token Rotation active)',
+      token: newAccessToken,
+      user: payloadUser
+    });
+  } catch (err: any) {
+    console.error('[Refresh Token Error]:', err);
+    return res.status(500).json({
+      success: false,
+      message: err.message || 'Lỗi xử lý làm mới Token'
+    });
   }
 });
 
@@ -451,9 +652,29 @@ authRouter.post('/logout', authenticate, async (req: AuthRequest, res: Response)
     const authHeader = req.headers.authorization;
     if (authHeader && authHeader.startsWith('Bearer ')) {
       const token = authHeader.split(' ')[1];
-      // Đưa token vào danh sách thu hồi trên Redis
-      await revokeTokenInRedis(token);
+      // Đưa Access token vào danh sách thu hồi trên Redis
+      await revokeTokenInRedis(token, 15 * 60); // 15 phút
     }
+
+    // Thu hồi Refresh Token nếu có
+    const refreshToken = req.cookies?.refreshToken;
+    if (refreshToken) {
+      try {
+        const decoded: any = jwt.verify(refreshToken, JWT_REFRESH_SECRET);
+        if (decoded?.id && decoded?.jti) {
+          await revokeRefreshTokenInRedis(decoded.id, decoded.jti);
+        }
+      } catch {}
+    }
+
+    if (req.user?.id) {
+      await revokeAllRefreshTokensForUser(req.user.id);
+    }
+
+    // Xóa sạch Cookies
+    res.clearCookie('refreshToken', { path: '/' });
+    res.clearCookie('museum_admin_token', { path: '/' });
+    res.clearCookie('auth_token', { path: '/' });
 
     await logAudit('LOGOUT', 'auth', {
       userId: req.user?.id,
@@ -463,7 +684,7 @@ authRouter.post('/logout', authenticate, async (req: AuthRequest, res: Response)
 
     return res.json({
       success: true,
-      message: 'Đăng xuất thành công, phiên làm việc đã được thu hồi an toàn.'
+      message: 'Đăng xuất thành công, phiên làm việc và Refresh Token đã được thu hồi an toàn.'
     });
   } catch (err: any) {
     return res.status(500).json({ success: false, message: err.message || 'Lỗi đăng xuất' });

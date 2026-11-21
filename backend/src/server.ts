@@ -36,6 +36,7 @@ import { initRealtimeRedisSubscriber } from './services/realtimeSync.js';
 import { initPostgresTables, getPgStatus } from './db/postgres.js';
 import { runStartupDataSync } from './db/syncEngine.js';
 import { connectRabbitMQ, getRabbitMQStatus } from './services/rabbitmq.js';
+import cookieParser from 'cookie-parser';
 import { metricsMiddleware, getPrometheusMetrics, register } from './services/metrics.js';
 
 dotenv.config({ path: path.join(process.cwd(), '..', '.env') });
@@ -45,11 +46,13 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(cors({
-  origin: '*',
+  origin: (_origin, callback) => callback(null, true),
+  credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: ['*']
 }));
 
+app.use(cookieParser());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 

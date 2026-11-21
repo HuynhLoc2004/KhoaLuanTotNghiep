@@ -65,6 +65,109 @@ export const safeJson = async (res: Response, defaultError = 'Lỗi kết nối 
   }
 };
 
+/**
+ * ==============================================================================
+ * CƠ CHẾ 2 TOKEN BẢO MẬT CAO (ACCESS 15M + REFRESH 7D HTTPONLY COOKIE)
+ * SILENT REFRESH INTERCEPTOR - TỰ ĐỘNG LÀM MỚI TOKEN NGẦM KHI HẾT HẠN
+ * ==============================================================================
+ */
+let isRefreshing = false;
+let refreshSubscribers: ((token: string) => void)[] = [];
+
+const subscribeTokenRefresh = (cb: (token: string) => void) => {
+  refreshSubscribers.push(cb);
+};
+
+const onRefreshed = (token: string) => {
+  refreshSubscribers.forEach((cb) => cb(token));
+  refreshSubscribers = [];
+};
+
+export const refreshAuthToken = async (): Promise<string | null> => {
+  try {
+    const fetchFn = (window as any).__originalFetch || window.fetch;
+    const res = await fetchFn(`${API_BASE}/auth/refresh-token`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    const json = await res.json();
+    if (json && json.success && json.token) {
+      localStorage.setItem('museum_admin_token', json.token);
+      if (json.user) {
+        localStorage.setItem('museum_admin_user', JSON.stringify(json.user));
+      }
+      // Đồng bộ cookie cho Nginx và Grafana
+      document.cookie = `museum_admin_token=${encodeURIComponent(json.token)}; path=/; max-age=900; SameSite=Lax`;
+      window.dispatchEvent(new CustomEvent('museum:token_refreshed', { detail: { token: json.token, user: json.user } }));
+      return json.token;
+    }
+  } catch (err) {
+    console.warn('[Silent Token Refresh Failed]:', err);
+  }
+  return null;
+};
+
+// Thiết lập Interceptor toàn cục cho window.fetch để tự động bắt lỗi 401
+if (typeof window !== 'undefined' && !(window as any).__fetchInterceptorInstalled) {
+  const originalFetch = window.fetch.bind(window);
+  (window as any).__originalFetch = originalFetch;
+
+  window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+    const reqInit = { ...init };
+    // Luôn gửi kèm credentials để tự động gửi HttpOnly Refresh Token
+    if (!reqInit.credentials) {
+      reqInit.credentials = 'include';
+    }
+
+    let res = await originalFetch(input, reqInit);
+
+    const urlStr = typeof input === 'string' ? input : (input instanceof Request ? input.url : '');
+    const isAuthBypass =
+      urlStr.includes('/auth/login') ||
+      urlStr.includes('/auth/verify-otp') ||
+      urlStr.includes('/auth/send-otp') ||
+      urlStr.includes('/auth/refresh-token') ||
+      urlStr.includes('/auth/logout');
+
+    // Nếu trả về lỗi 401 do Access Token (15 phút) hết hạn
+    if (res.status === 401 && !isAuthBypass && (reqInit as any)._retry !== true) {
+      (reqInit as any)._retry = true;
+
+      if (!isRefreshing) {
+        isRefreshing = true;
+        const newToken = await refreshAuthToken();
+        isRefreshing = false;
+
+        if (newToken) {
+          onRefreshed(newToken);
+          const headers = new Headers(reqInit.headers || {});
+          headers.set('Authorization', `Bearer ${newToken}`);
+          reqInit.headers = headers;
+          return originalFetch(input, reqInit);
+        } else {
+          // Cả Refresh Token cũng hết hạn (quá 7 ngày) -> Đăng xuất phiên
+          window.dispatchEvent(new CustomEvent('museum:auth_expired'));
+        }
+      } else {
+        // Đang có một tiến trình refresh chạy, xếp hàng chờ token mới rồi replay
+        return new Promise((resolve) => {
+          subscribeTokenRefresh(async (newToken: string) => {
+            const headers = new Headers(reqInit.headers || {});
+            headers.set('Authorization', `Bearer ${newToken}`);
+            reqInit.headers = headers;
+            resolve(originalFetch(input, reqInit));
+          });
+        });
+      }
+    }
+
+    return res;
+  };
+
+  (window as any).__fetchInterceptorInstalled = true;
+}
+
 export const api = {
   async getRooms(): Promise<MuseumRoom[]> {
     const res = await fetch(`${API_BASE}/rooms?fresh=true&_t=${Date.now()}`, {
@@ -333,6 +436,14 @@ export const api = {
     const json = await safeJson(res, 'Lỗi xác thực mã OTP');
     if (!json.success) throw new Error(json.message || 'Lỗi xác thực mã OTP');
     return json;
+  },
+
+  async refreshToken(): Promise<{ success: boolean; token?: string; user?: AuthUser }> {
+    const token = await refreshAuthToken();
+    if (token) {
+      return { success: true, token };
+    }
+    return { success: false };
   },
 
   async loginCredentials(usernameOrEmail: string, password: string): Promise<AuthResponse> {

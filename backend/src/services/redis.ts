@@ -241,6 +241,40 @@ export const isTokenRevokedInRedis = async (token: string): Promise<boolean> => 
   }
 };
 
+/**
+ * Quản lý Refresh Token trong Redis (Hỗ trợ Token Rotation & Thu hồi tức thì)
+ */
+export const storeRefreshTokenInRedis = async (userId: string, jti: string, ttlSeconds: number = 7 * 86400): Promise<boolean> => {
+  return await cacheSet(`refresh_token:${userId}:${jti}`, { active: true, createdAt: new Date().toISOString() }, ttlSeconds);
+};
+
+export const isRefreshTokenValidInRedis = async (userId: string, jti: string): Promise<boolean> => {
+  if (!redisClient || !isRedisConnected) return true; // Fallback nếu Redis tạm ngắt kết nối
+  try {
+    const exists = await redisClient.exists(`refresh_token:${userId}:${jti}`);
+    return exists === 1;
+  } catch {
+    return true;
+  }
+};
+
+export const revokeRefreshTokenInRedis = async (userId: string, jti: string): Promise<boolean> => {
+  return await cacheDel(`refresh_token:${userId}:${jti}`);
+};
+
+export const revokeAllRefreshTokensForUser = async (userId: string): Promise<boolean> => {
+  if (!redisClient || !isRedisConnected) return false;
+  try {
+    const keys = await redisClient.keys(`refresh_token:${userId}:*`);
+    if (keys && keys.length > 0) {
+      await redisClient.del(...keys);
+    }
+    return true;
+  } catch {
+    return false;
+  }
+};
+
 export const getRedisStatus = () => ({
   connected: isRedisConnected,
   uri: REDIS_URI.replace(/:[^:@]+@/, ':***@')

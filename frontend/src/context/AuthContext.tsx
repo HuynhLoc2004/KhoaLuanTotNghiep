@@ -86,6 +86,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     verifySession();
   }, []);
 
+  // Lắng nghe sự kiện Silent Token Refresh từ API Interceptor
+  useEffect(() => {
+    const handleTokenRefreshed = (e: any) => {
+      if (e.detail?.token) {
+        setToken(e.detail.token);
+      }
+      if (e.detail?.user) {
+        setUser(e.detail.user);
+      }
+    };
+
+    const handleAuthExpired = () => {
+      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(USER_KEY);
+      setUser(null);
+      setToken(null);
+    };
+
+    window.addEventListener('museum:token_refreshed', handleTokenRefreshed);
+    window.addEventListener('museum:auth_expired', handleAuthExpired);
+
+    return () => {
+      window.removeEventListener('museum:token_refreshed', handleTokenRefreshed);
+      window.removeEventListener('museum:auth_expired', handleAuthExpired);
+    };
+  }, []);
+
   // 1. Gửi mã OTP qua email (có cooldown chống spam 60s)
   const sendOtp = async (email: string): Promise<SendOtpResponse> => {
     return await api.sendOtp(email);
