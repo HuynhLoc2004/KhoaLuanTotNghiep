@@ -234,9 +234,16 @@ def build_presentation(out_path):
     inner_box.line.color.rgb = C_GOLD
     inner_box.line.width = Pt(1)
 
+    logo_path = os.path.join(os.path.dirname(__file__), "assets", "iuh_logo.png")
+    if os.path.exists(logo_path):
+        try:
+            s01.shapes.add_picture(logo_path, Inches(1.3), Inches(0.95), width=Inches(1.15))
+        except Exception:
+            pass
+
     tf01 = inner_box.text_frame
     tf01.word_wrap = True
-    tf01.margin_top = Inches(0.3)
+    tf01.margin_top = Inches(0.25)
     tf01.margin_left = tf01.margin_right = Inches(0.4)
 
     p_sch = tf01.paragraphs[0]
@@ -250,7 +257,7 @@ def build_presentation(out_path):
 
     p_sub = tf01.add_paragraph()
     p_sub.alignment = PP_ALIGN.CENTER
-    p_sub.space_before = Pt(12)
+    p_sub.space_before = Pt(10)
     r = p_sub.add_run()
     r.text = "BÁO CÁO KHÓA LUẬN TỐT NGHIỆP ĐẠI HỌC NĂM 2026"
     r.font.name = "Arial"
@@ -260,17 +267,17 @@ def build_presentation(out_path):
 
     p_title = tf01.add_paragraph()
     p_title.alignment = PP_ALIGN.CENTER
-    p_title.space_before = Pt(16)
+    p_title.space_before = Pt(14)
     r = p_title.add_run()
     r.text = "HỆ THỐNG THAM QUAN THỰC TẾ ẢO 360° & SỐ HÓA KHÔNG GIAN DI SẢN\nBẢO TÀNG LỊCH SỬ THÀNH PHỐ HỒ CHÍ MINH"
     r.font.name = "Arial"
-    r.font.size = Pt(20)
+    r.font.size = Pt(19)
     r.font.bold = True
     r.font.color.rgb = C_PRIMARY
 
     p_info = tf01.add_paragraph()
     p_info.alignment = PP_ALIGN.CENTER
-    p_info.space_before = Pt(28)
+    p_info.space_before = Pt(22)
     r = p_info.add_run()
     r.text = "Giảng viên hướng dẫn:  TS. TRẦN THỊ MINH KHOA\n"
     r.font.name = "Arial"
@@ -279,9 +286,9 @@ def build_presentation(out_path):
     r.font.color.rgb = C_DARK
 
     r_sv = p_info.add_run()
-    r_sv.text = "Sinh viên thực hiện:  HUỲNH TẤN LỘC (Trưởng nhóm)  –  TRỊNH VĨ THÀNH\nNgành: Kỹ thuật Phần mềm / Công nghệ Thông tin"
+    r_sv.text = "Sinh viên thực hiện:\nHUỲNH TẤN LỘC — MSSV: 22686171 (Trưởng nhóm)\nTRỊNH VĨ THANH — MSSV: 22689411\nChuyên ngành: Kỹ thuật Phần mềm / Khoa học Máy tính"
     r_sv.font.name = "Arial"
-    r_sv.font.size = Pt(12)
+    r_sv.font.size = Pt(11.5)
     r_sv.font.color.rgb = C_TEXT
 
     # =========================================================================
@@ -641,25 +648,25 @@ def build_presentation(out_path):
              badge="Tối Ưu VRAM", fill_color=C_CARD_MUTED)
 
     # =========================================================================
-    # SLIDE 14: PHÂN HỆ 3: QUẢN TRỊ CMS & SOÁT VÉ QR + KHUNG PLACEHOLDER
+    # SLIDE 14: PHÂN HỆ 3: QUẢN TRỊ CMS, VÉ VIETQR & SOÁT VÉ PHYGITAL + KHUNG PLACEHOLDER
     # =========================================================================
     s14 = prs.slides.add_slide(blank_layout)
-    create_slide_header(s14, "Phân Hệ 3: Quản Trị CMS Thương Hiệu & Soát Vé Camera QR", "Quản Trị & Vận Hành", 14)
+    create_slide_header(s14, "Phân Hệ 3: Quản Trị CMS, Vé VietQR Napas 247 & Soát Vé Phygital", "Quản Trị & Vận Hành", 14)
 
     add_card(s14, Inches(0.8), Inches(1.6), Inches(5.8), Inches(5.1),
-             "Tính Năng Quản Trị & Soát Vé Thực Tế",
-             [("CMS Nhận diện thương hiệu", "Biên tập tên bảo tàng song ngữ Việt - Anh, biểu trưng Emblem, khẩu hiệu Tagline và tải biểu trưng Logo chính thức."),
-              ("Bảo mật tệp đồ họa", "Tự động kích hoạt cờ fl_sanitize trên Cloudinary CDN để làm sạch mã độc trong tệp SVG/PNG trước khi lưu trữ."),
-              ("Quản trị Banner Hero & Khối trưng bày", "Tùy biến tiêu đề chào đón, tải ảnh nền toàn cảnh, đồng bộ tức thì xuống máy khách qua kênh SSE."),
-              ("Soát vé bằng camera điện thoại", "Tích hợp Html5QrcodeScanner trên trình duyệt di động của nhân viên soát vé tại cửa bảo tàng."),
-              ("Chống gian lận vé quay vòng", "Vé hợp lệ hiển thị màu xanh và cập nhật trạng thái used thời gian thực; vé đã dùng hoặc giả mạo lập tức báo đỏ từ chối.")],
-             badge="Nghiệp Vụ Quản Trị")
+             "Hệ Sinh Thái Nghiệp Vụ Vé & Quản Trị Di Sản",
+             [("CMS Đa bảo tàng & Nhận diện", "Biên tập tên song ngữ, Emblem, Tagline, cấu hình Hotspot trực quan và điều khiển chế độ bảo trì."),
+              ("Đặt vé VietQR PayOS & Ví số (/profile)", "Đặt vé 3 hạng (30k/15k/15k) với đồng hồ 15p; nạp vé AES-256 vào Hồ sơ cá nhân với chỉ số TICKET VALIDITY & TOTAL TICKET."),
+              ("Soát vé camera & Realtime SSE", "Nhân viên dùng camera HTML5-QRCode quét vé đổi trạng thái USED; luồng SSE cập nhật màn hình khách <1ms kèm rung máy."),
+              ("Quét mã QR Trưng bày Phygital", "Sinh Dynamic QR chuẩn ISO/IEC 18004 300 DPI; trình quét QRScannerModal khử lóa kính, phát Beep 880Hz mở 3D/Audio."),
+              ("Giám sát Grafana & Xuất Excel", "Nhúng Dashboard Grafana v11 Read-Only và xuất báo cáo sổ tính 4 sheets xlsx-js-style hoàn toàn phía Client.")],
+             badge="Nghiệp Vụ Quản Trị & Vé")
 
     add_image_or_placeholder(s14, Inches(6.8), Inches(1.6), Inches(5.733), Inches(5.1),
                              image_path="real_admin_page.png",
-                             caption="Ảnh chụp thực tế: Cổng Quản trị hệ thống (https://museumhcm.duckdns.org/admin)",
+                             caption="Ảnh chụp thực tế: Cổng Quản trị Admin, Vé VietQR & Soát vé camera (https://museumhcm.duckdns.org/admin)",
                              label="KHU VỰC DÀNH CHO BẠN CHÈN ẢNH THỰC TẾ",
-                             ratio_note="Tỷ lệ 16:9 - Kéo thả ảnh Giao diện Quản trị CMS & Camera quét vé QR di động")
+                             ratio_note="Tỷ lệ 16:9 - Kéo thả ảnh Giao diện Quản trị CMS, Đặt vé /booking hoặc Soát vé di động")
 
     # =========================================================================
     # SLIDE 15: PHÂN HỆ 4: TRẢI NGHIỆM KHÁCH & TRỢ LÝ AI + KHUNG PLACEHOLDER
