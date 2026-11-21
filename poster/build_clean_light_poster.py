@@ -185,8 +185,10 @@ def create_clean_poster():
     # =========================================================================
 
     # 1. System Architecture
-    add_card(2.2, 16.0, 38.6, 19.5, "System Architecture")
-    arch_img = 'baocaokhoaluan/assets/diagrams/hinh_2_9_architecture_3tier.png'
+    add_card(2.2, 16.0, 38.6, 19.5, "Design Diagram / System Architecture")
+    arch_img = 'poster/assets/diagram_architecture_3tier_en.png'
+    if not os.path.exists(arch_img):
+        arch_img = 'baocaokhoaluan/assets/diagrams/hinh_2_9_architecture_3tier.png'
     if os.path.exists(arch_img):
         slide.shapes.add_picture(arch_img, Cm(3.0), Cm(18.2), width=Cm(37.0))
 
@@ -200,21 +202,21 @@ def create_clean_poster():
     r_sa.font.size = Pt(13.8)
     r_sa.font.color.rgb = C_TEXT_DARK
 
-    # 2. Objectives (3 concise bullet points)
-    add_card(2.2, 36.8, 38.6, 14.5, "Objectives")
+    # 2. Target (Objectives matching poster layout)
+    add_card(2.2, 36.8, 38.6, 14.5, "Target")
     tb_obj = slide.shapes.add_textbox(Cm(3.0), Cm(39.0), Cm(37.0), Cm(11.8))
     tf_obj = tb_obj.text_frame
     tf_obj.word_wrap = True
     objectives = [
-        ("Comprehensive Heritage Digitization: ", "Digitize all 18 continuous exhibition galleries and 17 national antiquities of the Museum of History in Ho Chi Minh City into interactive 3D WebGL spaces."),
-        ("Multi-source Panorama Stitching: ", "Master an automated image processing pipeline generating 360° Equirectangular panoramas from 4 commodity inputs (Webcam, DSLR, Video sweep, Gyroscope)."),
-        ("Smart Navigation & Automated Ticketing: ", "Deploy Dijkstra's Min-Heap shortest-path routing (< 5ms response) and integrate seamless VietQR Napas 247 e-payment with instant mobile camera QR ticket verification.")
+        ("Optimize Experience & Search Space: ", "Digitize all 18 exhibition halls and 17 antiquities with interactive 3D WebGL (30-40% cheaper than physical audio guide devices)."),
+        ("Optimize Algorithms & Accurate Rendering: ", "Dijkstra Min-Heap shortest-path pathfinding (< 5ms) and 60 FPS real-time rendering on commodity web browsers."),
+        ("Quick Deployment & Cross-Platform: ", "Quickly deploy with responsive mobile-first design, fully compatible with smartphones, tablets, and desktop computers.")
     ]
     for idx, (bld, txt) in enumerate(objectives):
         p = tf_obj.paragraphs[0] if idx == 0 else tf_obj.add_paragraph()
         p.space_after = Pt(6)
         r_num = p.add_run()
-        r_num.text = f"{idx+1}. "
+        r_num.text = "✔ "
         r_num.font.name = "Arial"
         r_num.font.size = Pt(14.5)
         r_num.font.bold = True
@@ -233,14 +235,12 @@ def create_clean_poster():
         r_t.font.size = Pt(14)
         r_t.font.color.rgb = C_TEXT_DARK
 
-    # 3. 3D Virtual Tour Interface (User-uploaded real screenshots!)
-    add_card(2.2, 52.5, 38.6, 31.5, "3D Virtual Tour Interface")
-    # Anh chup giao dien tour thuc te nguoi dung gui
+    # 3. Realistic Model / 3D Virtual Tour
+    add_card(2.2, 52.5, 38.6, 31.5, "Realistic Model / 3D Virtual Tour")
     t360_img = 'poster/assets/tour360_interface.jpg'
     if os.path.exists(t360_img):
         slide.shapes.add_picture(t360_img, Cm(3.0), Cm(54.6), width=Cm(37.0))
 
-    # Anh co vat 3D chieu sen nguoi dung gui
     lotus_img = 'poster/assets/artifact_3d_lotus.jpg'
     if os.path.exists(lotus_img):
         slide.shapes.add_picture(lotus_img, Cm(12.0), Cm(69.2), width=Cm(19.0))
@@ -255,14 +255,23 @@ def create_clean_poster():
     r_vti.font.size = Pt(13.8)
     r_vti.font.color.rgb = C_TEXT_DARK
 
-    # 4. Workflow Process (Horizontal step-by-step diagram)
-    add_card(2.2, 85.2, 38.6, 23.5, "Workflow Process")
-    pano_img = 'baocaokhoaluan/assets/diagrams/hinh_4_3_panorama_4inputs.png'
-    if os.path.exists(pano_img):
-        slide.shapes.add_picture(pano_img, Cm(3.0), Cm(87.4), width=Cm(37.0))
+    # 4. Process (Stitching Pipeline Diagram)
+    add_card(2.2, 85.2, 38.6, 23.5, "Process")
+    proc_img = 'poster/assets/diagram_stitching_process_en.png'
+    if not os.path.exists(proc_img):
+        proc_img = 'baocaokhoaluan/assets/diagrams/hinh_4_3_panorama_4inputs.png'
+    if os.path.exists(proc_img):
+        slide.shapes.add_picture(proc_img, Cm(3.0), Cm(87.4), width=Cm(37.0))
 
     tb_wf = slide.shapes.add_textbox(Cm(3.0), Cm(101.2), Cm(37.0), Cm(7.0))
     tf_wf = tb_wf.text_frame
+    tf_wf.word_wrap = True
+    p_wf = tf_wf.paragraphs[0]
+    r_wf = p_wf.add_run()
+    r_wf.text = "• Cylindrical Warping: Projects planar frames onto a cylindrical surface to eliminate perspective distortions.\n• SIFT Feature Matching & RANSAC: Extracts 128D invariant descriptors and robustly rejects geometric outliers.\n• Multiband Laplacian Blending: Decomposes images into frequency bands to smoothly erase seam boundaries."
+    r_wf.font.name = "Arial"
+    r_wf.font.size = Pt(13.5)
+    r_wf.font.color.rgb = C_TEXT_DARK
     tf_wf.word_wrap = True
     p_wf = tf_wf.paragraphs[0]
     r_wf = p_wf.add_run()
@@ -414,10 +423,10 @@ def create_clean_poster():
     tf_ccl = tb_ccl.text_frame
     tf_ccl.word_wrap = True
     conclusions_data = [
-        ("End-to-End Heritage Ecosystem: ", "Successfully established a fully functional 360° virtual museum platform that unifies computer vision, 3D graphics, and cultural e-commerce."),
-        ("High Reliability & Performance: ", "Guaranteed 60 FPS WebGL rendering and sustained 1000 concurrent virtual visitors with sub-120ms response time on production Cloud VPS."),
-        ("Turnkey Practical Readiness: ", "Ready for immediate transfer and deployment at the Museum of History in Ho Chi Minh City, extensible to museums nationwide."),
-        ("Future Roadmap: ", "Integrate real-time 3D Gaussian Splatting (3DGS) on web browsers and federate into a National Digital Heritage Museum Alliance.")
+        ("Upgrade Experience: ", "Transforming physical visits into interactive 3D WebGL spaces, making museum heritage accessible anytime, anywhere."),
+        ("Cost-Effective Deployment: ", "Easily manageable and deployable by museum staff without relying on costly proprietary 360° scanning gear."),
+        ("Enhance Interaction: ", "Empowering visitors through intuitive 3D inspection, 7-language AI TTS audio narration, and real-time Dijkstra navigation."),
+        ("Preserve Heritage: ", "Establishing a high-fidelity, permanent digital archive to safeguard historical national treasures sustainably.")
     ]
     for idx, (bld, txt) in enumerate(conclusions_data):
         p = tf_ccl.paragraphs[0] if idx == 0 else tf_ccl.add_paragraph()
