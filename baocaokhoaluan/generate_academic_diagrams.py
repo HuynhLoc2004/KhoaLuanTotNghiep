@@ -1313,25 +1313,63 @@ def gen_fig_4_3():
     plt.close(fig)
 def gen_fig_4_5():
     """Hinh 4.5: So do tai tao 3D voi 2 dong co va Fallback"""
-    fig, ax = plt.subplots(figsize=(10.5, 4.2), dpi=300)
-    ax.set_xlim(0, 10.5); ax.set_ylim(0, 4.2); ax.axis('off')
+    fig, ax = plt.subplots(figsize=(11.5, 6.5), dpi=300)
+    ax.set_xlim(0, 11.5); ax.set_ylim(0, 6.5); ax.axis('off')
     
-    draw_actor(ax, 1.0, 2.1, "Quản trị viên", "Nạp 1 ảnh / Đa ảnh", color=C_FILL_ACTOR)
-    draw_clean_node(ax, 3.4, 2.1, 1.8, 1.1, "Bộ điều phối 3D", "Ưu tiên Cloud AI\nFallback Local CPU", bg='#F8FAFC', border=C_LINE_DARK)
-    
-    draw_cloud(ax, 6.8, 3.2, w=1.8, h=1.1, title="TRELLIS AI Cloud", sub="ZeroGPU A100 (HuggingFace)")
-    draw_clean_node(ax, 9.4, 3.2, 1.8, 1.1, "Lưới PBR Chuẩn", "25.000 Poly\nChi tiết 360° sắc nét", bg='#F0FDF4', border='#166534')
-    
-    draw_server(ax, 6.8, 1.0, w=1.6, h=1.2, title="Local CPU Server", sub="Python Axial-Radial v15.0\n100% CPU (Xeon)")
-    draw_clean_node(ax, 9.4, 1.0, 1.8, 1.1, "Lưới Trục Xoay", "95.000 Poly\nMất chi tiết mặt sau", bg='#FEF2F2', border='#991B1B')
-    
-    draw_step_arrow(ax, 1.8, 2.1, 2.4, 2.1, label="Gửi ảnh")
-    draw_step_arrow(ax, 4.3, 2.4, 5.8, 3.0, step="1", label="Chính: Cloud AI API")
-    draw_step_arrow(ax, 7.8, 3.2, 8.4, 3.2, label="Mô hình .GLB")
-    
-    draw_step_arrow(ax, 4.3, 1.8, 5.9, 1.2, step="2", label="Fallback khi mất mạng / Timeout", color='#991B1B')
-    draw_step_arrow(ax, 7.7, 1.0, 8.4, 1.0, label="Mô hình dự phòng", color='#991B1B')
-    
+    ax.text(5.75, 6.25, 'SƠ ĐỒ HOẠT ĐỘNG: QUY TRÌNH TÁI TẠO CỔ VẬT 3D LAI GHÉP VỚI 2 ĐỘNG CƠ VÀ DỰ PHÒNG TỰ ĐỘNG',
+            ha='center', va='center', fontsize=9.5, fontweight='bold', color=C_DARK_TEXT)
+    ax.text(5.75, 5.95, 'Hỗ trợ 3 chế độ nguồn ảnh đầu vào - Ưu tiên Đám mây AI TRELLIS và Tự động Fallback sang Local CPU',
+            ha='center', va='center', fontsize=7.8, color=C_MUTED_TEXT)
+
+    draw_actor(ax, 0.9, 3.4, 'Quản trị viên', 'Nạp tư liệu cổ vật', scale=0.85)
+
+    # Box: 3 Che do nguon anh
+    draw_clean_node(ax, 2.7, 3.4, 2.2, 2.4, '3 Chế độ Nguồn ảnh',
+                    '① 1 ảnh đại diện (Single-View)\n② 2 góc ảnh (Trước + Lưng)\n③ Đa góc độ (Trái, Phải,\n    Trên, Chi tiết hoa văn)',
+                    bg='#F1F5F9', border='#3B82F6')
+
+    # Node: Dieu phoi
+    draw_clean_node(ax, 4.8, 3.4, 1.4, 1.1, 'Điều phối 3D', 'artifact3dQueue\nKiểm tra tài nguyên', bg='#F8FAFC')
+
+    # Upper Engine: TRELLIS
+    draw_clean_node(ax, 7.5, 4.9, 2.5, 1.4, 'Đám mây AI: TRELLIS',
+                    '• HuggingFace ZeroGPU A100 [30]\n• Biến tiềm ẩn SLAT [29]\n• Rectified Flow Transformers\n• Differentiable Mesh Extraction',
+                    bg='#EFF6FF', border='#2563EB')
+
+    draw_clean_node(ax, 10.3, 4.9, 1.9, 1.4, 'Mô hình AI Chất lượng cao',
+                    '• 25.600 Polygons (Chuẩn Web)\n• Chi tiết 360° sắc nét mọi góc\n• PBR Albedo, Normal, Rough\n• Khắc phục hoàn toàn góc khuất',
+                    bg='#DCFCE7', border='#16A34A')
+
+    # Lower Engine: Local CPU
+    draw_clean_node(ax, 7.5, 1.9, 2.5, 1.4, 'Máy chủ nội bộ: Local CPU',
+                    '• Module Python v15.0 độc lập\n• Phân đoạn Rembg / Otsu\n• Giả định đối xứng trục Radial\n• Marching Cubes & Normal Map',
+                    bg='#FFF7ED', border='#EA580C')
+
+    draw_clean_node(ax, 10.3, 1.9, 1.9, 1.4, 'Mô hình Dự phòng (Fallback)',
+                    '• 95.000 Polygons\n• Dạng tròn xoay (Đối xứng trục)\n• Hạn chế: Mặt sau đối xứng gương\n• Mất chi tiết hoa văn nổi',
+                    bg='#FEF2F2', border='#DC2626')
+
+    # Arrows
+    draw_step_arrow(ax, 1.35, 3.4, 1.6, 3.4, step='1', label='Tải ảnh', label_offset=0.22)
+    draw_step_arrow(ax, 3.8, 3.4, 4.1, 3.4, step='2', label='Đẩy Queue', label_offset=0.22)
+
+    # Main Path: Queue -> TRELLIS
+    draw_step_arrow(ax, 5.5, 3.8, 6.25, 4.9, step='3a', label='Ưu tiên: Gọi API AI', label_offset=0.22)
+    draw_step_arrow(ax, 8.75, 4.9, 9.35, 4.9, step='4a', label='Xuất .GLB', label_offset=0.22)
+
+    # Fallback Path: Upper to Lower
+    arrow_fb = patches.FancyArrowPatch((7.5, 4.2), (7.5, 2.6),
+                                       arrowstyle='-|>,head_length=4.5,head_width=3.0',
+                                       color='#DC2626', lw=1.3, linestyle='--', zorder=4)
+    ax.add_patch(arrow_fb)
+    ax.text(7.5, 3.4, 'Fallback: Quota 429\nhoặc Timeout >300s', ha='center', va='center',
+            fontsize=6.2, fontweight='bold', color='#DC2626',
+            bbox=dict(boxstyle='round,pad=0.15', facecolor='#FEF2F2', edgecolor='#DC2626', lw=0.8, alpha=0.95))
+
+    # Manual Choice Path: Queue -> Local CPU
+    draw_step_arrow(ax, 5.5, 3.0, 6.25, 1.9, step='3b', label='Tùy chọn: Dựng nội bộ', label_offset=-0.22)
+    draw_step_arrow(ax, 8.75, 1.9, 9.35, 1.9, step='4b', label='Xuất .GLB', label_offset=0.22)
+
     fig.savefig(os.path.join(DIAGRAMS_DIR, "hinh_4_5_artifact_2engines.png"), bbox_inches='tight')
     plt.close(fig)
 

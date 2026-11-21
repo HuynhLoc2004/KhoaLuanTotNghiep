@@ -266,15 +266,19 @@ def add_chapter_4(doc, helper):
     )
     
     helper.add_body_p(doc,
-        "Về nguồn ảnh đầu vào, hệ thống cung cấp 2 chế độ nạp ảnh linh hoạt phù hợp với đặc thù thực địa tại bảo tàng:"
+        "Về nguồn ảnh đầu vào, hệ thống cung cấp 3 chế độ nạp ảnh linh hoạt phù hợp với từng nhóm hiện vật thực tế tại bảo tàng:"
     )
     helper.add_bullet_item(doc,
-        "Áp dụng cho các hiện vật đặt sát vách tường, trong tủ kính niêm phong trưng bày cố định hoặc các tài liệu ảnh tư liệu lịch sử chỉ có thể chụp từ một góc diện duy nhất. Người quản trị chỉ cần tải lên 1 bức ảnh chụp chính diện rõ nét.",
-        bold_prefix="• Chế độ 1 ảnh đơn (Single-view 3D Input): "
+        "Dựng mô hình 3D nhanh từ một bức ảnh chụp chính diện duy nhất. Áp dụng cho các cổ vật đặt sát vách tường, trong tủ kính niêm phong trưng bày cố định hoặc các ảnh tư liệu lưu trữ lịch sử chỉ có thể tiếp cận từ một hướng nhìn.",
+        bold_prefix="• Chế độ 1 ảnh đại diện (Single-view 3D Input): "
     )
     helper.add_bullet_item(doc,
-        "Áp dụng cho các hiện vật có thể tiếp cận đa chiều (đặt tại bục trưng bày giữa phòng hoặc sảnh lớn). Người dùng có thể nạp từ 2 đến 8 góc ảnh tư liệu khác nhau (mặt trước, cạnh trái, cạnh phải, góc nhìn trên xuống và chi tiết hoa văn đế). Hệ thống tự động phân tích và đối chiếu các góc ảnh để tăng độ chính xác cấu trúc khối.",
-        bold_prefix="• Chế độ nhiều ảnh đa góc độ (Multi-view 3D Input): "
+        "Kết hợp trực giao giữa ảnh mặt trước và ảnh mặt lưng của cổ vật. Đây là chế độ rất hữu hiệu đối với các di sản dạng dẹp hoặc dạng phiến có hoa văn hai mặt khác biệt (như Bia đá thời Nguyễn, Thẻ bài quan lại, Lệnh bài quân sự, Đồng tiền cổ). Hệ thống phân tích đối xứng hai chiều giúp mặt sau không bị sao chép nhầm lẫn từ mặt trước.",
+        bold_prefix="• Chế độ 2 góc ảnh (Front & Back Orthogonal Input): "
+    )
+    helper.add_bullet_item(doc,
+        "Ghép toàn bộ chuỗi ảnh chụp xung quanh hiện vật với 4 vị trí chụp chuyên biệt: Cạnh trái, Cạnh phải, Góc trên nhìn xuống và Chi tiết hoa văn đặc tả. Chế độ này áp dụng cho các bảo vật quý hiếm đặt tại bục trung tâm cho phép tiếp cận 360 độ (như Trống đồng Đông Sơn, Tượng Phật Champa). Khách tham quan vừa được chiêm ngưỡng mô hình 3D tương tác xoay đa chiều, vừa có thể xem chuỗi ảnh chi tiết độ nét cao của từng góc chụp thực địa.",
+        bold_prefix="• Chế độ Đa góc độ (Multi-view Angles Input): "
     )
     
     helper.add_body_p(doc,
@@ -328,8 +332,8 @@ def add_chapter_4(doc, helper):
     )
     
     helper.add_figure_placeholder(doc, "4.5",
-        "Sơ đồ khối quy trình tái tạo cổ vật 3D với 2 động cơ và cơ chế chuyển đổi dự phòng tự động",
-        "Lưu đồ hoạt động chi tiết: Nạp ảnh tư liệu (1 ảnh đơn / Đa góc) -> Lựa chọn động cơ ưu tiên (Mặc định: TRELLIS AI) -> Gọi API Space ZeroGPU A100 [30] -> Thành công: Xuất Mesh 25k polygons kèm PBR PBR [29] -> Thất bại / Hết Quota (429) / Timeout: Tự động kích hoạt Fallback sang Local CPU -> Phân đoạn Otsu/Rembg [11] -> Cắt lát đối xứng trục Radial-Axial v15.0 -> Nở biên vân & Sinh Normal Map -> Đóng gói file chuẩn .GLB -> Đồng bộ kho lưu trữ R2 [34] và CSDL",
+        "Sơ đồ hoạt động quy trình tái tạo cổ vật 3D lai ghép với 2 động cơ và cơ chế dự phòng tự động",
+        "Lưu đồ hoạt động chi tiết: 3 Chế độ nạp ảnh (1 ảnh đại diện, 2 góc trước/sau, Đa góc) -> Hàng đợi điều phối artifact3dQueue -> Ưu tiên: Đám mây AI TRELLIS (HuggingFace ZeroGPU A100 [30], biểu diễn tiềm ẩn SLAT [29], Rectified Flow Transformers) -> Xuất tệp .GLB chuẩn PBR (25.6k polygons, chi tiết sắc nét 360°) -> Cơ chế Fallback tự động khi quá tải Quota HTTP 429 hoặc Timeout >300s -> Chuyển hướng Máy chủ nội bộ Local CPU v15.0 (Rembg, giả định đối xứng trục Radial-Axial, Marching Cubes, Normal Map) -> Lưu trữ Cloudflare R2 [34] và kết xuất Three.js WebGL",
         width_cm=15.0, height_cm=8.5
     )
     

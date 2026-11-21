@@ -477,17 +477,18 @@ def add_chapter_3(doc, helper):
     )
     
     # UC-17
-    helper.add_use_case_table(doc, "3.20", "Quản lý kho tư liệu cổ vật 3D",
+    helper.add_use_case_table(doc, "3.20", "Quản lý kho tư liệu và Tự động tái tạo cổ vật 3D",
         "Quản trị viên",
-        "Thêm mới, chỉnh sửa thông tin mô tả, tải lên file mô hình 3D (.GLB) và gắn cổ vật vào phòng trưng bày.",
-        "Admin truy cập mục 'Quản lý cổ vật & bảo vật 3D'.",
-        "Dữ liệu cổ vật và file mô hình được lưu trữ và hiển thị trên giao diện tham quan.",
+        "Thêm mới hồ sơ cổ vật, hỗ trợ nạp tệp 3D (.GLB/.GLTF) có sẵn hoặc tự động dựng mô hình 3D trong nền với 2 động cơ (TRELLIS AI Cloud / Local CPU) và 3 chế độ nguồn ảnh.",
+        "Quản trị viên đã đăng nhập phân hệ CMS và mở Modal 'Thêm hồ sơ cổ vật mới'.",
+        "Hồ sơ cổ vật được lưu vào CSDL, tác vụ dựng 3D được đẩy vào hàng đợi nền và mô hình .GLB hoàn chỉnh được đồng bộ vào hệ thống trưng bày.",
         [
-            ("1. Admin bấm 'Thêm cổ vật mới', nhập tên, thời kỳ, chất liệu, xuất xứ.", "2. Tải lên file mô hình 3D .GLB và ảnh đại diện thumbnail."),
-            ("3. Chọn phòng trưng bày lưu giữ cổ vật này.", "4. Bấm 'Lưu cổ vật', hệ thống lưu bản ghi và đồng bộ vào danh mục.")
+            ("1. Admin bấm 'Thêm hồ sơ cổ vật mới', tải ảnh tư liệu hiện vật (.jpg, .png, .webp).", "2. Tích chọn 'Tự động dựng mô hình 3D sau khi lưu'."),
+            ("3. Chọn Động cơ tái tạo: 'Đám mây AI (TRELLIS ZeroGPU A100)' [Mặc định] hoặc 'Máy chủ nội bộ (Cục bộ CPU)'.", "4. Chọn Nguồn ảnh dựng 3D: '1 ảnh đại diện' / '2 góc ảnh' / 'Đa góc độ' (nạp các góc Cạnh trái, Cạnh phải, Góc trên, Chi tiết hoa văn)."),
+            ("5. Chọn gian phòng trưng bày lưu giữ và bấm 'Lưu hồ sơ hiện vật'.", "6. Hệ thống lưu hồ sơ, đẩy tác vụ vào artifact3dQueue và tự động cập nhật mô hình 3D hoàn chỉnh khi kết xuất xong.")
         ],
         [
-            ("File 3D sai định dạng không phải .glb:", "Hệ thống từ chối tệp và yêu cầu tải đúng chuẩn .glb.")
+            ("Cụm GPU HuggingFace quá tải (HTTP 429) hoặc mạng gián đoạn:", "Hệ thống tự động kích hoạt cơ chế Fallback sang Động cơ Local CPU để hoàn thành mô hình trong nền, bảo đảm tính sẵn sàng cao.")
         ]
     )
     

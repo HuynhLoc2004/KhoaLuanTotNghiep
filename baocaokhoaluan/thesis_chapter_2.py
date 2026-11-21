@@ -312,6 +312,78 @@ def add_chapter_2(doc, helper):
         width_cm=15.0, height_cm=7.5
     )
     
+    # 2.1.8.1. Nguyên lý tái tạo thể tích 3D nội bộ bằng thuật toán đối xứng trục (Local CPU Server)
+    helper.add_heading_4(doc, "2.1.8.1. Nguyên lý tái tạo thể tích 3D nội bộ bằng thuật toán đối xứng trục (Local CPU Server)")
+    helper.add_body_p(doc,
+        "Động cơ tự phát triển nội bộ trên máy chủ CPU (Module artifact_3d_generator.py v15.0) hoạt động dựa trên phương pháp "
+        "tái tạo khối thể tích qua bao hình điều hòa (Harmonic Volumetric Envelope) kết hợp thuật toán Marching Cubes [11]. "
+        "Quy trình toán học gồm các bước sau:"
+    )
+    helper.add_bullet_item(doc,
+        "Sử dụng thuật toán phân ngưỡng tự động Otsu kết hợp mô hình trích xuất tiền cảnh Rembg để tách vật thể khỏi nền ảnh, "
+        "tạo mặt nạ nhị phân Silhouette Mask S(x, y) ∈ {0, 1}.",
+        bold_prefix="• Phân đoạn tiền cảnh (Foreground Silhouette Masking): "
+    )
+    helper.add_bullet_item(doc,
+        "Xác định trục đối xứng trung tâm thẳng đứng đi qua trọng tâm hình học của mặt nạ. "
+        "Với mỗi lát cắt ngang theo cao độ y, thuật toán đo bán kính biên R(y) từ trục đối xứng tới mép ngoài cùng của hiện vật. "
+        "Không gian thể tích 3D được biểu diễn qua hàm trường khoảng cách điều hòa liên tục (Harmonic Continuous Field): "
+        "F(x, y, z) = R(y) - √(x² + z²).",
+        bold_prefix="• Trường khoảng cách đối xứng trục Radial-Axial: "
+    )
+    helper.add_bullet_item(doc,
+        "Áp dụng giải thuật Marching Cubes của Lorensen & Cline trên lưới voxel 3D để trích xuất bề mặt đẳng trị (Isosurface) tại mức F(x, y, z) = 0, "
+        "sinh ra khung lưới đa giác tam giác khép kín (Watertight Mesh) chuẩn định dạng .GLB.",
+        bold_prefix="• Trích xuất bề mặt đẳng trị (Marching Cubes Isosurface): "
+    )
+    helper.add_bullet_item(doc,
+        "Mặt trước của hiện vật được chiếu trực tiếp vân ảnh gốc; áp dụng thuật toán nở biên vân (Texture Dilation) 18 chu kỳ để khử viền đen mép biên; "
+        "đồng thời tính toán đạo hàm bậc một Sobel theo hướng u và v để sinh bản đồ pháp tuyến (Normal Map) tạo độ gồ ghề cho chất liệu đồng cổ.",
+        bold_prefix="• Trải chất liệu và sinh Normal Map: "
+    )
+    helper.add_body_p(doc,
+        "Điểm khuyết và hạn chế cốt tử của Động cơ Local CPU tự tạo: "
+        "Do thuật toán dựa hoàn toàn trên 'Giả định đối xứng trục quay toán học' (Axial Symmetry Assumption), "
+        "mặt sau của mô hình 3D thực chất chỉ là bản sao phản chiếu đối xứng gương từ mặt phẳng phía trước. "
+        "Khi áp dụng cho các hiện vật điêu khắc bất đối xứng hoặc có cấu trúc khối phức tạp (như Tượng Phật ngồi kiết già, Tượng thần Shiva, Bia đá có chữ khác nhau ở hai mặt, hoặc các pho tượng có tà áo bay), "
+        "thuật toán ép toàn bộ hiện vật thành khối phồng tròn nhẵn thín như bóng nước. Toàn bộ nếp gấp áo cà sa, đài sen bát giác, "
+        "các góc lồi lõm đa hướng và hoa văn ở mặt sau đều bị san phẳng hoặc biến dạng tròn xoay bất hợp lý. "
+        "Ngoài ra, mô hình sinh ra có số lượng đa giác quá lớn (~95.000 polygons) nhưng lại thiếu chiều sâu chân thực."
+    )
+    
+    # 2.1.8.2. Nguyên lý mô hình nền tảng AI tạo sinh 3D Microsoft TRELLIS
+    helper.add_heading_4(doc, "2.1.8.2. Nguyên lý mô hình nền tảng AI tạo sinh 3D Microsoft TRELLIS (ZeroGPU A100)")
+    helper.add_body_p(doc,
+        "Nhằm khắc phục triệt để các khiếm khuyết hình học của thuật toán nội bộ, đề tài tích hợp Mô hình nền tảng tạo tài sản 3D hiện đại nhất "
+        "hiện nay là Microsoft TRELLIS (Large 3D Asset Creation with Structured Latents - Xiang et al., Dec. 2024 [29]). "
+        "Nguyên lý vận hành của TRELLIS được xây dựng trên 3 trụ cột khoa học đột phá:"
+    )
+    helper.add_bullet_item(doc,
+        "TRELLIS đại diện thế giới 3D dưới dạng một cấu trúc tiềm ẩn có tọa độ không gian rõ ràng (Structured Latent Representation - SLAT). "
+        "Khác với các mô hình NeRF thuần túy chỉ tái hiện trường bức xạ, SLAT mã hóa đồng thời cả đặc trưng hình học (Geometry) và thông tin diện mạo (Appearance) "
+        "vào các biến tiềm ẩn gắn trên lưới voxel 3D thưa (Sparse Voxels), cho phép mô hình nắm bắt chính xác mối quan hệ không gian đa chiều.",
+        bold_prefix="• Biểu diễn tiềm ẩn cấu trúc (Structured Latents - SLAT): "
+    )
+    helper.add_bullet_item(doc,
+        "Áp dụng kiến trúc mạng Transformer luồng hiệu chỉnh (Rectified Flow Transformers) để biến đổi có định hướng từ phân phối nhiễu ngẫu nhiên Gauss "
+        "về không gian tiềm ẩn SLAT mục tiêu tương ứng với ảnh đầu vào. Quá trình này được tối ưu hóa theo quỹ đạo đường thẳng (Straight-path Trajectory), "
+        "cho phép mô hình 'tưởng tượng' chính xác hình thái 3D toàn vẹn 360°, tái tạo hoàn hảo các phần bị khuất và mặt lưng của pho tượng chỉ từ một hoặc hai bức ảnh chụp [29].",
+        bold_prefix="• Mạng biến đổi luồng hiệu chỉnh (Rectified Flow Transformers): "
+    )
+    helper.add_bullet_item(doc,
+        "Bộ giải mã (Decoder) của TRELLIS biến đổi không gian SLAT thành mô hình đa giác Mesh sắc nét (~25.000 polygons) kết hợp kết xuất khả vi (Differentiable Rendering), "
+        "tự động sinh tập bản đồ chất liệu chuẩn điện ảnh PBR (Physically Based Rendering gồm: Albedo, Normal Map, Roughness Map) "
+        "và đóng gói thành tệp nhị phân tiêu chuẩn quốc tế .GLB [8], [29].",
+        bold_prefix="• Giải mã trích xuất lưới đa giác và chất liệu PBR: "
+    )
+    helper.add_body_p(doc,
+        "Lý do mang tính quyết định để đề tài lựa chọn tích hợp TRELLIS làm động cơ chính: "
+        "TRELLIS giải quyết hoàn hảo bài toán số hóa hiện vật bảo tàng khi không có máy quét 3D đắt tiền. "
+        "Mô hình 3D do TRELLIS tạo ra giữ đúng tỷ lệ giải phẫu học, nếp áo cà sa mềm mại, góc cạnh đài sen bát giác sắc sảo, "
+        "lưới đa giác nhẹ gấp 4 lần so với Local CPU (tối ưu hóa 60 FPS trên điện thoại di động) và chất liệu PBR phản quang chân thực dưới ánh đèn sân khấu Three.js. "
+        "Động cơ Local CPU được giữ lại trong kiến trúc như một giải pháp dự phòng an toàn (Fallback) khi hết hạn ngạch GPU hoặc mất kết nối đám mây."
+    )
+    
     # 2.1.9. Nguyên lý ghim điểm định vị Hotspot và cơ chế chuyển cảnh không gian thực tế ảo 360°
     helper.add_heading_3(doc, "2.1.9. Nguyên lý ghim điểm định vị Hotspot và cơ chế chuyển cảnh không gian thực tế ảo 360°")
     helper.add_body_p(doc,
