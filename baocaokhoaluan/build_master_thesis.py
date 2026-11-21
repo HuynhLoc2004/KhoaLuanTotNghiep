@@ -271,12 +271,55 @@ def add_figure_placeholder(doc, fig_id, fig_title, description, width_cm=15.0, h
     Neu la anh chup man hinh giao dien thuc te chua co, se tao khung cho trang nha.
     """
     import glob
-    diagrams_dir = os.path.join(os.path.dirname(__file__), "assets", "diagrams")
+    assets_dir = os.path.join(os.path.dirname(__file__), "assets")
+    diagrams_dir = os.path.join(assets_dir, "diagrams")
     normalized_id = str(fig_id).replace('.', '_')
-    matching_files = glob.glob(os.path.join(diagrams_dir, f"hinh_{normalized_id}_*.png"))
     
-    if matching_files and os.path.exists(matching_files[0]):
-        img_path = matching_files[0]
+    priority_map = {
+        "4.1": "flow_01_stitching_process.png",
+        "4.2": "real_admin_stitching_tool.png",
+        "4.3": "real_admin_rooms_grid.png",
+        "4.4": "flow_02_floorplan_dijkstra.png",
+        "4.5": "flow_04_dual_engine_3d.png",
+        "4.6": "real_client_artifacts_section.png",
+        "4.7": "flow_02_floorplan_dijkstra.png",
+        "4.8": "flow_05_ticketing_vietqr_qr.png",
+        "4.9": "flow_03_languages_voice_ai.png",
+        "4.10": "real_admin_languages_voice.png",
+        "4.11": "flow_05_ticketing_vietqr_qr.png",
+        "4.12": "real_client_booking_vietqr.png",
+        "4.13": "real_admin_tickets_management.png",
+        "4.14": "real_admin_page.png",
+        "4.15": "real_client_interactive_tour360.png",
+        "4.16": "real_admin_guide_floorplan.png",
+        "4.23": "real_admin_guide_floorplan.png",
+        "4.31": "real_admin_page.png",
+        "1.1": "hinh_1_1_so_do_tu_duy_tong_quan.png",
+        "2.1": "hinh_2_1_he_toa_do_cau.png",
+        "2.14": "hinh_2_14_grafana_architecture.png",
+        "3.1": "hinh_3_1_so_do_mat_bang_18_phong.png",
+        "3.5": "hinh_3_5_so_do_use_case.png",
+        "3.6": "flow_05_ticketing_vietqr_qr.png",
+        "3.13": "flow_05_ticketing_vietqr_qr.png"
+    }
+
+    img_path = None
+    if str(fig_id) in priority_map:
+        fname = priority_map[str(fig_id)]
+        for d in [assets_dir, diagrams_dir]:
+            candidate = os.path.join(d, fname)
+            if os.path.exists(candidate):
+                img_path = candidate
+                break
+
+    if not img_path:
+        for d in [assets_dir, diagrams_dir]:
+            matching = glob.glob(os.path.join(d, f"hinh_{normalized_id}_*.png"))
+            if matching and os.path.exists(matching[0]):
+                img_path = matching[0]
+                break
+
+    if img_path:
         p_img = doc.add_paragraph()
         format_paragraph(p_img, space_before=6, space_after=2, line_spacing=1.0, align=WD_ALIGN_PARAGRAPH.CENTER, first_indent=0.0)
         p_img.paragraph_format.keep_with_next = True

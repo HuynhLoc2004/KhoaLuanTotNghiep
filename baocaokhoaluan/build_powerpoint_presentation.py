@@ -512,9 +512,11 @@ def build_presentation(out_path):
               ("Bước 5: Dựng lưới & Dán kết cấu", "Tạo lưới đa giác Poisson Mesh, dán texture độ phân giải cao và xuất tệp mô hình chuẩn OBJ/GLB.")],
              badge="Pipeline Kỹ Thuật")
 
-    add_placeholder_box(s08, Inches(6.8), Inches(1.6), Inches(5.733), Inches(5.1),
-                        label="KHU VỰC DÀNH CHO BẠN CHÈN ẢNH THỰC TẾ",
-                        ratio_note="Tỷ lệ 4:3 - Kéo thả ảnh chụp Đám mây điểm COLMAP / Lưới đa giác OpenMVS")
+    add_image_or_placeholder(s08, Inches(6.8), Inches(1.6), Inches(5.733), Inches(5.1),
+                             image_path="real_admin_stitching_tool.png",
+                             caption="Ảnh chụp thực tế: Công cụ Tạo & Ghép Không gian 360° trên Cổng Quản trị",
+                             label="ẢNH GIAO DIỆN THỰC TẾ",
+                             ratio_note="Tỷ lệ 4:3 - Công cụ ghép ảnh 360")
 
     # =========================================================================
     # SLIDE 09: PHƯƠNG PHÁP 3: 3D GAUSSIAN SPLATTING + KHUNG PLACEHOLDER
@@ -531,9 +533,11 @@ def build_presentation(out_path):
               ("Bước 4: Kết xuất thời gian thực", "Sử dụng bộ rasterizer tùy biến trên GPU cho phép người dùng di chuyển góc nhìn 6-DoF siêu mượt.")],
              badge="Nguyên Lý 3DGS")
 
-    add_placeholder_box(s09, Inches(6.8), Inches(1.6), Inches(5.733), Inches(5.1),
-                        label="KHU VỰC DÀNH CHO BẠN CHÈN ẢNH THỰC TẾ",
-                        ratio_note="Tỷ lệ 16:9 - Kéo thả ảnh kết xuất thử nghiệm không gian Gaussian Splatting")
+    add_image_or_placeholder(s09, Inches(6.8), Inches(1.6), Inches(5.733), Inches(5.1),
+                             image_path="real_admin_rooms_grid.png",
+                             caption="Ảnh chụp thực tế: Quản trị Gian phòng trưng bày & Kho ảnh toàn cảnh 360°",
+                             label="ẢNH GIAO DIỆN THỰC TẾ",
+                             ratio_note="Tỷ lệ 16:9 - Quản lý 18 gian phòng")
 
     # =========================================================================
     # SLIDE 10: PHƯƠNG PHÁP 4: TÁI TẠO 3D CỔ VẬT ĐA ĐỘNG CƠ + KHUNG PLACEHOLDER
@@ -778,9 +782,11 @@ def build_presentation(out_path):
              badge="Kết Luận Đo Đạc")
 
     # Right: Placeholder for Field trip photo at the museum
-    add_placeholder_box(s17, Inches(7.8), Inches(1.6), Inches(4.733), Inches(5.2),
-                        label="KHU VỰC DÀNH CHO NHÓM TÁC GIẢ CHÈN ẢNH THỰC TẾ",
-                        ratio_note="Tỷ lệ 16:9 hoặc 4:3 - Kéo thả ảnh nhóm tác nghiệp thực tế tại Bảo tàng Lịch sử TP.HCM")
+    add_image_or_placeholder(s17, Inches(7.8), Inches(1.6), Inches(4.733), Inches(5.2),
+                             image_path="real_admin_page.png",
+                             caption="Ảnh chụp thực tế: Bảng điều khiển Nghiệp vụ Di sản & Dashboard Grafana v11",
+                             label="ẢNH GIAO DIỆN THỰC TẾ",
+                             ratio_note="Tỷ lệ 16:9 - Báo cáo & Thống kê Admin")
 
     # =========================================================================
     # SLIDE 18: TỔNG KẾT ĐÓNG GÓP CỦA KHÓA LUẬN
