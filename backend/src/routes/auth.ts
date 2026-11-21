@@ -78,7 +78,7 @@ authRouter.get('/verify-admin', async (req: Request, res: Response) => {
     if (authHeader && authHeader.startsWith('Bearer ')) {
       token = authHeader.split(' ')[1];
     } else if (req.headers.cookie) {
-      const match = req.headers.cookie.match(/(?:^|;\s*)(?:auth_token|token)=([^;]+)/);
+      const match = req.headers.cookie.match(/(?:^|;\s*)(?:auth_token|token|museum_admin_token)=([^;]+)/);
       if (match) token = match[1];
     }
     
@@ -86,11 +86,14 @@ authRouter.get('/verify-admin', async (req: Request, res: Response) => {
     if (!token && req.query.token && typeof req.query.token === 'string') {
       token = req.query.token;
     }
+    if (!token && req.query.museum_admin_token && typeof req.query.museum_admin_token === 'string') {
+      token = req.query.museum_admin_token;
+    }
 
     // Đọc token từ header X-Original-URI do Nginx truyền vào nếu có
     const origUri = (req.headers['x-original-uri'] as string) || '';
-    if (!token && origUri.includes('token=')) {
-      const match = origUri.match(/[?&]token=([^&]+)/);
+    if (!token && (origUri.includes('token=') || origUri.includes('museum_admin_token='))) {
+      const match = origUri.match(/[?&](?:token|museum_admin_token)=([^&]+)/);
       if (match) token = match[1];
     }
 
@@ -121,8 +124,8 @@ authRouter.get('/verify-admin', async (req: Request, res: Response) => {
     res.setHeader('X-Auth-User', decoded.username || decoded.email || 'admin');
     res.setHeader('X-Auth-Role', 'Admin');
     return res.status(200).send('OK');
-  } catch {
-    return res.status(401).send('Invalid or expired admin token');
+  } catch (err: any) {
+    return res.status(401).send('Invalid or expired admin token: ' + (err?.message || ''));
   }
 });
 

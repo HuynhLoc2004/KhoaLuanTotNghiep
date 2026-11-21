@@ -19,6 +19,7 @@ import {
   AnalyticsTimelineItem
 } from '../../types';
 import { useClientTranslation } from '../../context/ClientTranslationContext';
+import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../components/Toast';
 import { Pagination } from '../../components/Pagination';
 import { AnalyticsInteractiveChart } from '../../components/admin/AnalyticsInteractiveChart';
@@ -385,18 +386,21 @@ const EXCEL_I18N: Record<string, any> = {
 export const AdminAnalyticsPage: React.FC = () => {
   const { t, currentLang } = useClientTranslation();
   const { showToast } = useToast();
+  const { token: authCtxToken } = useAuth();
+  const adminToken = authCtxToken || localStorage.getItem('museum_admin_token') || localStorage.getItem('token') || '';
 
   // Tab con nghiệp vụ (Tối giản chuẩn Admin, không icon lòe loẹt)
   const [subTab, setSubTab] = useState<'overview' | 'tickets' | 'rooms' | 'artifacts' | 'grafana'>('overview');
   const [selectedGrafanaDashboard, setSelectedGrafanaDashboard] = useState<'analytics' | 'infra' | 'apm'>('analytics');
 
-  // Đảm bảo cookie auth_token luôn có sẵn để iframe Grafana và các sub-request Nginx luôn xác thực thành công
+  // Đảm bảo cookie museum_admin_token và auth_token luôn có sẵn để iframe Grafana và các sub-request Nginx luôn xác thực thành công
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      document.cookie = `auth_token=${encodeURIComponent(token)}; path=/; max-age=604800; SameSite=Lax`;
+    const activeToken = authCtxToken || localStorage.getItem('museum_admin_token') || localStorage.getItem('token');
+    if (activeToken) {
+      document.cookie = `museum_admin_token=${encodeURIComponent(activeToken)}; path=/; max-age=604800; SameSite=Lax`;
+      document.cookie = `auth_token=${encodeURIComponent(activeToken)}; path=/; max-age=604800; SameSite=Lax`;
     }
-  }, []);
+  }, [authCtxToken]);
 
   // Bộ lọc thời gian chuẩn
   const [timeRange, setTimeRange] = useState<string>('month');
@@ -2042,7 +2046,7 @@ export const AdminAnalyticsPage: React.FC = () => {
                 type="button"
                 className="btn btn-secondary btn-sm"
                 onClick={() => {
-                  const token = localStorage.getItem('token') || '';
+                  const token = adminToken;
                   const uid =
                     selectedGrafanaDashboard === 'analytics'
                       ? 'museum-analytics-03'
@@ -2146,7 +2150,7 @@ export const AdminAnalyticsPage: React.FC = () => {
                 : selectedGrafanaDashboard === 'infra'
                 ? 'museum-infra-01'
                 : 'museum-apm-02'
-            }?kiosk=tv&token=${encodeURIComponent(localStorage.getItem('token') || '')}`}
+            }?kiosk=tv&token=${encodeURIComponent(adminToken)}`}
             style={{
               width: '100%',
               height: '840px',
