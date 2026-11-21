@@ -357,8 +357,8 @@ def main():
         ],
         [3.5, 5.8, 5.9]
     )
-    add_diagram_image(doc, "flow_01_stitching_process.png", "Hình 3a. Sơ đồ quy trình tạo & ghép ảnh toàn cảnh 360° tự động từ dữ liệu đa nguồn")
-    add_real_image(doc, "real_client_interactive_tour360.png", "Hình 3b. Giao diện Cổng tham quan tương tác 360° Sảnh Bát Giác & Phòng Champa trên website (https://museumhcm.duckdns.org)")
+    # Tính năng 1
+    add_diagram_image(doc, "flow_01_stitching_process.png", "Hình 3. Sơ đồ quy trình tạo & ghép ảnh toàn cảnh 360° tự động từ dữ liệu đa nguồn")
 
     # Tính năng 2
     add_heading_2(doc, "4.2. Tính năng 2: Điểm neo chuyển cảnh (Hotspots) & Sơ đồ mặt bằng Mini-map Dijkstra")
@@ -375,8 +375,7 @@ def main():
         ],
         [3.5, 5.8, 5.9]
     )
-    add_diagram_image(doc, "flow_02_floorplan_dijkstra.png", "Hình 4a. Sơ đồ thuật toán số hóa sơ đồ mặt bằng và định tuyến đường đi ngắn nhất Dijkstra")
-    add_real_image(doc, "real_admin_guide_floorplan.png", "Hình 4b. Giao diện Quản lý Sơ đồ mặt bằng kiến trúc và Mini-map dẫn đường Dijkstra")
+    add_diagram_image(doc, "flow_02_floorplan_dijkstra.png", "Hình 4. Sơ đồ thuật toán số hóa sơ đồ mặt bằng và định tuyến đường đi ngắn nhất Dijkstra")
 
     # Tính năng 3
     add_heading_2(doc, "4.3. Tính năng 3: Số hóa Cổ vật 3D tương tác & Thuyết minh Audio AI đa ngôn ngữ")
@@ -393,8 +392,7 @@ def main():
         ],
         [3.5, 5.8, 5.9]
     )
-    add_diagram_image(doc, "flow_04_dual_engine_3d.png", "Hình 5a. Sơ đồ quy trình số hóa cổ vật 3D bằng mạng U2-Net và Kiến trúc Đa Động cơ (TRELLIS & Local CPU)")
-    add_real_image(doc, "real_client_artifacts_section.png", "Hình 5b. Giao diện Chiêm ngưỡng Cổ vật 3D tương tác xoay đa chiều & Thông tin di sản trên website")
+    add_diagram_image(doc, "hinh_4_5_artifact_2engines.png", "Hình 5. Sơ đồ hoạt động quy trình tái tạo cổ vật 3D lai ghép với 2 động cơ TRELLIS và Local CPU")
 
     # Tính năng 4
     add_heading_2(doc, "4.4. Tính năng 4: Đặt vé VietQR Napas 247, Soát vé cổng Camera và Quét QR Trưng bày Phygital")
@@ -412,17 +410,14 @@ def main():
         ],
         [3.5, 5.8, 5.9]
     )
-    add_diagram_image(doc, "flow_05_ticketing_vietqr_qr.png", "Hình 6a. Sơ đồ quy trình đặt vé trực tuyến VietQR và soát vé mã QR thời gian thực")
-    add_real_image(doc, "real_client_booking_vietqr.png", "Hình 6b. Giao diện Cổng đặt vé trực tuyến VietQR PayOS và thanh toán tự động")
-    add_real_image(doc, "real_admin_tickets_management.png", "Hình 6c. Giao diện Quản lý Đơn vé & Soát vé camera thời gian thực trên Cổng Quản trị Admin")
+    add_diagram_image(doc, "flow_05_ticketing_vietqr_qr.png", "Hình 6. Sơ đồ quy trình đặt vé trực tuyến VietQR và soát vé mã QR thời gian thực")
 
     # Tính năng 5
     add_heading_2(doc, "4.5. Tính năng 5: Phân hệ Quản trị CMS Đa bảo tàng, Giám sát Grafana & Xuất Excel")
     add_body_p(doc, "Admin đăng nhập JWT 24h -> Nhúng bảng điều khiển Grafana v11 Iframe Read-Only (pg_readonly) -> Giám sát KPIs vé, tài nguyên VPS, APM API -> Bấm 'Xuất file Excel' (xlsx-js-style phía Client) -> Tải về sổ tính 4 Worksheets chuyên biệt.", bold_prefix="• Sơ đồ luồng hoạt động: ")
     add_body_p(doc, "Tích hợp dịch vụ Grafana container liên kết PostgreSQL pg_readonly an toàn tuyệt đối. Tính năng xuất Excel phía Client bằng xlsx-js-style giải phóng 100% tài nguyên CPU/RAM máy chủ, định dạng màu sắc nhận diện hoàng gia, tự động căn chỉnh độ rộng cột và dịch nhãn cột 5 thứ tiếng.", bold_prefix="• Cơ chế kỹ thuật: ")
 
-    add_diagram_image(doc, "hinh_2_14_grafana_architecture.png", "Hình 7a. Sơ đồ kiến trúc thu thập và hiển thị dữ liệu giám sát hệ thống với Grafana & Prometheus")
-    add_real_image(doc, "real_admin_page.png", "Hình 7b. Giao diện Bảng điều khiển Quản trị Admin, Dashboard Grafana v11 và Xuất báo cáo Excel")
+    add_diagram_image(doc, "hinh_2_14_grafana_architecture.png", "Hình 7. Sơ đồ kiến trúc thu thập và hiển thị dữ liệu giám sát hệ thống với Grafana & Prometheus")
 
     add_heading_1(doc, "5. PHẦN 4: KỊCH BẢN CHẠY WEB DEMO & KẾT QUẢ ĐẠT ĐƯỢC (Thời lượng: ~3 phút)")
     add_heading_2(doc, "5.1. Kịch bản Demo trực tiếp 4 bước trước Hội đồng (Bấm trực tiếp trên web thật)")
