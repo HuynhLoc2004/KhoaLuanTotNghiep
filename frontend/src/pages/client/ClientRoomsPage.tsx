@@ -65,16 +65,17 @@ export const ClientRoomsPage: React.FC<ClientRoomsPageProps> = ({
     setCurrentPage(1);
   }, [searchQuery, selectedPeriod]);
 
-  // Đóng dropdown bộ lọc khi click ra ngoài
+  // Đóng dropdown bộ lọc khi click ra ngoài (chỉ áp dụng cho Desktop, Mobile có Backdrop riêng)
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
+      if (isMobileScreen) return; // Trên mobile đã có Backdrop riêng quản lý đóng mở
       if (filterDropdownRef.current && !filterDropdownRef.current.contains(e.target as Node)) {
         setIsFilterDropdownOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  }, [isMobileScreen]);
 
   const sanitizeMuseumText = (text: string): string => {
     if (!text) return '';
@@ -180,21 +181,24 @@ export const ClientRoomsPage: React.FC<ClientRoomsPageProps> = ({
           alignItems: 'center',
           justifyContent: 'space-between',
           width: '100%',
-          padding: '10px 12px',
-          borderRadius: 8,
-          border: 'none',
-          background: selectedPeriod === 'all' ? 'rgba(212, 168, 106, 0.16)' : 'transparent',
-          color: selectedPeriod === 'all' ? '#D4A86A' : '#E5E7EB',
+          padding: '10px 14px',
+          borderRadius: 10,
+          border: selectedPeriod === 'all' ? '1px solid rgba(212, 168, 106, 0.45)' : '1px solid transparent',
+          background: selectedPeriod === 'all' ? 'linear-gradient(90deg, rgba(212, 168, 106, 0.18) 0%, rgba(212, 168, 106, 0.08) 100%)' : 'transparent',
+          color: selectedPeriod === 'all' ? '#F59E0B' : '#E2E8F0',
           fontSize: '13px',
           fontWeight: selectedPeriod === 'all' ? 600 : 400,
           cursor: 'pointer',
           textAlign: 'left',
-          transition: 'background 0.15s'
+          transition: 'all 0.15s ease'
         }}
       >
-        <span>{t('common.all', 'Tất cả thời kỳ')}</span>
-        <span style={{ fontSize: '11px', opacity: 0.85, color: '#D4A86A', fontWeight: 600 }}>
-          ({rooms.reduce((acc, r) => acc + ((r as any).artifactCount || 0), 0) || rooms.length} hiện vật)
+        <span style={{ fontWeight: selectedPeriod === 'all' ? 600 : 500 }}>{t('common.all', 'Tất cả')}</span>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+          <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: 12, background: 'rgba(212, 168, 106, 0.15)', color: '#D4A86A', fontWeight: 600 }}>
+            {rooms.reduce((acc, r) => acc + ((r as any).artifactCount || 0), 0) || rooms.length} hiện vật
+          </span>
+          {selectedPeriod === 'all' && <Check size={14} style={{ color: '#D4A86A' }} />}
         </span>
       </button>
 
@@ -216,26 +220,26 @@ export const ClientRoomsPage: React.FC<ClientRoomsPageProps> = ({
               alignItems: 'center',
               justifyContent: 'space-between',
               width: '100%',
-              padding: '10px 12px',
-              borderRadius: 8,
-              border: 'none',
-              background: isSelected ? 'rgba(212, 168, 106, 0.16)' : 'transparent',
-              color: isSelected ? '#D4A86A' : '#E5E7EB',
+              padding: '10px 14px',
+              borderRadius: 10,
+              border: isSelected ? '1px solid rgba(212, 168, 106, 0.45)' : '1px solid transparent',
+              background: isSelected ? 'linear-gradient(90deg, rgba(212, 168, 106, 0.18) 0%, rgba(212, 168, 106, 0.08) 100%)' : 'transparent',
+              color: isSelected ? '#F59E0B' : '#E2E8F0',
               fontSize: '13px',
               fontWeight: isSelected ? 600 : 400,
               cursor: 'pointer',
               textAlign: 'left',
-              transition: 'background 0.15s'
+              transition: 'all 0.15s ease'
             }}
           >
-            <span style={{ flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', paddingRight: 6 }}>
+            <span style={{ flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', paddingRight: 8, fontWeight: isSelected ? 600 : 400 }}>
               {t(p, p)}
             </span>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-              <span style={{ fontSize: '11px', opacity: 0.85, color: '#D4A86A', fontWeight: 600 }}>
-                ({countArtifacts > 0 ? `${countArtifacts} hiện vật` : `${matchingRooms.length} phòng`})
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+              <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: 12, background: isSelected ? 'rgba(212, 168, 106, 0.22)' : 'rgba(255, 255, 255, 0.06)', color: isSelected ? '#F59E0B' : '#94A3B8', fontWeight: 600 }}>
+                {countArtifacts > 0 ? `${countArtifacts} hiện vật` : `${matchingRooms.length} phòng`}
               </span>
-              {isSelected && <Check size={13} style={{ color: '#D4A86A' }} />}
+              {isSelected && <Check size={14} style={{ color: '#D4A86A' }} />}
             </span>
           </button>
         );
@@ -344,10 +348,18 @@ export const ClientRoomsPage: React.FC<ClientRoomsPageProps> = ({
                 {/* Dropdown danh sách thời kỳ trên Desktop */}
                 {isFilterDropdownOpen && !isMobileScreen && (
                   <div className="client-rooms-desktop-dropdown">
-                    <div style={{ fontSize: '11px', fontWeight: 600, color: '#D4A86A', textTransform: 'uppercase', letterSpacing: 0.5, padding: '4px 8px 6px 8px', borderBottom: '1px solid rgba(255,255,255,0.08)', marginBottom: 2 }}>
-                      {t('rooms.filterTitle', 'Lọc theo thời kỳ & không gian')}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px 10px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: '12px', fontWeight: 700, color: '#D4A86A', textTransform: 'uppercase', letterSpacing: '0.6px' }}>
+                        <Layers size={14} style={{ color: '#D4A86A' }} />
+                        <span>{t('rooms.filterTitle', 'Lọc theo thời kỳ & không gian')}</span>
+                      </div>
+                      <span style={{ fontSize: '11px', color: '#94A3B8', fontWeight: 500 }}>
+                        {periods.length} {t('rooms.periodsCount', 'thời kỳ')}
+                      </span>
                     </div>
-                    {renderFilterOptions()}
+                    <div className="client-rooms-dropdown-scroll">
+                      {renderFilterOptions()}
+                    </div>
                   </div>
                 )}
               </div>
@@ -385,32 +397,43 @@ export const ClientRoomsPage: React.FC<ClientRoomsPageProps> = ({
                 className="client-rooms-drawer-backdrop"
                 onClick={() => setIsFilterDropdownOpen(false)}
               />
-              <aside className="client-rooms-drawer-panel">
+              <aside
+                className="client-rooms-drawer-panel"
+                onClick={(e) => e.stopPropagation()}
+              >
                 <div
                   style={{
-                    padding: '16px 18px',
+                    padding: 'max(20px, env(safe-area-inset-top, 20px)) 18px 16px',
                     borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    background: 'rgba(212, 168, 106, 0.06)'
+                    background: 'rgba(212, 168, 106, 0.06)',
+                    flexShrink: 0
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <Filter size={16} style={{ color: '#D4A86A' }} />
-                    <span style={{ fontSize: '13px', fontWeight: 700, color: '#F8FAFC', textTransform: 'uppercase' }}>
-                      {t('rooms.filterTitle', 'Bộ Lọc Thời Kỳ')}
-                    </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(212, 168, 106, 0.15)', border: '1px solid rgba(212, 168, 106, 0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Filter size={16} style={{ color: '#D4A86A' }} />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '13px', fontWeight: 700, color: '#F8FAFC', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                        {t('rooms.filterTitle', 'Bộ Lọc Thời Kỳ')}
+                      </div>
+                      <div style={{ fontSize: '11px', color: '#94A3B8', marginTop: 1 }}>
+                        {rooms.length} phòng trưng bày
+                      </div>
+                    </div>
                   </div>
                   <button
                     type="button"
                     onClick={() => setIsFilterDropdownOpen(false)}
                     style={{
-                      background: 'rgba(255, 255, 255, 0.06)',
-                      border: '1px solid rgba(255, 255, 255, 0.1)',
-                      borderRadius: 6,
-                      width: 28,
-                      height: 28,
+                      background: 'rgba(255, 255, 255, 0.08)',
+                      border: '1px solid rgba(255, 255, 255, 0.12)',
+                      borderRadius: '50%',
+                      width: 32,
+                      height: 32,
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -418,7 +441,7 @@ export const ClientRoomsPage: React.FC<ClientRoomsPageProps> = ({
                       cursor: 'pointer'
                     }}
                   >
-                    <X size={15} />
+                    <X size={16} />
                   </button>
                 </div>
 
@@ -426,10 +449,10 @@ export const ClientRoomsPage: React.FC<ClientRoomsPageProps> = ({
                   style={{
                     flex: 1,
                     overflowY: 'auto',
-                    padding: '12px 14px',
+                    padding: '14px',
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: 4,
+                    gap: 6,
                     WebkitOverflowScrolling: 'touch',
                     touchAction: 'pan-y'
                   }}
@@ -437,23 +460,28 @@ export const ClientRoomsPage: React.FC<ClientRoomsPageProps> = ({
                   {renderFilterOptions()}
                 </div>
 
-                <div style={{ padding: '12px 14px', borderTop: '1px solid rgba(255, 255, 255, 0.08)', background: '#121724' }}>
+                <div style={{ padding: '14px 16px max(18px, env(safe-area-inset-bottom, 18px))', borderTop: '1px solid rgba(255, 255, 255, 0.08)', background: '#121724', flexShrink: 0 }}>
                   <button
                     type="button"
                     onClick={() => setIsFilterDropdownOpen(false)}
                     style={{
                       width: '100%',
-                      padding: '10px',
+                      padding: '12px',
                       borderRadius: 24,
                       background: 'linear-gradient(135deg, #D4AF37 0%, #AA8010 100%)',
                       color: '#0A0D14',
                       border: 'none',
                       fontWeight: 700,
-                      fontSize: '13px',
-                      cursor: 'pointer'
+                      fontSize: '13.5px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 8,
+                      boxShadow: '0 4px 16px rgba(212, 175, 55, 0.28)'
                     }}
                   >
-                    Đóng & Xem kết quả
+                    <span>{t('rooms.applyFilter', 'Đóng & Xem kết quả')}</span>
                   </button>
                 </div>
               </aside>
