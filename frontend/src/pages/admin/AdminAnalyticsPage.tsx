@@ -1069,7 +1069,7 @@ export const AdminAnalyticsPage: React.FC = () => {
   };
 
   return (
-    <div className="admin-content admin-analytics-page" style={{ padding: '24px 28px' }}>
+    <div className="admin-content admin-analytics-page" style={{ padding: '24px 28px', minHeight: '100%', display: 'flex', flexDirection: 'column' }}>
       {/* 1. HEADER & THAO TÁC TRANG CHUẨN ADMIN */}
       <div className="analytics-header">
         <div className="analytics-title-group">
@@ -1250,7 +1250,7 @@ export const AdminAnalyticsPage: React.FC = () => {
       )}
 
       {/* 4. KHUNG HIỂN THỊ NỘI DUNG TAB VỚI KÍCH THƯỚC CỐ ĐỊNH & HIỆU ỨNG CHUYỂN TAB MƯỢT MÀ */}
-      <div className="analytics-tab-viewport" style={{ minHeight: '860px', position: 'relative' }}>
+      <div className="analytics-tab-viewport">
         {tabTransitioning && (
           <div
             style={{
@@ -1319,7 +1319,7 @@ export const AdminAnalyticsPage: React.FC = () => {
 
             <iframe
               src={`/grafana/d/museum-analytics-03?kiosk&theme=dark&token=${encodeURIComponent(adminToken)}`}
-              className="grafana-embed-iframe"
+              className="grafana-embed-iframe iframe-analytics"
               title="Bảng điều khiển Nghiệp vụ Di sản & Doanh thu Vé"
             />
           </div>
@@ -1360,7 +1360,7 @@ export const AdminAnalyticsPage: React.FC = () => {
 
             <iframe
               src={`/grafana/d/museum-infra-01?kiosk&theme=dark&token=${encodeURIComponent(adminToken)}`}
-              className="grafana-embed-iframe"
+              className="grafana-embed-iframe iframe-standard"
               title="Bảng điều khiển Hạ tầng VPS & Container"
             />
           </div>
@@ -1401,7 +1401,7 @@ export const AdminAnalyticsPage: React.FC = () => {
 
             <iframe
               src={`/grafana/d/museum-apm-02?kiosk&theme=dark&token=${encodeURIComponent(adminToken)}`}
-              className="grafana-embed-iframe"
+              className="grafana-embed-iframe iframe-standard"
               title="Bảng điều khiển Hiệu năng API & Mạng (APM)"
             />
           </div>
@@ -1411,7 +1411,7 @@ export const AdminAnalyticsPage: React.FC = () => {
           TAB 2: DOANH THU & GIAO DỊCH VÉ CHI TIẾT (CỐ ĐỊNH CHIỀU CAO)
           ======================================================== */}
       {subTab === 'tickets' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, minHeight: '780px' }}>
+        <div className="analytics-tab-content-full">
           {/* Bộ lọc vé */}
           <div className="analytics-filter-toolbar">
             <div className="analytics-filter-controls">
@@ -1452,20 +1452,9 @@ export const AdminAnalyticsPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Bảng danh sách vé với chiều cao cố định minHeight 440px không bị co giật */}
-          <div
-            style={{
-              background: 'var(--bg-card)',
-              border: '1px solid var(--border-color)',
-              borderRadius: 8,
-              overflow: 'hidden',
-              minHeight: 440,
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'space-between'
-            }}
-          >
-            <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', width: '100%', flex: 1 }}>
+          {/* Bảng danh sách vé full chiều cao cố định, phân trang sát chân trang không bị co giật */}
+          <div className="analytics-table-card-full">
+            <div className="analytics-table-scroll-full">
               <table style={{ minWidth: 860, width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
                 <thead>
                   <tr
@@ -1545,7 +1534,7 @@ export const AdminAnalyticsPage: React.FC = () => {
             </div>
 
             {/* Phân trang cố định dưới chân khung bảng */}
-            <div style={{ borderTop: '1px solid var(--border-color)', marginTop: 'auto' }}>
+            <div className="analytics-table-pagination-footer">
               <Pagination
                 currentPage={ticketsPage}
                 totalItems={filteredTickets.length}
@@ -1566,7 +1555,7 @@ export const AdminAnalyticsPage: React.FC = () => {
           TAB 3: GIAN PHÒNG TOUR 360° (CỐ ĐỊNH CHIỀU CAO)
           ======================================================== */}
       {subTab === 'rooms' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, minHeight: '780px' }}>
+        <div className="analytics-tab-content-full">
           <div
             style={{
               background: 'var(--bg-card)',
@@ -1613,19 +1602,8 @@ export const AdminAnalyticsPage: React.FC = () => {
             </div>
           </div>
 
-          <div
-            style={{
-              background: 'var(--bg-card)',
-              border: '1px solid var(--border-color)',
-              borderRadius: 8,
-              overflow: 'hidden',
-              minHeight: 440,
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'space-between'
-            }}
-          >
-            <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', width: '100%', flex: 1 }}>
+          <div className="analytics-table-card-full">
+            <div className="analytics-table-scroll-full">
               <table style={{ minWidth: 800, width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
                 <thead>
                   <tr
@@ -1700,7 +1678,7 @@ export const AdminAnalyticsPage: React.FC = () => {
               </table>
             </div>
 
-            <div style={{ borderTop: '1px solid var(--border-color)', marginTop: 'auto' }}>
+            <div className="analytics-table-pagination-footer">
               <Pagination
                 currentPage={roomsPage}
                 totalItems={filteredRooms.length}
@@ -1721,7 +1699,7 @@ export const AdminAnalyticsPage: React.FC = () => {
           TAB 4: CỔ VẬT & BẢO VẬT 3D (CỐ ĐỊNH CHIỀU CAO & BẢNG CHUẨN MỰC)
           ======================================================== */}
       {subTab === 'artifacts' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, minHeight: '780px' }}>
+        <div className="analytics-tab-content-full">
           {/* Hai bảng tóm tắt thời kỳ & phân loại: định dạng BẢNG chuẩn, cùng chiều cao */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: 16 }}>
             {/* Phân bố theo thời kỳ lịch sử */}
@@ -1862,20 +1840,9 @@ export const AdminAnalyticsPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Bảng danh sách hiện vật có chiều cao cố định minHeight 440px */}
-          <div
-            style={{
-              background: 'var(--bg-card)',
-              border: '1px solid var(--border-color)',
-              borderRadius: 8,
-              overflow: 'hidden',
-              minHeight: 440,
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'space-between'
-            }}
-          >
-            <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', width: '100%', flex: 1 }}>
+          {/* Bảng danh sách hiện vật full chiều cao cố định */}
+          <div className="analytics-table-card-full">
+            <div className="analytics-table-scroll-full">
               <table style={{ minWidth: 840, width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
                 <thead>
                   <tr
@@ -1946,7 +1913,7 @@ export const AdminAnalyticsPage: React.FC = () => {
               </table>
             </div>
 
-            <div style={{ borderTop: '1px solid var(--border-color)', marginTop: 'auto' }}>
+            <div className="analytics-table-pagination-footer">
               <Pagination
                 currentPage={artifactsPage}
                 totalItems={filteredArtifacts.length}

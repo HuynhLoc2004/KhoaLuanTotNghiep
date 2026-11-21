@@ -7526,6 +7526,61 @@ select option {
   display: block;
 }
 
+.grafana-embed-iframe.iframe-analytics {
+  height: 1180px;
+}
+
+.grafana-embed-iframe.iframe-standard {
+  height: 800px;
+}
+
+.analytics-tab-viewport {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - 240px);
+  min-height: calc(100dvh - 240px);
+  position: relative;
+}
+
+/* Khung tab bảng biểu nội bộ full chiều cao cố định, không co giật dù ít hay nhiều dữ liệu */
+.analytics-tab-content-full {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: calc(100vh - 300px);
+  min-height: calc(100dvh - 300px);
+  gap: 14px;
+}
+
+.analytics-table-card-full {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  overflow: hidden;
+  flex: 1;
+  min-height: calc(100vh - 400px);
+  min-height: calc(100dvh - 400px);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-shadow: var(--shadow-sm);
+}
+
+.analytics-table-scroll-full {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  width: 100%;
+  flex: 1;
+}
+
+.analytics-table-pagination-footer {
+  border-top: 1px solid var(--border-color);
+  margin-top: auto;
+  background: var(--bg-card);
+  flex-shrink: 0;
+}
+
 @media (max-width: 768px) {
   .grafana-card-header {
     flex-direction: column !important;
@@ -7543,8 +7598,20 @@ select option {
   .grafana-embed-iframe {
     height: 640px !important;
   }
+  .grafana-embed-iframe.iframe-analytics {
+    height: 980px !important;
+  }
+  .grafana-embed-iframe.iframe-standard {
+    height: 640px !important;
+  }
   .analytics-tab-viewport {
     min-height: 640px !important;
+  }
+  .analytics-tab-content-full {
+    min-height: 520px !important;
+  }
+  .analytics-table-card-full {
+    min-height: 480px !important;
   }
   .analytics-subtabs {
     scrollbar-width: none;
