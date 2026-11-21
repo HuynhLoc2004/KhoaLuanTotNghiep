@@ -3,11 +3,7 @@ import {
   RefreshCw,
   Download,
   Search,
-  Activity,
-  ExternalLink,
-  Server,
-  BarChart3,
-  Cpu
+  ExternalLink
 } from 'lucide-react';
 import XLSX from 'xlsx-js-style';
 import { api } from '../../services/api';
@@ -22,7 +18,6 @@ import { useClientTranslation } from '../../context/ClientTranslationContext';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../components/Toast';
 import { Pagination } from '../../components/Pagination';
-import { AnalyticsInteractiveChart } from '../../components/admin/AnalyticsInteractiveChart';
 
 // Bản dịch xuất Excel đồng bộ theo 5 ngôn ngữ hệ thống
 const EXCEL_I18N: Record<string, any> = {
@@ -389,9 +384,9 @@ export const AdminAnalyticsPage: React.FC = () => {
   const { token: authCtxToken } = useAuth();
   const adminToken = authCtxToken || localStorage.getItem('museum_admin_token') || localStorage.getItem('token') || '';
 
-  // Tab con nghiệp vụ (Tối giản chuẩn Admin, không icon lòe loẹt)
-  const [subTab, setSubTab] = useState<'overview' | 'tickets' | 'rooms' | 'artifacts' | 'grafana'>('overview');
-  const [selectedGrafanaDashboard, setSelectedGrafanaDashboard] = useState<'analytics' | 'infra' | 'apm'>('analytics');
+  // Tab con nghiệp vụ chuẩn Admin: Ưu tiên 3 Dashboard Grafana Live, không tự vẽ biểu đồ thủ công
+  type AnalyticsSubTab = 'grafana-analytics' | 'grafana-infra' | 'grafana-apm' | 'tickets' | 'rooms' | 'artifacts';
+  const [subTab, setSubTab] = useState<AnalyticsSubTab>('grafana-analytics');
 
   // Đảm bảo cookie museum_admin_token và auth_token luôn có sẵn để iframe Grafana và các sub-request Nginx luôn xác thực thành công
   useEffect(() => {
@@ -1154,11 +1149,12 @@ export const AdminAnalyticsPage: React.FC = () => {
       {/* 2. CHUYỂN ĐỔI TAB CON TỐI GIẢN (KHÔNG ICON, ĐÚNG CHUẨN ADMIN) */}
       <div className="analytics-subtabs">
         {[
-          { id: 'overview', label: t('analytics.tabOverview', 'Tổng quan & Xu hướng') },
+          { id: 'grafana-analytics', label: 'Nghiệp vụ Di sản & Doanh thu' },
+          { id: 'grafana-infra', label: 'Hạ tầng VPS & Container' },
+          { id: 'grafana-apm', label: 'Hiệu năng API & Mạng (APM)' },
           { id: 'tickets', label: t('analytics.tabTickets', 'Doanh thu & Giao dịch vé') },
           { id: 'rooms', label: t('analytics.tabRooms', 'Gian phòng Tour 360°') },
-          { id: 'artifacts', label: t('analytics.tabArtifacts', 'Cổ vật & Bảo vật 3D') },
-          { id: 'grafana', label: 'Bảng điều khiển Grafana (Live)' }
+          { id: 'artifacts', label: t('analytics.tabArtifacts', 'Cổ vật & Bảo vật 3D') }
         ].map((tab) => {
           const isActive = subTab === tab.id;
           return (
@@ -1246,211 +1242,165 @@ export const AdminAnalyticsPage: React.FC = () => {
       {/* ========================================================
           TAB 1: TỔNG QUAN & BIỂU ĐỒ DIỄN BIẾN
           ======================================================== */}
-      {subTab === 'overview' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-          {/* 1. BIỂU ĐỒ DIỆN TÍCH & CỘT TƯƠNG TÁC CAO CẤP */}
-          <AnalyticsInteractiveChart
-            timelineData={timelineData}
-            timeRange={timeRange}
-            formatVND={formatVND}
-          />
-
-          {/* 2. HAI KHUNG PHÂN BỔ: LOẠI VÉ & KÊNH THANH TOÁN (TỐI GIẢN CHUẨN ADMIN) */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: 16 }}>
-            {/* Phân bổ theo loại vé */}
-            <div
-              style={{
-                background: 'var(--bg-card)',
-                border: '1px solid var(--border-color)',
-                borderRadius: 8,
-                padding: '16px 20px',
-                minHeight: 180
-              }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-                <h3 style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--heading-color)', margin: 0 }}>
-                  {t('analytics.byTypeTitle', 'Phân bổ theo loại vé')}
-                </h3>
-                <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-                  {analytics?.ticketsByType?.length || 0} phân loại
-                </span>
-              </div>
-
-              {analytics?.ticketsByType && analytics.ticketsByType.length > 0 ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  {analytics.ticketsByType.map((tItem, i) => (
-                    <div key={i}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, marginBottom: 4 }}>
-                        <span style={{ color: 'var(--text-main)' }}>{tItem.title || tItem.typeCode}</span>
-                        <span style={{ color: 'var(--text-muted)' }}>
-                          {tItem.count} vé • {formatVND(tItem.revenue)} ({tItem.percentage}%)
-                        </span>
-                      </div>
-                      <div
-                        style={{
-                          width: '100%',
-                          height: 5,
-                          background: 'rgba(255, 255, 255, 0.08)',
-                          borderRadius: 3,
-                          overflow: 'hidden'
-                        }}
-                      >
-                        <div
-                          style={{
-                            width: `${Math.min(tItem.percentage, 100)}%`,
-                            height: '100%',
-                            background: 'var(--primary)',
-                            borderRadius: 3
-                          }}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--text-muted)', fontSize: 12.5 }}>
-                  {t('analytics.noData', 'Chưa có giao dịch theo loại vé')}
-                </div>
-              )}
-            </div>
-
-            {/* Phân bổ theo phương thức thanh toán */}
-            <div
-              style={{
-                background: 'var(--bg-card)',
-                border: '1px solid var(--border-color)',
-                borderRadius: 8,
-                padding: '16px 20px',
-                minHeight: 180
-              }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-                <h3 style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--heading-color)', margin: 0 }}>
-                  {t('analytics.byPaymentTitle', 'Phương thức thanh toán')}
-                </h3>
-                <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-                  {analytics?.paymentMethods?.length || 0} cổng kết nối
-                </span>
-              </div>
-
-              {analytics?.paymentMethods && analytics.paymentMethods.length > 0 ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  {analytics.paymentMethods.map((pItem, i) => (
-                    <div key={i}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, marginBottom: 4 }}>
-                        <span style={{ color: 'var(--text-main)' }}>{pItem.method}</span>
-                        <span style={{ color: 'var(--text-muted)' }}>
-                          {pItem.count} đơn • {formatVND(pItem.revenue)} ({pItem.percentage}%)
-                        </span>
-                      </div>
-                      <div
-                        style={{
-                          width: '100%',
-                          height: 5,
-                          background: 'rgba(255, 255, 255, 0.08)',
-                          borderRadius: 3,
-                          overflow: 'hidden'
-                        }}
-                      >
-                        <div
-                          style={{
-                            width: `${Math.min(pItem.percentage, 100)}%`,
-                            height: '100%',
-                            background: '#22C55E',
-                            borderRadius: 3
-                          }}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--text-muted)', fontSize: 12.5 }}>
-                  {t('analytics.noData', 'Chưa có dữ liệu kênh thanh toán')}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* 3. BẢNG GIAO DỊCH VÉ GẦN ĐÂY CÓ CHIỀU CAO CỐ ĐỊNH */}
+      {/* ========================================================
+          TAB 1: BẢNG ĐIỀU KHIỂN GRAFANA - NGHIỆP VỤ & DOANH THU
+          ======================================================== */}
+      {subTab === 'grafana-analytics' && (
+        <div style={{ marginTop: 6, borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-card)' }}>
           <div
             style={{
-              background: 'var(--bg-card)',
-              border: '1px solid var(--border-color)',
-              borderRadius: 8,
-              overflow: 'hidden',
-              minHeight: 280,
+              padding: '12px 18px',
+              borderBottom: '1px solid var(--border-color)',
               display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'space-between'
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              backgroundColor: 'var(--bg-subtle)'
             }}
           >
-            <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--heading-color)' }}>
-                Giao dịch vé mới nhất trong kỳ
+            <div>
+              <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span>Bảng điều khiển Nghiệp vụ Di sản & Doanh thu Vé</span>
+                <span style={{ fontSize: 10.5, padding: '2px 8px', borderRadius: 4, backgroundColor: 'rgba(212, 160, 23, 0.12)', color: 'var(--accent-gold)', border: '1px solid rgba(212, 160, 23, 0.25)' }}>
+                  PostgreSQL Read-Only Mode
+                </span>
               </div>
-              <button
-                type="button"
-                onClick={() => setSubTab('tickets')}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  color: 'var(--text-main)',
-                  fontSize: 12.5,
-                  cursor: 'pointer',
-                  textDecoration: 'underline'
-                }}
-              >
-                Xem tất cả giao dịch
-              </button>
+              <span style={{ display: 'block', fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
+                Động cơ Grafana phân tích số liệu thực tế vé tham quan, doanh thu thanh toán PayOS/VietQR và tỷ lệ số hóa di sản 3D
+              </span>
             </div>
 
-            <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', flex: 1 }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 12.5 }}>
-                <thead>
-                  <tr style={{ background: 'rgba(0, 0, 0, 0.2)', borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)', fontSize: 11, textTransform: 'uppercase' }}>
-                    <th style={{ padding: '9px 16px', width: '16%' }}>Mã vé</th>
-                    <th style={{ padding: '9px 16px', width: '28%' }}>Khách tham quan</th>
-                    <th style={{ padding: '9px 16px', width: '20%' }}>Loại vé</th>
-                    <th style={{ padding: '9px 16px', width: '14%', textAlign: 'right' }}>Tổng tiền</th>
-                    <th style={{ padding: '9px 16px', width: '12%' }}>Trạng thái</th>
-                    <th style={{ padding: '9px 16px', width: '10%' }}>Thời gian</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredTickets.slice(0, 4).map((tItem) => (
-                    <tr key={tItem.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                      <td style={{ padding: '10px 16px', fontFamily: 'monospace', color: 'var(--text-main)' }}>
-                        {tItem.ticketCode}
-                      </td>
-                      <td style={{ padding: '10px 16px', color: 'var(--text-main)' }}>
-                        {tItem.userName}
-                      </td>
-                      <td style={{ padding: '10px 16px', color: 'var(--text-muted)' }}>
-                        {tItem.ticketTitle || tItem.ticketType}
-                      </td>
-                      <td style={{ padding: '10px 16px', textAlign: 'right', fontWeight: 600, color: 'var(--text-main)' }}>
-                        {formatVND(tItem.totalAmount)}
-                      </td>
-                      <td style={{ padding: '10px 16px' }}>
-                        {renderStatusDot(tItem.status)}
-                      </td>
-                      <td style={{ padding: '10px 16px', color: 'var(--text-muted)', fontSize: 12 }}>
-                        {formatDate(tItem.createdAt)}
-                      </td>
-                    </tr>
-                  ))}
-                  {filteredTickets.length === 0 && (
-                    <tr>
-                      <td colSpan={6} style={{ textAlign: 'center', padding: '36px 0', color: 'var(--text-muted)' }}>
-                        Chưa có giao dịch vé nào trong kỳ này
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={() => {
+                window.open(`/grafana/d/museum-analytics-03?token=${encodeURIComponent(adminToken)}`, '_blank');
+              }}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}
+            >
+              <ExternalLink size={13} />
+              <span>Mở toàn màn hình</span>
+            </button>
           </div>
+
+          <iframe
+            src={`/grafana/d/museum-analytics-03?kiosk=tv&theme=dark&token=${encodeURIComponent(adminToken)}`}
+            style={{
+              width: '100%',
+              height: '860px',
+              border: 'none',
+              backgroundColor: '#111217',
+              display: 'block'
+            }}
+            title="Bảng điều khiển Nghiệp vụ Di sản & Doanh thu Vé"
+          />
+        </div>
+      )}
+
+      {/* ========================================================
+          TAB 2: BẢNG ĐIỀU KHIỂN GRAFANA - HẠ TẦNG VPS & CONTAINER
+          ======================================================== */}
+      {subTab === 'grafana-infra' && (
+        <div style={{ marginTop: 6, borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-card)' }}>
+          <div
+            style={{
+              padding: '12px 18px',
+              borderBottom: '1px solid var(--border-color)',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              backgroundColor: 'var(--bg-subtle)'
+            }}
+          >
+            <div>
+              <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span>Bảng điều khiển Giám sát Hạ tầng VPS & Container Docker</span>
+                <span style={{ fontSize: 10.5, padding: '2px 8px', borderRadius: 4, backgroundColor: 'rgba(212, 160, 23, 0.12)', color: 'var(--accent-gold)', border: '1px solid rgba(212, 160, 23, 0.25)' }}>
+                  Prometheus Scraper
+                </span>
+              </div>
+              <span style={{ display: 'block', fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
+                Giám sát dung lượng RAM RSS, Heap Memory, thời gian Uptime và tần suất CPU NodeJS theo thời gian thực
+              </span>
+            </div>
+
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={() => {
+                window.open(`/grafana/d/museum-infra-01?token=${encodeURIComponent(adminToken)}`, '_blank');
+              }}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}
+            >
+              <ExternalLink size={13} />
+              <span>Mở toàn màn hình</span>
+            </button>
+          </div>
+
+          <iframe
+            src={`/grafana/d/museum-infra-01?kiosk=tv&theme=dark&token=${encodeURIComponent(adminToken)}`}
+            style={{
+              width: '100%',
+              height: '860px',
+              border: 'none',
+              backgroundColor: '#111217',
+              display: 'block'
+            }}
+            title="Bảng điều khiển Hạ tầng VPS & Container"
+          />
+        </div>
+      )}
+
+      {/* ========================================================
+          TAB 3: BẢNG ĐIỀU KHIỂN GRAFANA - HIỆU NĂNG API & MẠNG (APM)
+          ======================================================== */}
+      {subTab === 'grafana-apm' && (
+        <div style={{ marginTop: 6, borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-card)' }}>
+          <div
+            style={{
+              padding: '12px 18px',
+              borderBottom: '1px solid var(--border-color)',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              backgroundColor: 'var(--bg-subtle)'
+            }}
+          >
+            <div>
+              <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span>Bảng điều khiển Hiệu năng API & Độ trễ Mạng (APM Telemetry)</span>
+                <span style={{ fontSize: 10.5, padding: '2px 8px', borderRadius: 4, backgroundColor: 'rgba(212, 160, 23, 0.12)', color: 'var(--accent-gold)', border: '1px solid rgba(212, 160, 23, 0.25)' }}>
+                  Prometheus & Express APM
+                </span>
+              </div>
+              <span style={{ display: 'block', fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
+                Đo lường lưu lượng mạng Request/giây (RPS), phân vị độ trễ p50/p95/p99 và tỷ lệ mã trạng thái HTTP 2xx/4xx/5xx
+              </span>
+            </div>
+
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={() => {
+                window.open(`/grafana/d/museum-apm-02?token=${encodeURIComponent(adminToken)}`, '_blank');
+              }}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}
+            >
+              <ExternalLink size={13} />
+              <span>Mở toàn màn hình</span>
+            </button>
+          </div>
+
+          <iframe
+            src={`/grafana/d/museum-apm-02?kiosk=tv&theme=dark&token=${encodeURIComponent(adminToken)}`}
+            style={{
+              width: '100%',
+              height: '860px',
+              border: 'none',
+              backgroundColor: '#111217',
+              display: 'block'
+            }}
+            title="Bảng điều khiển Hiệu năng API & Mạng (APM)"
+          />
         </div>
       )}
 
@@ -2010,158 +1960,6 @@ export const AdminAnalyticsPage: React.FC = () => {
         </div>
       )}
 
-      {/* 5. TAB BẢNG ĐIỀU KHIỂN GRAFANA GIÁM SÁT REAL-TIME */}
-      {subTab === 'grafana' && (
-        <div style={{ marginTop: 18, borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-card)' }}>
-          {/* Header & Bộ chọn Dashboard */}
-          <div
-            style={{
-              padding: '14px 18px',
-              borderBottom: '1px solid var(--border-color)',
-              display: 'flex',
-              flexWrap: 'wrap',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              gap: 12,
-              backgroundColor: 'var(--bg-subtle)'
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <Activity size={20} style={{ color: 'var(--accent-gold)' }} />
-              <div>
-                <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span>Hệ thống Giám sát & Đo lường Viễn trắc Real-time (Grafana & Prometheus)</span>
-                  <span style={{ fontSize: 10.5, padding: '2px 8px', borderRadius: 10, backgroundColor: 'rgba(212, 160, 23, 0.15)', color: 'var(--accent-gold)', border: '1px solid rgba(212, 160, 23, 0.3)' }}>
-                    PostgreSQL Read-Only Mode
-                  </span>
-                </div>
-                <span style={{ display: 'block', fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
-                  Tự động thu thập viễn trắc hệ thống VPS, lưu lượng mạng API và phân tích số liệu nghiệp vụ bảo tàng
-                </span>
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <button
-                type="button"
-                className="btn btn-secondary btn-sm"
-                onClick={() => {
-                  const token = adminToken;
-                  const uid =
-                    selectedGrafanaDashboard === 'analytics'
-                      ? 'museum-analytics-03'
-                      : selectedGrafanaDashboard === 'infra'
-                      ? 'museum-infra-01'
-                      : 'museum-apm-02';
-                  window.open(`/grafana/d/${uid}?token=${encodeURIComponent(token)}`, '_blank');
-                }}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}
-              >
-                <ExternalLink size={13} />
-                <span>Mở toàn màn hình</span>
-              </button>
-            </div>
-          </div>
-
-          {/* 3 Tab chọn Bảng điều khiển Grafana */}
-          <div
-            style={{
-              padding: '10px 18px',
-              display: 'flex',
-              gap: 8,
-              borderBottom: '1px solid var(--border-color)',
-              backgroundColor: 'var(--bg-main)',
-              overflowX: 'auto'
-            }}
-          >
-            <button
-              type="button"
-              onClick={() => setSelectedGrafanaDashboard('analytics')}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 8,
-                padding: '8px 14px',
-                borderRadius: 6,
-                fontSize: 12.5,
-                fontWeight: selectedGrafanaDashboard === 'analytics' ? 600 : 400,
-                border: selectedGrafanaDashboard === 'analytics' ? '1px solid var(--accent-gold)' : '1px solid var(--border-color)',
-                backgroundColor: selectedGrafanaDashboard === 'analytics' ? 'rgba(212, 160, 23, 0.12)' : 'var(--bg-card)',
-                color: selectedGrafanaDashboard === 'analytics' ? 'var(--accent-gold)' : 'var(--text-muted)',
-                cursor: 'pointer',
-                transition: 'all 0.15s ease'
-              }}
-            >
-              <BarChart3 size={15} />
-              <span>1. Nghiệp vụ Di sản & Doanh thu Vé</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setSelectedGrafanaDashboard('infra')}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 8,
-                padding: '8px 14px',
-                borderRadius: 6,
-                fontSize: 12.5,
-                fontWeight: selectedGrafanaDashboard === 'infra' ? 600 : 400,
-                border: selectedGrafanaDashboard === 'infra' ? '1px solid var(--accent-gold)' : '1px solid var(--border-color)',
-                backgroundColor: selectedGrafanaDashboard === 'infra' ? 'rgba(212, 160, 23, 0.12)' : 'var(--bg-card)',
-                color: selectedGrafanaDashboard === 'infra' ? 'var(--accent-gold)' : 'var(--text-muted)',
-                cursor: 'pointer',
-                transition: 'all 0.15s ease'
-              }}
-            >
-              <Server size={15} />
-              <span>2. Hạ tầng VPS & Container Docker</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setSelectedGrafanaDashboard('apm')}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 8,
-                padding: '8px 14px',
-                borderRadius: 6,
-                fontSize: 12.5,
-                fontWeight: selectedGrafanaDashboard === 'apm' ? 600 : 400,
-                border: selectedGrafanaDashboard === 'apm' ? '1px solid var(--accent-gold)' : '1px solid var(--border-color)',
-                backgroundColor: selectedGrafanaDashboard === 'apm' ? 'rgba(212, 160, 23, 0.12)' : 'var(--bg-card)',
-                color: selectedGrafanaDashboard === 'apm' ? 'var(--accent-gold)' : 'var(--text-muted)',
-                cursor: 'pointer',
-                transition: 'all 0.15s ease'
-              }}
-            >
-              <Cpu size={15} />
-              <span>3. Hiệu năng API & Độ trễ Mạng (APM)</span>
-            </button>
-          </div>
-
-          {/* Iframe hiển thị Dashboard tương ứng với giao diện Kiosk sạch sẽ */}
-          <iframe
-            key={selectedGrafanaDashboard}
-            src={`/grafana/d/${
-              selectedGrafanaDashboard === 'analytics'
-                ? 'museum-analytics-03'
-                : selectedGrafanaDashboard === 'infra'
-                ? 'museum-infra-01'
-                : 'museum-apm-02'
-            }?kiosk=tv&token=${encodeURIComponent(adminToken)}`}
-            style={{
-              width: '100%',
-              height: '840px',
-              border: 'none',
-              backgroundColor: '#111217',
-              display: 'block'
-            }}
-            title="Bảng điều khiển Giám sát Grafana"
-          />
-        </div>
-      )}
     </div>
   );
 };
