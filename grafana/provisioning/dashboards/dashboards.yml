@@ -6,6 +6,8 @@ providers:
     folder: 'Bảo Tàng Lịch Sử TP.HCM'
     type: file
     disableDeletion: false
-    editable: true
+    updateIntervalSeconds: 5
+    allowUiUpdates: false
     options:
       path: /var/lib/grafana/dashboards
+      foldersFromFilesStructure: false
