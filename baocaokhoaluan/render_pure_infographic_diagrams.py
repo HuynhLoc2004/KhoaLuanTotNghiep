@@ -360,12 +360,70 @@ def create_fig_4_9_pure_infographic():
     print("-> Da tao thanh cong Hinh 4.9 (Pure Infographic): flow_03_languages_voice_ai.png")
 
 
+# ==============================================================================
+# 8. HÌNH 2 (KIẾN TRÚC HỆ THỐNG 3 TẦNG LAI GHÉP) - THUẦN ICON PHONG CÁCH HÌNH 3
+# ==============================================================================
+def create_fig_2_9_pure_infographic():
+    fig, ax = plt.subplots(figsize=(16.5, 9.5), dpi=300)
+    ax.set_xlim(0, 16.5); ax.set_ylim(0, 9.5); ax.axis('off')
+
+    ax.text(8.25, 9.0, 'SƠ ĐỒ KIẾN TRÚC HỆ THỐNG 3 TẦNG LAI GHÉP (3-TIER HYBRID ARCHITECTURE)',
+            ha='center', va='center', fontsize=12.0, fontweight='bold', color=C_DARK)
+    ax.text(8.25, 8.65, 'Mô hình phân tầng bảo đảm tính sẵn sàng cao, bảo mật mã hóa và tối ưu hóa tài nguyên phần cứng',
+            ha='center', va='center', fontsize=8.2, color=C_MUTED)
+
+    # Tiêu đề 3 tầng (Text thanh lịch, KHÔNG CÓ BẤT KỲ Ô VUÔNG BAO QUANH)
+    ax.text(2.6, 7.9, 'TẦNG 1: TRÌNH DIỄN (CLIENTS)', ha='center', va='center', fontsize=9.8, fontweight='bold', color='#1E40AF')
+    ax.text(8.25, 7.9, 'TẦNG 2: NGHIỆP VỤ & ĐIỀU PHỐI (SERVICES)', ha='center', va='center', fontsize=9.8, fontweight='bold', color='#065F46')
+    ax.text(13.9, 7.9, 'TẦNG 3: DỮ LIỆU & ĐÁM MÂY (DATA & CLOUD)', ha='center', va='center', fontsize=9.8, fontweight='bold', color='#9D174D')
+
+    # Đường phân cách mờ nhẹ giữa 3 tầng (dashed)
+    ax.axvline(x=5.4, ymin=0.06, ymax=0.82, color='#E2E8F0', linestyle='--', lw=1.2)
+    ax.axvline(x=11.1, ymin=0.06, ymax=0.82, color='#E2E8F0', linestyle='--', lw=1.2)
+
+    # --- TẦNG 1: TRÌNH DIỄN (CLIENTS) ---
+    draw_icon_node(ax, 2.6, 5.8, 'icon_laptop.png', 'Trình duyệt Web (Desktop / PC)', 'React 18 • Three.js WebGL (FOV 45°)\nĐiều hướng OrbitControls & Hotspots', target_px=58)
+    draw_icon_node(ax, 2.6, 2.2, 'icon_phone.png', 'Thiết bị Di động (Mobile / Tablet)', 'Giao diện Responsive Mobile-First (FOV 65°)\nQuét QR jsQR khử lóa • Soát vé Barie', target_px=58)
+
+    # --- TẦNG 2: NGHIỆP VỤ & ĐIỀU PHỐI (SERVICES) ---
+    draw_icon_node(ax, 8.25, 6.4, 'icon_server.png', 'Nginx Web Server & Reverse Proxy', 'SSL/TLS 1.3 Termination • Caching tĩnh\nStream Audio HTTP 206 (< 50ms)', target_px=58)
+    draw_icon_node(ax, 8.25, 4.0, 'icon_server.png', 'Backend REST API & SSE Gateway', 'Node.js LTS • Express • JWT Auth\nKênh truyền Realtime SSE (< 1ms)', target_px=58)
+    draw_icon_node(ax, 8.25, 1.6, 'icon_ai_chip.png', 'Xưởng Đa phương tiện & Xử lý 3D', 'Python 3.11 • OpenCV Stitching\nĐộng cơ 3D Local CPU Marching Cubes', target_px=58)
+
+    # --- TẦNG 3: DỮ LIỆU & ĐÁM MÂY (DATA & CLOUD) ---
+    draw_icon_node(ax, 13.9, 6.4, 'icon_database.png', 'PostgreSQL 16 (Relational DB)', 'Quản lý người dùng, vé tham quan (AES-256)\nKết nối Grafana Read-Only pg_readonly', target_px=54)
+    draw_icon_node(ax, 13.9, 4.0, 'icon_database.png', 'MongoDB NoSQL Database', 'Cấu trúc 18 gian phòng trưng bày 360°\nTọa độ Hotspots • Tư liệu cổ vật • Audio Cache', target_px=54)
+    draw_icon_node(ax, 13.9, 1.6, 'icon_ai_chip.png', 'Dịch vụ Đám mây & AI Ngoại vi', 'VietQR PayOS (Napas 247) • ZeroGPU A100\nGoogle Cloud TTS • Grafana & Prometheus', target_px=58)
+
+    # --- MŨI TÊN LIÊN TẦNG VỚI NHÃN TRÊN MŨI TÊN ---
+    # Tầng 1 -> Tầng 2
+    draw_flow_arrow(ax, 3.9, 5.8, 7.0, 6.4, label='HTTPS / WSS (Port 443)', shrink=24)
+    draw_flow_arrow(ax, 3.9, 2.2, 7.0, 4.0, label='RESTful API (JSON)', shrink=24)
+
+    # Nội bộ Tầng 2
+    draw_flow_arrow(ax, 8.25, 5.6, 8.25, 4.7, label='Proxy Pass', shrink=10)
+    draw_flow_arrow(ax, 8.25, 3.2, 8.25, 2.3, label='Hàng đợi Worker', shrink=10)
+
+    # Tầng 2 -> Tầng 3
+    draw_flow_arrow(ax, 9.5, 4.3, 12.6, 6.2, label='SQL Connection (pgPool)', shrink=24)
+    draw_flow_arrow(ax, 9.5, 4.0, 12.6, 4.0, label='Mongoose NoSQL', shrink=24)
+    draw_flow_arrow(ax, 9.5, 1.6, 12.6, 1.6, label='Webhook / Cloud API', shrink=24)
+
+    out1 = os.path.join(DIAGRAMS_DIR, "hinh_2_9_architecture_3tier.png")
+    out2 = os.path.join(ASSETS_DIR, "hinh_2_9_architecture_3tier.png")
+    fig.savefig(out1, bbox_inches='tight')
+    fig.savefig(out2, bbox_inches='tight')
+    plt.close(fig)
+    print("-> Da tao thanh cong Hinh 2 (Pure Infographic): hinh_2_9_architecture_3tier.png")
+
+
 if __name__ == '__main__':
     create_hinh_1_1_pure_infographic()
+    create_fig_2_9_pure_infographic()
     create_fig_4_1_pure_infographic()
     create_fig_4_4_pure_infographic()
     create_fig_4_5_pure_infographic()
     create_fig_4_9_pure_infographic()
     create_fig_3_6_pure_infographic()
     create_fig_2_14_pure_infographic()
-    print("=== HOAN TAT TAO TOAN BO 7 SO DO THUAN ICON INFOGRAPHIC KHONG O VUONG! ===")
+    print("=== HOAN TAT TAO TOAN BO 8 SO DO THUAN ICON INFOGRAPHIC KHONG O VUONG! ===")
