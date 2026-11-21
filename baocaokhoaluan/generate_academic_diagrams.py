@@ -1674,6 +1674,51 @@ def gen_fig_3_11():
     fig.savefig(os.path.join(DIAGRAMS_DIR, "hinh_3_11_voice_tts_storage_pipeline.png"), bbox_inches='tight')
     plt.close(fig)
 
+def gen_fig_3_12():
+    """Hinh 3.12: So do hoat dong quy trinh tong hop so lieu va ket xuat bao cao Excel da bang tinh"""
+    fig, ax = plt.subplots(figsize=(11.0, 5.8), dpi=300)
+    ax.set_xlim(0, 11.0); ax.set_ylim(0, 5.8); ax.axis('off')
+    
+    ax.text(5.5, 5.55, 'SƠ ĐỒ HOẠT ĐỘNG: QUY TRÌNH TỔNG HỢP VÀ KẾT XUẤT BÁO CÁO EXCEL ĐA BẢNG TÍNH',
+            ha='center', va='center', fontsize=9.5, fontweight='bold', color=C_DARK_TEXT)
+    ax.text(5.5, 5.25, 'Kiến trúc kết xuất tại Client bằng thư viện xlsx-js-style, ánh xạ từ điển i18n và tạo sổ tính 4 Worksheets',
+            ha='center', va='center', fontsize=7.8, color=C_MUTED_TEXT)
+
+    draw_actor(ax, 0.9, 3.2, 'Quản trị viên', 'Bấm "Xuất file Excel"', scale=0.85)
+
+    diamond = patches.Polygon([[2.0, 3.2], [2.7, 3.75], [3.4, 3.2], [2.7, 2.65]],
+                              facecolor='#FEF3C7', edgecolor=C_LINE_DARK, lw=1.3, zorder=4)
+    ax.add_patch(diamond)
+    ax.text(2.7, 3.2, 'Dữ liệu\nhợp lệ?', ha='center', va='center', fontsize=7.2, fontweight='bold', color=C_DARK_TEXT, zorder=6)
+
+    draw_clean_node(ax, 2.7, 1.3, 1.8, 0.85, 'Toast Cảnh báo', 'Dữ liệu rỗng\nNgừng xử lý', bg='#FEE2E2', border='#DC2626')
+    draw_clean_node(ax, 4.6, 3.2, 1.5, 0.95, 'Nạp Từ điển i18n', 'currentLang: VI/EN/..\nTiêu đề & Trạng thái', bg='#F8FAFC')
+
+    sheet_data = [
+        (4.5, 'Sheet 1: KPIs & Doanh thu', 'Doanh thu vé, số phát hành, đã soát, khách SSE'),
+        (3.6, 'Sheet 2: Chi tiết Đơn vé PayOS', 'Mã đơn, tên khách, SĐT, số tiền VND, trạng thái'),
+        (2.7, 'Sheet 3: Gian phòng Tour 360°', 'Mã P01-P18, số hiện vật, trạng thái số hóa ảnh'),
+        (1.8, 'Sheet 4: Kho Cổ vật & Bảo vật 3D', 'Mã cổ vật, thời kỳ, mô hình 3D .GLB, thuyết minh')
+    ]
+    for y_pos, title, sub in sheet_data:
+        draw_clean_node(ax, 6.9, y_pos, 2.4, 0.65, title, sub, bg='#EFF6FF', border='#3B82F6')
+
+    draw_clean_node(ax, 9.6, 3.9, 1.9, 1.2, 'Định dạng Ô (Styling)', '• Header Obsidian/Gold\n• Tiêu đề cột Slate\n• Tiền tệ VND, Tự co cột', bg='#FEF3C7', border='#D97706')
+    draw_clean_node(ax, 9.6, 2.1, 1.9, 1.2, 'Đóng gói Workbook', '• Ghép 4 Worksheets\n• Tên tệp theo thời gian\n• Trình duyệt tự tải tệp', bg='#DCFCE7', border='#16A34A')
+
+    draw_step_arrow(ax, 1.35, 3.2, 1.95, 3.2, step='1', label='Yêu cầu xuất', label_offset=0.22)
+    draw_step_arrow(ax, 2.7, 2.6, 2.7, 1.8, step='', label='[Rỗng]', label_offset=0.35)
+    draw_step_arrow(ax, 3.45, 3.2, 3.8, 3.2, step='2', label='[Có]', label_offset=0.22)
+
+    for y_pos, _, _ in sheet_data:
+        draw_step_arrow(ax, 5.4, 3.2, 5.65, y_pos, step='', label='', color='#64748B')
+        draw_step_arrow(ax, 8.15, y_pos, 8.6, 3.9, step='', label='', color='#64748B')
+
+    draw_step_arrow(ax, 9.6, 3.25, 9.6, 2.75, step='3', label='Đóng gói', label_offset=0.3)
+
+    fig.savefig(os.path.join(DIAGRAMS_DIR, "hinh_3_12_excel_export_activity.png"), bbox_inches='tight')
+    plt.close(fig)
+
 def gen_fig_4_37():
     """Hinh 4.37: Bieu do thoi gian phan hoi trung binh JMeter"""
     fig, ax = plt.subplots(figsize=(8.0, 4.2), dpi=300)
@@ -1789,6 +1834,7 @@ def gen_all():
     gen_fig_3_9()
     gen_fig_3_10()
     gen_fig_3_11()
+    gen_fig_3_12()
     gen_fig_4_1()
     gen_fig_4_3()
     gen_fig_4_5()
@@ -1798,7 +1844,7 @@ def gen_all():
     gen_fig_4_38()
     gen_fig_4_39()
     gen_fig_4_40()
-    print(">>> HOAN THANH TAO 36 SO DO HOC THUAT MAU SAM HOAN HAO!")
+    print(">>> HOAN THANH TAO 37 SO DO HOC THUAT MAU SAM HOAN HAO!")
 
 if __name__ == "__main__":
     gen_all()

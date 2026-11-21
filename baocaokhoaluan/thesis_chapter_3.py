@@ -166,7 +166,7 @@ def add_chapter_3(doc, helper):
     
     # Bảng 3.3
     helper.add_table_caption(doc, "3.3", "Bảng tổng hợp danh mục các Use Case trong hệ thống")
-    tbl_uclist = doc.add_table(rows=26, cols=3)
+    tbl_uclist = doc.add_table(rows=27, cols=3)
     tbl_uclist.alignment = WD_TABLE_ALIGNMENT.CENTER
     tbl_uclist.autofit = False
     helper.set_table_borders(tbl_uclist, color="475569", sz="6", val="single")
@@ -208,7 +208,8 @@ def add_chapter_3(doc, helper):
         ("UC-22", "Ghép ảnh toàn cảnh Panorama Studio", "Quản trị viên / Kỹ thuật viên"),
         ("UC-23", "Dịch thuật đa ngôn ngữ cục bộ theo không gian và cổ vật", "Khách tham quan"),
         ("UC-24", "Giám sát hiệu năng hệ thống và tài nguyên máy chủ qua Grafana", "Quản trị viên"),
-        ("UC-25", "Quản lý và cấu hình giọng đọc thuyết minh Audio đa ngôn ngữ", "Quản trị viên")
+        ("UC-25", "Quản lý và cấu hình giọng đọc thuyết minh Audio đa ngôn ngữ", "Quản trị viên"),
+        ("UC-26", "Tổng hợp số liệu và kết xuất báo cáo Excel đa bảng tính", "Quản trị viên")
     ]
     for idx, (uc_id, uc_name, act_nm) in enumerate(ucl_data):
         row = tbl_uclist.rows[idx + 1]
@@ -565,6 +566,22 @@ def add_chapter_3(doc, helper):
         ]
     )
     
+    # UC-26
+    helper.add_use_case_table(doc, "3.26", "Tổng hợp số liệu và kết xuất báo cáo Excel đa bảng tính",
+        "Quản trị viên",
+        "Cho phép Quản trị viên trích xuất toàn bộ dữ liệu nghiệp vụ, vé tham quan, doanh thu, gian phòng và cổ vật ra tệp Excel chuẩn định dạng (.xlsx).",
+        "Quản trị viên đã đăng nhập và truy cập trang 'Báo cáo & Thống kê' trong phân hệ CMS.",
+        "Tệp Excel đa bảng tính (4 Worksheets) được tạo và tự động tải về máy tính với đầy đủ định dạng trực quan và ngôn ngữ tương ứng.",
+        [
+            ("1. Quản trị viên chọn mốc thời gian lọc (Hôm nay / Tháng này / Tất cả) và nhấn 'Xuất file Excel'.", "2. Hệ thống kiểm tra dữ liệu, nạp bộ từ điển đa ngôn ngữ i18n theo ngôn ngữ hiện tại của Quản trị viên."),
+            ("3. Thư viện xlsx-js-style tại Client tổng hợp và phân loại dữ liệu vào 4 bảng tính (KPIs, Vé PayOS, Gian phòng 360°, Cổ vật 3D).", "4. Hệ thống áp dụng định dạng Style (Header Obsidian/Gold, viền đôi, tiền tệ VND) và tạo tệp .xlsx."),
+            ("5. Trình duyệt tự động kích hoạt tải tệp về máy tính.", "6. Hệ thống hiển thị thông báo Toast 'Đã xuất file báo cáo Excel thành công!'.")
+        ],
+        [
+            ("Dữ liệu trống trong khoảng thời gian lọc:", "Hệ thống hiển thị cảnh báo 'Chưa có dữ liệu để xuất file Excel' và không tiến hành tải tệp.")
+        ]
+    )
+    
     # 3.3. Thiết kế cơ sở dữ liệu
     helper.add_heading_2(doc, "3.3. Thiết kế cơ sở dữ liệu")
     
@@ -770,6 +787,21 @@ def add_chapter_3(doc, helper):
     helper.add_figure_placeholder(doc, "3.11",
         "Sơ đồ hoạt động quy trình sinh, lưu trữ đệm băm (Hash Storage) và phát trực tuyến giọng đọc thuyết minh Audio",
         "Kiến trúc băm MD5(text + voice + lang), kiểm tra file MP3 tĩnh, gọi Google Cloud Neural TTS và phân phối phân đoạn HTTP 206 Partial Content [31]",
+        width_cm=15.0, height_cm=8.0
+    )
+    
+    helper.add_body_p(doc,
+        "7. Quy trình tổng hợp số liệu và kết xuất báo cáo Excel đa bảng tính (Hình 3.12): "
+        "Mô tả chi tiết luồng xử lý xuất tệp Microsoft Excel (.xlsx) chuẩn phong cách trực quan từ phân hệ Báo cáo & Thống kê quản trị. "
+        "Quy trình được tối ưu hóa toàn bộ phía Client bằng thư viện xlsx-js-style, giúp giải phóng hoàn toàn tải tính toán cho máy chủ Backend. "
+        "Hệ thống tổng hợp dữ liệu thời gian thực từ 4 nguồn: Chỉ số KPI doanh thu & vé, Danh sách chi tiết vé và giao dịch PayOS, "
+        "Danh mục 18 gian phòng Tour 360°, và Kho tư liệu cổ vật 3D. Dữ liệu được ánh xạ tự động theo từ điển đa ngôn ngữ (5 thứ tiếng: Việt, Anh, Pháp, Trung, Nhật), "
+        "tự động định dạng ô (Cell Formatting: Header màu Obsidian, viền kẻ đôi, định dạng tiền tệ VND, căn giữa ngày tháng) "
+        "và đóng gói thành tệp sổ tính gồm 4 Worksheets độc lập với tên tệp chuẩn hóa theo mốc thời gian."
+    )
+    helper.add_figure_placeholder(doc, "3.12",
+        "Sơ đồ hoạt động quy trình tổng hợp số liệu và kết xuất báo cáo Excel đa bảng tính (Multi-Sheet Excel Export)",
+        "Quy trình xử lý phía Client: Lọc dữ liệu -> Ánh xạ đa ngôn ngữ i18n -> Tạo 4 Worksheets chuyên biệt -> Định dạng Cell Styling -> Tự động tải tệp .xlsx",
         width_cm=15.0, height_cm=8.0
     )
     

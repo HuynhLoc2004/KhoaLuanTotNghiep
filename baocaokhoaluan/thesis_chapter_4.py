@@ -606,6 +606,39 @@ def add_chapter_4(doc, helper):
         bold_prefix="3. Bảng điều khiển Hiệu năng API & Mạng (APM): "
     )
     
+    helper.add_body_p(doc,
+        "Hiện thực tính năng Xuất báo cáo thống kê Excel đa bảng tính (Hình 4.31): "
+        "Tại giao diện 'Báo cáo & Thống kê' của phân hệ Quản trị, hệ thống tích hợp nút bấm 'Xuất file Excel' màu vàng nổi bật "
+        "nằm cạnh nút 'Làm mới' và bộ lọc thời gian (Hôm nay, Tuần này, Tháng này, Tất cả). "
+        "Tính năng được lập trình tối ưu hóa hoàn toàn phía Client bằng thư viện xlsx-js-style, giải phóng toàn bộ tài nguyên tính toán cho máy chủ. "
+        "Khi bấm xuất, hệ thống trích xuất dữ liệu đang hiển thị và sinh ra một cuốn sổ tính Microsoft Excel (.xlsx) gồm 4 Worksheets chuyên biệt:"
+    )
+    helper.add_bullet_item(doc,
+        "Tổng hợp các chỉ số cốt lõi gồm: Tổng doanh thu vé đã thanh toán (VND), Tổng số vé đã phát hành, Số vé đã soát vào cổng thực tế, "
+        "và Số lượng khách tham quan trực tuyến thời gian thực qua giao thức Server-Sent Events (SSE).",
+        bold_prefix="• Sheet 1 - Tổng quan KPIs & Doanh thu: "
+    )
+    helper.add_bullet_item(doc,
+        "Bảng chi tiết toàn bộ các đơn hàng đặt vé gồm: Mã đơn hàng PayOS, Họ tên khách hàng, Số điện thoại, Loại vé tham quan, Số tiền (VND), "
+        "Cổng thanh toán (VietQR/PayOS), Trạng thái đơn (Đã thanh toán / Chờ thanh toán / Đã soát vé), và Thời gian giao dịch.",
+        bold_prefix="• Sheet 2 - Chi tiết Vé & Giao dịch PayOS: "
+    )
+    helper.add_bullet_item(doc,
+        "Danh mục 18 gian phòng trưng bày gồm: Mã phòng (P01 đến P18), Tên gian phòng, Số lượng hiện vật trưng bày bên trong, "
+        "và Trạng thái số hóa không gian ảnh cầu 360° x 180°.",
+        bold_prefix="• Sheet 3 - Danh mục Gian phòng Tour 360°: "
+    )
+    helper.add_bullet_item(doc,
+        "Bảng kiểm kê kho tư liệu di sản gồm: Mã cổ vật, Tên cổ vật, Gian phòng lưu giữ, Thời kỳ lịch sử, Trạng thái mô hình 3D (.GLB), "
+        "và Trạng thái bài thuyết minh âm thanh đa ngôn ngữ.",
+        bold_prefix="• Sheet 4 - Kho Cổ vật & Bảo vật 3D: "
+    )
+    helper.add_body_p(doc,
+        "Toàn bộ tệp Excel được định dạng trực quan chuyên nghiệp: Banner tiêu đề gộp ô màu xanh đen Obsidian (#0f172a) chữ vàng Antique Gold (#f59e0b), "
+        "tiêu đề cột màu Slate đậm, định dạng số tiền VND có phân cách hàng nghìn, tự động căn chỉnh độ rộng cột (wch) chống lỗi hiển thị tràn ô (###), "
+        "và tự động dịch toàn bộ nhãn cột, trạng thái và tên tệp theo ngôn ngữ hiện tại của Quản trị viên (5 thứ tiếng: Việt, Anh, Pháp, Trung, Nhật)."
+    )
+    
     # Placeholders Hình 4.31 & 4.32
     helper.add_figure_placeholder(doc, "4.31",
         "Giao diện Bảng điều khiển Báo cáo & Thống kê Nghiệp vụ Di sản & Doanh thu Vé tích hợp Grafana",
