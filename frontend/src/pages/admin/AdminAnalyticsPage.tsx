@@ -432,6 +432,31 @@ export const AdminAnalyticsPage: React.FC = () => {
   const [customStart, setCustomStart] = useState<string>('');
   const [customEnd, setCustomEnd] = useState<string>('');
 
+  // Đồng bộ tham số thời gian chuẩn của Grafana (from/to) theo bộ lọc Admin
+  const grafanaTimeQuery = useMemo(() => {
+    switch (timeRange) {
+      case 'today':
+        return '&from=now%2Fd&to=now';
+      case 'week':
+        return '&from=now-7d&to=now';
+      case 'month':
+        return '&from=now%2FM&to=now';
+      case 'year':
+        return '&from=now%2Fy&to=now';
+      case 'all':
+        return '&from=now-5y&to=now';
+      case 'custom':
+        if (customStart && customEnd) {
+          const fromTs = new Date(`${customStart}T00:00:00`).getTime();
+          const toTs = new Date(`${customEnd}T23:59:59`).getTime();
+          return `&from=${fromTs}&to=${toTs}`;
+        }
+        return '&from=now-30d&to=now';
+      default:
+        return '&from=now%2FM&to=now';
+    }
+  }, [timeRange, customStart, customEnd]);
+
   // Trạng thái dữ liệu
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -1329,7 +1354,7 @@ export const AdminAnalyticsPage: React.FC = () => {
                 type="button"
                 className="btn btn-secondary btn-sm grafana-fullscreen-btn"
                 onClick={() => {
-                  window.open(`/grafana/d/museum-analytics-03?token=${encodeURIComponent(adminToken)}`, '_blank');
+                  window.open(`/grafana/d/museum-analytics-03?token=${encodeURIComponent(adminToken)}${grafanaTimeQuery}`, '_blank');
                 }}
               >
                 <ExternalLink size={13} />
@@ -1340,7 +1365,7 @@ export const AdminAnalyticsPage: React.FC = () => {
             <iframe
               ref={(el) => { if (el) handleGrafanaIframeLoad(el); }}
               onLoad={(e) => handleGrafanaIframeLoad(e.currentTarget)}
-              src={`/grafana/d/museum-analytics-03?kiosk&theme=dark&token=${encodeURIComponent(adminToken)}`}
+              src={`/grafana/d/museum-analytics-03?kiosk&theme=dark&token=${encodeURIComponent(adminToken)}${grafanaTimeQuery}`}
               className="grafana-embed-iframe iframe-analytics"
               title="Bảng điều khiển Nghiệp vụ Di sản & Doanh thu Vé"
             />
@@ -1372,7 +1397,7 @@ export const AdminAnalyticsPage: React.FC = () => {
                 type="button"
                 className="btn btn-secondary btn-sm grafana-fullscreen-btn"
                 onClick={() => {
-                  window.open(`/grafana/d/museum-infra-01?token=${encodeURIComponent(adminToken)}`, '_blank');
+                  window.open(`/grafana/d/museum-infra-01?token=${encodeURIComponent(adminToken)}${grafanaTimeQuery}`, '_blank');
                 }}
               >
                 <ExternalLink size={13} />
@@ -1383,7 +1408,7 @@ export const AdminAnalyticsPage: React.FC = () => {
             <iframe
               ref={(el) => { if (el) handleGrafanaIframeLoad(el); }}
               onLoad={(e) => handleGrafanaIframeLoad(e.currentTarget)}
-              src={`/grafana/d/museum-infra-01?kiosk&theme=dark&token=${encodeURIComponent(adminToken)}`}
+              src={`/grafana/d/museum-infra-01?kiosk&theme=dark&token=${encodeURIComponent(adminToken)}${grafanaTimeQuery}`}
               className="grafana-embed-iframe iframe-standard"
               title="Bảng điều khiển Hạ tầng VPS & Container"
             />
@@ -1415,7 +1440,7 @@ export const AdminAnalyticsPage: React.FC = () => {
                 type="button"
                 className="btn btn-secondary btn-sm grafana-fullscreen-btn"
                 onClick={() => {
-                  window.open(`/grafana/d/museum-apm-02?token=${encodeURIComponent(adminToken)}`, '_blank');
+                  window.open(`/grafana/d/museum-apm-02?token=${encodeURIComponent(adminToken)}${grafanaTimeQuery}`, '_blank');
                 }}
               >
                 <ExternalLink size={13} />
@@ -1426,7 +1451,7 @@ export const AdminAnalyticsPage: React.FC = () => {
             <iframe
               ref={(el) => { if (el) handleGrafanaIframeLoad(el); }}
               onLoad={(e) => handleGrafanaIframeLoad(e.currentTarget)}
-              src={`/grafana/d/museum-apm-02?kiosk&theme=dark&token=${encodeURIComponent(adminToken)}`}
+              src={`/grafana/d/museum-apm-02?kiosk&theme=dark&token=${encodeURIComponent(adminToken)}${grafanaTimeQuery}`}
               className="grafana-embed-iframe iframe-standard"
               title="Bảng điều khiển Hiệu năng API & Mạng (APM)"
             />
