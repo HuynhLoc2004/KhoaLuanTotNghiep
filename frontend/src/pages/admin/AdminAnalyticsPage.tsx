@@ -1176,7 +1176,76 @@ export const AdminAnalyticsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* 2. CHUYỂN ĐỔI TAB CON TỐI GIẢN (KHÔNG ICON, ĐÚNG CHUẨN ADMIN) */}
+      {/* 2. DÃY THẺ KPI TỔNG HỢP (LUÔN CỐ ĐỊNH PHÍA TRÊN CHO TẤT CẢ CÁC TAB, ĐỒNG BỘ CHUẨN DESIGN SYSTEM BẢO TÀNG) */}
+      <div className="analytics-kpi-grid">
+        <div className="analytics-kpi-item">
+          <div className="kpi-label">
+            {t('analytics.kpiRevenue', 'Doanh thu bán vé')}
+          </div>
+          <div className="kpi-val kpi-val-gold">
+            {formatVND(kpis.totalRevenue)}
+          </div>
+        </div>
+
+        <div className="analytics-kpi-item">
+          <div className="kpi-label">
+            {t('analytics.kpiTicketsSold', 'Vé đã phát hành')}
+          </div>
+          <div className="kpi-val">
+            {kpis.totalTicketsSold.toLocaleString()}
+          </div>
+        </div>
+
+        <div className="analytics-kpi-item">
+          <div className="kpi-label">
+            {t('analytics.kpiCheckinRate', 'Tỷ lệ vào cổng')}
+          </div>
+          <div className="kpi-val">
+            {kpis.checkinRate}%
+            <span className="kpi-subval">
+              ({kpis.totalTicketsUsed} / {kpis.totalTicketsSold} vé)
+            </span>
+          </div>
+        </div>
+
+        <div className="analytics-kpi-item">
+          <div className="kpi-label">
+            {t('analytics.kpiRooms', 'Gian phòng 360°')}
+          </div>
+          <div className="kpi-val">
+            {kpis.totalRooms}
+            <span className="kpi-subval">
+              ({kpis.totalHotspots} hotspots)
+            </span>
+          </div>
+        </div>
+
+        <div className="analytics-kpi-item">
+          <div className="kpi-label">
+            {t('analytics.kpi3DArtifacts', 'Số hóa 3D thực tế')}
+          </div>
+          <div className="kpi-val">
+            {kpis.total3DArtifacts}
+            <span className="kpi-subval">
+              / {kpis.totalArtifacts} ({rate3D}%)
+            </span>
+          </div>
+        </div>
+
+        <div className="analytics-kpi-item">
+          <div className="kpi-label">
+            {t('analytics.kpiUsers', 'Tài khoản người dùng')}
+          </div>
+          <div className="kpi-val">
+            {kpis.totalUsers}
+            <span className="kpi-subval">
+              ({kpis.totalSystemLogs} nhật ký)
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* 3. CHUYỂN ĐỔI TAB CON TỐI GIẢN (KHÔNG ICON, ĐÚNG CHUẨN ADMIN) */}
       <div className="analytics-subtabs">
         {[
           { id: 'grafana-analytics', label: 'Nghiệp vụ Di sản & Doanh thu' },
@@ -1199,77 +1268,6 @@ export const AdminAnalyticsPage: React.FC = () => {
           );
         })}
       </div>
-
-      {/* 3. DÃY THẺ KPI TỐI GIẢN (CHỈ HIỂN THỊ Ở CÁC TAB BẢNG DỮ LIỆU NỘI BỘ, ẨN Ở TAB GRAFANA ĐỂ TRÁNH TRÙNG LẶP & RỐI MẮT) */}
-      {(subTab === 'tickets' || subTab === 'rooms' || subTab === 'artifacts') && (
-        <div className="analytics-kpi-grid">
-          <div className="analytics-kpi-item">
-            <div className="kpi-label">
-              {t('analytics.kpiRevenue', 'Doanh thu bán vé')}
-            </div>
-            <div className="kpi-val kpi-val-gold">
-              {formatVND(kpis.totalRevenue)}
-            </div>
-          </div>
-
-          <div className="analytics-kpi-item">
-            <div className="kpi-label">
-              {t('analytics.kpiTicketsSold', 'Vé đã phát hành')}
-            </div>
-            <div className="kpi-val">
-              {kpis.totalTicketsSold.toLocaleString()}
-            </div>
-          </div>
-
-          <div className="analytics-kpi-item">
-            <div className="kpi-label">
-              {t('analytics.kpiCheckinRate', 'Tỷ lệ vào cổng')}
-            </div>
-            <div className="kpi-val">
-              {kpis.checkinRate}%
-              <span className="kpi-subval">
-                ({kpis.totalTicketsUsed} / {kpis.totalTicketsSold} vé)
-              </span>
-            </div>
-          </div>
-
-          <div className="analytics-kpi-item">
-            <div className="kpi-label">
-              {t('analytics.kpiRooms', 'Gian phòng 360°')}
-            </div>
-            <div className="kpi-val">
-              {kpis.totalRooms}
-              <span className="kpi-subval">
-                ({kpis.totalHotspots} hotspots)
-              </span>
-            </div>
-          </div>
-
-          <div className="analytics-kpi-item">
-            <div className="kpi-label">
-              {t('analytics.kpi3DArtifacts', 'Số hóa 3D thực tế')}
-            </div>
-            <div className="kpi-val">
-              {kpis.total3DArtifacts}
-              <span className="kpi-subval">
-                / {kpis.totalArtifacts} ({rate3D}%)
-              </span>
-            </div>
-          </div>
-
-          <div className="analytics-kpi-item">
-            <div className="kpi-label">
-              {t('analytics.kpiUsers', 'Tài khoản người dùng')}
-            </div>
-            <div className="kpi-val">
-              {kpis.totalUsers}
-              <span className="kpi-subval">
-                ({kpis.totalSystemLogs} nhật ký)
-              </span>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* 4. KHUNG HIỂN THỊ NỘI DUNG TAB VỚI KÍCH THƯỚC CỐ ĐỊNH & HIỆU ỨNG CHUYỂN TAB MƯỢT MÀ */}
       <div className="analytics-tab-viewport">

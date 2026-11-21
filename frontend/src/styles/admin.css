@@ -7471,10 +7471,10 @@ select option {
 .grafana-iframe-container {
   margin-top: 6px;
   border-radius: 8px;
-  overflow: visible;
+  overflow: hidden;
   border: 1px solid var(--border-color);
   background-color: var(--bg-card);
-  margin-bottom: 30px;
+  margin-bottom: 16px;
 }
 
 .grafana-card-header {
@@ -7521,18 +7521,18 @@ select option {
 
 .grafana-embed-iframe {
   width: 100%;
-  height: 940px;
+  height: 860px;
   border: none;
   background-color: #111217;
   display: block;
 }
 
 .grafana-embed-iframe.iframe-analytics {
-  height: 1360px;
+  height: 860px;
 }
 
 .grafana-embed-iframe.iframe-standard {
-  height: 940px;
+  height: 560px;
 }
 
 .analytics-tab-viewport {
@@ -8719,7 +8719,7 @@ select, select.form-control {
    ========================================================================== */
 .admin-analytics-page {
   box-sizing: border-box;
-  padding: 20px 24px 80px !important;
+  padding: 20px 24px 24px !important;
 }
 
 .analytics-header {
@@ -8785,14 +8785,14 @@ select, select.form-control {
   display: flex;
   gap: 4px;
   border-bottom: 1px solid var(--border-color);
-  margin-bottom: 18px;
+  margin-bottom: 16px;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   max-width: 100%;
 }
 
 .analytics-subtab-btn {
-  padding: 8px 16px;
+  padding: 9px 16px;
   font-size: 13px;
   font-weight: 500;
   color: var(--text-muted);
@@ -8805,53 +8805,63 @@ select, select.form-control {
   transition: all 0.15s ease;
 }
 
-.analytics-subtab-btn.active {
+.analytics-subtab-btn:hover {
   color: var(--text-main);
-  border-bottom-color: var(--text-main);
+}
+
+.analytics-subtab-btn.active {
+  color: var(--accent-gold);
+  border-bottom-color: var(--accent-gold);
   font-weight: 600;
 }
 
 .analytics-kpi-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 14px;
-  margin-bottom: 20px;
+  grid-template-columns: repeat(6, 1fr);
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  margin-bottom: 18px;
+  box-shadow: var(--shadow-sm);
 }
 
 .analytics-kpi-item {
-  background: linear-gradient(180deg, rgba(22, 27, 38, 0.92) 0%, rgba(15, 19, 28, 0.96) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-top: 2px solid rgba(212, 168, 106, 0.4);
-  border-radius: 8px;
-  padding: 15px 18px;
-  box-sizing: border-box;
+  padding: 12px 16px;
+  border-right: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
-  justifyContent: space-between;
-  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
-  position: relative;
+  justify-content: center;
+  background: transparent;
+  transition: background 0.15s ease;
+  box-sizing: border-box;
+}
+
+.analytics-kpi-item:last-child {
+  border-right: none;
 }
 
 .analytics-kpi-item:hover {
-  transform: translateY(-2px);
-  border-color: rgba(212, 168, 106, 0.55);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+  background: rgba(212, 168, 106, 0.04);
 }
 
 .kpi-label {
   font-size: 11px;
-  color: #94a3b8;
+  color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
   font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .kpi-val {
-  font-size: 22px;
+  font-size: 18px;
   font-weight: 700;
-  color: #f1f5f9;
-  margin-top: 6px;
-  line-height: 1.25;
+  color: var(--text-main);
+  margin-top: 4px;
+  line-height: 1.2;
   display: flex;
   align-items: baseline;
   flex-wrap: wrap;
@@ -8859,16 +8869,16 @@ select, select.form-control {
 }
 
 .kpi-val.kpi-val-gold {
-  color: #d4a86a;
-  text-shadow: 0 0 14px rgba(212, 168, 106, 0.25);
+  color: var(--accent-gold);
 }
 
 .kpi-subval {
-  font-size: 11.5px;
-  color: #94a3b8;
+  font-size: 11px;
+  color: var(--text-muted);
   font-weight: 400;
   margin-left: 2px;
 }
+
 
 .analytics-filter-toolbar {
   background: var(--bg-card);
@@ -8936,10 +8946,30 @@ select, select.form-control {
   color: var(--text-muted);
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1200px) {
+  .analytics-kpi-grid {
+    grid-template-columns: repeat(3, 1fr) !important;
+  }
+  .analytics-kpi-item:nth-child(3n) {
+    border-right: none !important;
+  }
+  .analytics-kpi-item:nth-child(-n+3) {
+    border-bottom: 1px solid var(--border-color);
+  }
+}
+
+@media (max-width: 768px) {
   .analytics-kpi-grid {
     grid-template-columns: repeat(2, 1fr) !important;
-    gap: 10px !important;
+  }
+  .analytics-kpi-item:nth-child(3n) {
+    border-right: 1px solid var(--border-color) !important;
+  }
+  .analytics-kpi-item:nth-child(even) {
+    border-right: none !important;
+  }
+  .analytics-kpi-item:nth-child(-n+4) {
+    border-bottom: 1px solid var(--border-color);
   }
 }
 
