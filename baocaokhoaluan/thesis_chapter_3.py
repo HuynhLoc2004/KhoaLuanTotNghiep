@@ -166,7 +166,7 @@ def add_chapter_3(doc, helper):
     
     # Bảng 3.3
     helper.add_table_caption(doc, "3.3", "Bảng tổng hợp danh mục các Use Case trong hệ thống")
-    tbl_uclist = doc.add_table(rows=27, cols=3)
+    tbl_uclist = doc.add_table(rows=28, cols=3)
     tbl_uclist.alignment = WD_TABLE_ALIGNMENT.CENTER
     tbl_uclist.autofit = False
     helper.set_table_borders(tbl_uclist, color="475569", sz="6", val="single")
@@ -209,7 +209,8 @@ def add_chapter_3(doc, helper):
         ("UC-23", "Dịch thuật đa ngôn ngữ cục bộ theo không gian và cổ vật", "Khách tham quan"),
         ("UC-24", "Giám sát hiệu năng hệ thống và tài nguyên máy chủ qua Grafana", "Quản trị viên"),
         ("UC-25", "Quản lý và cấu hình giọng đọc thuyết minh Audio đa ngôn ngữ", "Quản trị viên"),
-        ("UC-26", "Tổng hợp số liệu và kết xuất báo cáo Excel đa bảng tính", "Quản trị viên")
+        ("UC-26", "Tổng hợp số liệu và kết xuất báo cáo Excel đa bảng tính", "Quản trị viên"),
+        ("UC-27", "Quét mã QR Trưng bày khám phá hiện vật 3D và phòng 360°", "Khách tham quan")
     ]
     for idx, (uc_id, uc_name, act_nm) in enumerate(ucl_data):
         row = tbl_uclist.rows[idx + 1]
@@ -583,6 +584,22 @@ def add_chapter_3(doc, helper):
         ]
     )
     
+    # UC-27
+    helper.add_use_case_table(doc, "3.27", "Quét mã QR Trưng bày khám phá hiện vật 3D và phòng 360°",
+        "Khách tham quan",
+        "Cho phép du khách tham quan trực tiếp tại Bảo tàng Lịch sử TP.HCM sử dụng camera điện thoại quét mã QR gắn trên tủ kính hoặc trước cửa phòng để mở ngay mô hình 3D xoay 360° hoặc không gian Tour 360° tương ứng.",
+        "Khách tham quan truy cập website trên điện thoại di động và nhấn nút 'Quét QR' trên thanh điều hướng.",
+        "Mô hình cổ vật 3D (.GLB) tương tác hoặc không gian gian phòng 360° được mở ra tức thì kèm thuyết minh âm thanh, mang lại trải nghiệm Phygital sống động.",
+        [
+            ("1. Khách tham quan nhấn nút 'Quét QR' trên thanh điều hướng, cấp quyền truy cập Camera.", "2. Hộp thoại QRScannerModal mở ra, camera kích hoạt quét luồng video thời gian thực."),
+            ("3. Khách hướng camera vào mã QR dán trên tủ kính cổ vật hoặc trước cửa phòng (hoặc chọn ảnh chụp QR từ máy).", "4. Thuật toán jsQR nhận diện và giải mã chuỗi Payload deep link trong mã QR."),
+            ("5. Hệ thống phát âm thanh tiếng Beep (880Hz) và rung xúc giác xác nhận quét thành công.", "6. Hệ thống phân loại mã: Nếu là mã cổ vật, mở ngay Modal chiêm ngưỡng 3D xoay đa chiều và phát audio thuyết minh; nếu là mã gian phòng, tự động chuyển cảnh vào không gian Tour 360° của phòng đó.")
+        ],
+        [
+            ("Khách quét nhầm mã vé tham quan (tiền tố TKT-):", "Hệ thống hiển thị cảnh báo 'Mã này là vé tham quan, máy quét này chỉ dùng để khám phá Hiện vật & Gian phòng trưng bày (Soát vé chỉ áp dụng tại trang quản trị)'.")
+        ]
+    )
+    
     # 3.3. Thiết kế cơ sở dữ liệu
     helper.add_heading_2(doc, "3.3. Thiết kế cơ sở dữ liệu")
     
@@ -803,6 +820,21 @@ def add_chapter_3(doc, helper):
     helper.add_figure_placeholder(doc, "3.12",
         "Sơ đồ hoạt động quy trình tổng hợp số liệu và kết xuất báo cáo Excel đa bảng tính (Multi-Sheet Excel Export)",
         "Quy trình xử lý phía Client: Lọc dữ liệu -> Ánh xạ đa ngôn ngữ i18n -> Tạo 4 Worksheets chuyên biệt -> Định dạng Cell Styling -> Tự động tải tệp .xlsx",
+        width_cm=15.0, height_cm=8.0
+    )
+    
+    helper.add_body_p(doc,
+        "8. Quy trình quản trị mã QR trưng bày và quét tương tác Phygital tại bảo tàng thực địa (Hình 3.13): "
+        "Mô tả cầu nối vật lý - số học (Phygital) kết nối hiện vật trưng bày thực tế tại Bảo tàng Lịch sử TP.HCM với hệ thống bảo tàng ảo 360°. "
+        "Quy trình gồm hai phân hệ tương hỗ: Phân hệ Quản trị CMS tự động sinh mã QR định danh chuẩn ISO/IEC 18004 [39] "
+        "cho từng gian phòng và từng cổ vật ngay khi được tạo mới, hỗ trợ xuất file ảnh sắc nét để in ấn bảng chỉ dẫn tại thực địa. "
+        "Tại bảo tàng, du khách chỉ cần dùng điện thoại mở công cụ Quét QR trên website (vận hành bằng thuật toán jsQR qua requestAnimationFrame "
+        "kết hợp Web Audio API phát tiếng Beep và rung xúc giác). Hệ thống tự động phân loại mã để mở ngay mô hình cổ vật 3D xoay đa chiều, "
+        "phát thuyết minh âm thanh, hoặc bước vào không gian Tour 360° tương ứng, đồng thời có cơ chế nhận diện thông minh để cảnh báo nếu quét nhầm mã vé tham quan."
+    )
+    helper.add_figure_placeholder(doc, "3.13",
+        "Sơ đồ hoạt động quy trình quản trị mã QR trưng bày và quét tương tác Phygital tại bảo tàng",
+        "Luồng tương tác khép kín: Tự động sinh mã QR tại CMS -> In và dán tại tủ kính hiện vật -> Khách quét Camera jsQR thời gian thực -> Phân loại mã -> Mở mô hình cổ vật 3D / Tour 360°",
         width_cm=15.0, height_cm=8.0
     )
     

@@ -61,7 +61,8 @@ def add_references_and_appendices(doc, helpers):
         (35, 'Prometheus Authors, "Prometheus: Monitoring System and Time Series Database Documentation," The Linux Foundation, 2024. Available: https://prometheus.io/docs. [Accessed: 15/10/2026].'),
         (36, 'Google Cloud, "Cloud Translation API Documentation: Neural Machine Translation (NMT) and Advanced Localization," 2024. Available: https://cloud.google.com/translate. [Accessed: 20/10/2026].'),
         (37, 'M. Petroff, "Pannellum: A lightweight web-based panorama viewer," Journal of Open Source Software, vol. 4, no. 40, p. 1628, 2019. DOI: 10.21105/joss.01628. Available: https://pannellum.org. [Accessed: 18/10/2026].'),
-        (38, 'O. El-Said and H. Aziz, "Virtual Tours in Heritage Tourism: Spatial Navigation and User Experience in 360° Virtual Museums," Journal of Heritage Tourism, vol. 17, no. 2, pp. 120-142, 2022. DOI: 10.1080/1743873X.2021.1893796. Available: https://tandfonline.com. [Accessed: 22/10/2026].')
+        (38, 'O. El-Said and H. Aziz, "Virtual Tours in Heritage Tourism: Spatial Navigation and User Experience in 360° Virtual Museums," Journal of Heritage Tourism, vol. 17, no. 2, pp. 120-142, 2022. DOI: 10.1080/1743873X.2021.1893796. Available: https://tandfonline.com. [Accessed: 22/10/2026].'),
+        (39, 'ISO/IEC, "ISO/IEC 18004: Information technology - Automatic identification and data capture techniques - QR Code bar code symbology specification," International Organization for Standardization, Geneva, Switzerland, 2024. Available: https://www.iso.org/standard/62021.html. [Accessed: 15/10/2026].')
     ]
 
     for ref_id, citation_text in references_data:

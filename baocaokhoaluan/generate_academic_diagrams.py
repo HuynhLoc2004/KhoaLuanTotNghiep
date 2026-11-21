@@ -1757,6 +1757,67 @@ def gen_fig_3_12():
     fig.savefig(os.path.join(DIAGRAMS_DIR, "hinh_3_12_excel_export_activity.png"), bbox_inches='tight')
     plt.close(fig)
 
+def gen_fig_3_13():
+    """Hinh 3.13: So do hoat dong quan tri ma QR trung bay va quet tuong tac Phygital tai bao tang"""
+    fig, ax = plt.subplots(figsize=(11.5, 6.2), dpi=300)
+    ax.set_xlim(0, 11.5); ax.set_ylim(0, 6.2); ax.axis('off')
+
+    bg_panel = patches.FancyBboxPatch((0.15, 0.15), 11.2, 5.9, boxstyle='round,pad=0.05,rounding_size=0.12',
+                                      facecolor='#F8FAFC', edgecolor=C_LINE_DARK, lw=1.4, zorder=1)
+    ax.add_patch(bg_panel)
+
+    ax.text(5.75, 5.75, 'SƠ ĐỒ HOẠT ĐỘNG: QUY TRÌNH QUẢN TRỊ MÃ QR TRƯNG BÀY VÀ QUÉT TƯƠNG TÁC PHYGITAL TẠI BẢO TÀNG',
+            ha='center', va='center', fontsize=9.2, fontweight='bold', color=C_DARK_TEXT, zorder=3)
+    ax.text(5.75, 5.45, 'Kết nối hiện vật thực địa với không gian ảo: Tự động sinh mã QR -> Dán tại tủ kính -> Quét Camera jsQR -> Mở 3D / Tour 360°',
+            ha='center', va='center', fontsize=7.5, color=C_MUTED_TEXT, zorder=3)
+
+    # Swimlane 1: CMS Admin
+    lane1 = patches.FancyBboxPatch((0.35, 3.75), 10.8, 1.45, boxstyle='round,pad=0.03,rounding_size=0.08',
+                                  facecolor='#F1F5F9', edgecolor='#94A3B8', lw=1.0, linestyle='--', zorder=2)
+    ax.add_patch(lane1)
+    ax.text(0.55, 4.95, 'PHÂN HỆ QUẢN TRỊ CMS (SINH MÃ & IN ẤN THỰC ĐỊA)', fontsize=6.8, fontweight='bold', color='#334155', zorder=4)
+
+    draw_actor(ax, 1.2, 4.3, 'Quản trị viên', 'Tạo phòng / cổ vật', scale=0.75)
+    draw_clean_node(ax, 3.2, 4.4, 2.0, 0.85, 'Sinh mã QR tự động', 'Deep link ?artifact={id}\nChuẩn ISO/IEC 18004', bg='#FFFFFF')
+    draw_clean_node(ax, 6.0, 4.4, 1.9, 0.85, 'Xuất file PNG / SVG', 'Độ phân giải 300 DPI\nIn ấn bảng chỉ dẫn', bg='#FFFFFF')
+    draw_clean_node(ax, 9.0, 4.4, 2.3, 0.85, 'Dán QR tại Thực địa', 'Dán trước cửa 18 phòng &\nTủ kính 17 bảo vật quốc gia', bg='#FEF3C7', border='#D97706')
+
+    draw_step_arrow(ax, 1.6, 4.4, 2.2, 4.4, step='1', label='Lưu hồ sơ')
+    draw_step_arrow(ax, 4.2, 4.4, 5.0, 4.4, step='2', label='Tạo vector QR')
+    draw_step_arrow(ax, 7.0, 4.4, 7.8, 4.4, step='3', label='In & Gắn tem')
+
+    # Swimlane 2: Visitor Scanner
+    lane2 = patches.FancyBboxPatch((0.35, 0.35), 10.8, 3.25, boxstyle='round,pad=0.03,rounding_size=0.08',
+                                  facecolor='#FFFFFF', edgecolor='#94A3B8', lw=1.0, linestyle='--', zorder=2)
+    ax.add_patch(lane2)
+    ax.text(0.55, 3.35, 'PHÂN HỆ KHÁCH THAM QUAN THỰC ĐỊA (QUÉT QR TƯƠNG TÁC PHYGITAL)', fontsize=6.8, fontweight='bold', color='#334155', zorder=4)
+
+    draw_actor(ax, 1.2, 2.0, 'Khách tham quan', 'Đến bảo tàng thực tế', scale=0.75)
+    draw_clean_node(ax, 3.2, 2.2, 1.9, 0.95, 'Camera Scanner', 'QRScannerModal\nrequestAnimationFrame\nWeb Audio Beep 880Hz', bg='#F8FAFC')
+    draw_clean_node(ax, 5.6, 2.2, 1.7, 0.95, 'Giải mã jsQR', 'Đa tỷ lệ 1000/600px\nKhử bóng lóa kính', bg='#F8FAFC')
+
+    diamond = patches.Polygon([[6.9, 2.2], [7.6, 2.75], [8.3, 2.2], [7.6, 1.65]],
+                              facecolor='#FEF3C7', edgecolor=C_LINE_DARK, lw=1.2, zorder=4)
+    ax.add_patch(diamond)
+    ax.text(7.6, 2.2, 'Phân loại\nmã QR?', ha='center', va='center', fontsize=6.8, fontweight='bold', color=C_DARK_TEXT, zorder=6)
+
+    draw_clean_node(ax, 9.9, 2.7, 2.3, 0.85, 'Chiêm ngưỡng Cổ vật 3D', 'Mở Modal 3D xoay 360° .GLB\nPhát thuyết minh Audio Guide', bg='#DCFCE7', border='#16A34A')
+    draw_clean_node(ax, 9.9, 1.6, 2.3, 0.85, 'Vào Gian phòng Tour 360°', 'Chuyển cảnh không gian 360°\nĐịnh vị phòng trên Mini-map', bg='#EFF6FF', border='#2563EB')
+    draw_clean_node(ax, 7.6, 0.75, 2.4, 0.60, 'Mã vé (TKT-): Cảnh báo nhầm', 'Hướng dẫn khách tới cổng soát vé', bg='#FEE2E2', border='#DC2626')
+
+    draw_step_arrow(ax, 1.6, 2.2, 2.2, 2.2, step='4', label='Mở Quét QR')
+    draw_step_arrow(ax, 4.15, 2.2, 4.75, 2.2, step='5', label='Bắt video stream')
+    draw_step_arrow(ax, 6.45, 2.2, 6.85, 2.2, step='6', label='Tách Payload')
+
+    draw_step_arrow(ax, 9.0, 3.9, 3.2, 2.7, step='', label='Quét tem dán thực tế', color='#D97706', rad=-0.2)
+
+    draw_step_arrow(ax, 8.2, 2.4, 8.7, 2.7, step='7a', label='[Cổ vật]', label_offset=0.18)
+    draw_step_arrow(ax, 8.2, 2.0, 8.7, 1.6, step='7b', label='[Gian phòng]', label_offset=-0.18)
+    draw_step_arrow(ax, 7.6, 1.65, 7.6, 1.1, step='', label='[Vé tham quan]', label_offset=0.35)
+
+    fig.savefig(os.path.join(DIAGRAMS_DIR, "hinh_3_13_qr_exhibition_activity.png"), bbox_inches='tight')
+    plt.close(fig)
+
 def gen_fig_4_37():
     """Hinh 4.37: Bieu do thoi gian phan hoi trung binh JMeter"""
     fig, ax = plt.subplots(figsize=(8.0, 4.2), dpi=300)
@@ -1873,6 +1934,7 @@ def gen_all():
     gen_fig_3_10()
     gen_fig_3_11()
     gen_fig_3_12()
+    gen_fig_3_13()
     gen_fig_4_1()
     gen_fig_4_3()
     gen_fig_4_5()
@@ -1882,7 +1944,7 @@ def gen_all():
     gen_fig_4_38()
     gen_fig_4_39()
     gen_fig_4_40()
-    print(">>> HOAN THANH TAO 37 SO DO HOC THUAT MAU SAM HOAN HAO!")
+    print(">>> HOAN THANH TAO 38 SO DO HOC THUAT MAU SAM HOAN HAO!")
 
 if __name__ == "__main__":
     gen_all()
