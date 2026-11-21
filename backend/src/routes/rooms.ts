@@ -63,6 +63,7 @@ roomsRouter.get('/', async (req: Request, res: Response) => {
                r.ai_voice_lang as "aiVoiceLang", r.qr_scan_count as "qrScanCount",
                r.scenes_count as "scenesCount", r.translations, r.topic_id as "topicId",
                r.audio_url as "audioUrl",
+               COUNT(DISTINCT a.id)::int as "artifactCount",
                COALESCE(
                  json_agg(
                    json_build_object(
@@ -79,6 +80,7 @@ roomsRouter.get('/', async (req: Request, res: Response) => {
                ) as hotspots
         FROM rooms r
         LEFT JOIN hotspots h ON r.id = h.room_id
+        LEFT JOIN artifacts a ON (r.id = a.room_id OR (r.code = a.room_code AND a.room_code IS NOT NULL))
         GROUP BY r.id
         ORDER BY r.order_index ASC, r.created_at ASC;
       `);
@@ -92,7 +94,23 @@ roomsRouter.get('/', async (req: Request, res: Response) => {
 
     // 2. Fallback sang MongoDB nếu PostgreSQL chưa có bản ghi nào
     if (rooms.length === 0) {
-      rooms = await RoomModel.find({}).sort({ orderIndex: 1 }).lean();
+      const rawRooms = await RoomModel.find({}).sort({ orderIndex: 1 }).lean();
+      try {
+        const artifactCounts = await ArtifactModel.aggregate([
+          { $match: { $or: [{ roomId: { $exists: true, $ne: '' } }, { roomCode: { $exists: true, $ne: '' } }] } },
+          { $group: { _id: { $ifNull: ['$roomId', '$roomCode'] }, count: { $sum: 1 } } }
+        ]);
+        const countMap: Record<string, number> = {};
+        artifactCounts.forEach((ac: any) => {
+          if (ac._id) countMap[String(ac._id)] = ac.count;
+        });
+        rooms = rawRooms.map((r: any) => ({
+          ...r,
+          artifactCount: countMap[r.id] || countMap[r.code] || 0
+        }));
+      } catch {
+        rooms = rawRooms.map((r: any) => ({ ...r, artifactCount: 0 }));
+      }
     }
 
     if (rooms.length > 0) {

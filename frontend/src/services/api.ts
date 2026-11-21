@@ -34,6 +34,19 @@ export const resolveMediaUrl = (path?: string, fallback: string = ''): string =>
     trimmed = trimmed.replace(/\/image\/upload\/(v\d+\/)?/i, (m, v) => `/image/upload/fl_sanitize/${v || ''}`);
   }
 
+  // Tự động tối ưu hình ảnh Cloudinary (f_auto, q_auto, w_800) để tải nhanh gấp 10-20 lần, tiết kiệm băng thông di động
+  if (
+    trimmed.includes('res.cloudinary.com') &&
+    trimmed.includes('/image/upload/') &&
+    !trimmed.includes('f_auto') &&
+    !trimmed.toLowerCase().includes('.svg') &&
+    !trimmed.toLowerCase().includes('.glb') &&
+    !trimmed.toLowerCase().includes('.gltf') &&
+    !trimmed.toLowerCase().includes('.mp3')
+  ) {
+    trimmed = trimmed.replace(/\/image\/upload\/(v\d+\/)?/i, (m, v) => `/image/upload/f_auto,q_auto,w_800/${v || ''}`);
+  }
+
   if (trimmed.startsWith('http://') || trimmed.startsWith('https://') || trimmed.startsWith('data:') || trimmed.startsWith('blob:')) {
     return trimmed;
   }

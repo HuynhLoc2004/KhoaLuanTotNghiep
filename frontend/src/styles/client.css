@@ -802,6 +802,21 @@ html {
   white-space: nowrap;
 }
 
+.client-dropdown-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 99;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  animation: fadeInBackdrop 0.15s ease-out;
+}
+
+@keyframes fadeInBackdrop {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
 .client-user-dropdown {
   position: absolute;
   top: calc(100% + 8px);
@@ -816,6 +831,31 @@ html {
   flex-direction: column;
   gap: 4px;
   z-index: 100;
+  animation: fadeInDownUser 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transform-origin: top right;
+}
+
+@keyframes fadeInDownUser {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (max-width: 768px) {
+  .client-user-dropdown {
+    right: -48px !important;
+    width: min(250px, calc(100vw - 32px)) !important;
+    border-radius: 14px !important;
+    background: rgba(20, 24, 33, 0.98) !important;
+    border: 1px solid rgba(212, 168, 106, 0.35) !important;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7) !important;
+    padding: 10px !important;
+  }
 }
 
 .client-user-dropdown-item {

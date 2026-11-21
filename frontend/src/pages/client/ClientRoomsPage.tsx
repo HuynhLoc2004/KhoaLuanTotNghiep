@@ -289,7 +289,7 @@ export const ClientRoomsPage: React.FC<ClientRoomsPageProps> = ({
                         alignItems: 'center',
                         justifyContent: 'space-between',
                         width: '100%',
-                        padding: '8px 10px',
+                        padding: '9px 12px',
                         borderRadius: 8,
                         border: 'none',
                         background: selectedPeriod === 'all' ? 'rgba(212, 168, 106, 0.16)' : 'transparent',
@@ -308,13 +308,16 @@ export const ClientRoomsPage: React.FC<ClientRoomsPageProps> = ({
                       }}
                     >
                       <span>{t('common.all', 'Tất cả thời kỳ')}</span>
-                      <span style={{ fontSize: '11px', opacity: 0.7 }}>({rooms.length})</span>
+                      <span style={{ fontSize: '11px', opacity: 0.8, color: '#D4A86A', fontWeight: 600 }}>
+                        ({rooms.reduce((acc, r) => acc + ((r as any).artifactCount || 0), 0) || rooms.length} hiện vật)
+                      </span>
                     </button>
 
                     {/* Options từng thời kỳ */}
                     {periods.map((p) => {
                       const isSelected = selectedPeriod === p;
-                      const countInPeriod = rooms.filter((r) => ((r as any).period || r.category) === p).length;
+                      const matchingRooms = rooms.filter((r) => sanitizeMuseumText((r as any).period || r.category || '') === p);
+                      const countArtifacts = matchingRooms.reduce((acc, r) => acc + ((r as any).artifactCount || 0), 0);
                       return (
                         <button
                           key={p}
@@ -328,7 +331,7 @@ export const ClientRoomsPage: React.FC<ClientRoomsPageProps> = ({
                             alignItems: 'center',
                             justifyContent: 'space-between',
                             width: '100%',
-                            padding: '8px 10px',
+                            padding: '9px 12px',
                             borderRadius: 8,
                             border: 'none',
                             background: isSelected ? 'rgba(212, 168, 106, 0.16)' : 'transparent',
@@ -350,7 +353,9 @@ export const ClientRoomsPage: React.FC<ClientRoomsPageProps> = ({
                             {t(p, p)}
                           </span>
                           <span style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-                            <span style={{ fontSize: '11px', opacity: 0.7 }}>({countInPeriod})</span>
+                            <span style={{ fontSize: '11px', opacity: 0.8, color: '#D4A86A', fontWeight: 600 }}>
+                              ({countArtifacts > 0 ? `${countArtifacts} hiện vật` : `${matchingRooms.length} phòng`})
+                            </span>
                             {isSelected && <Check size={13} style={{ color: '#D4A86A' }} />}
                           </span>
                         </button>
@@ -446,10 +451,14 @@ export const ClientRoomsPage: React.FC<ClientRoomsPageProps> = ({
                         <div className="client-zigzag-badge-float">
                           <span>{thumb ? t('rooms.ready360', '360° Sẵn sàng') : t('rooms.updating', 'Đang cập nhật')}</span>
                         </div>
-                        {hotspotCount > 0 && (
+                        {((room as any).artifactCount > 0 || hotspotCount > 0) && (
                           <div className="client-gallery-hotspot-pill">
                             <Layers size={13} style={{ color: '#D4A86A' }} />
-                            <span>{hotspotCount} {t('rooms.hotspotsCount', 'điểm chú thích')}</span>
+                            <span>
+                              {(room as any).artifactCount > 0
+                                ? `${(room as any).artifactCount} hiện vật`
+                                : `${hotspotCount} ${t('rooms.hotspotsCount', 'điểm chú thích')}`}
+                            </span>
                           </div>
                         )}
                       </div>

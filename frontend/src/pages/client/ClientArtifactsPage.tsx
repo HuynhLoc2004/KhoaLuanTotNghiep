@@ -44,16 +44,19 @@ export const ClientArtifactsPage: React.FC<ClientArtifactsPageProps> = ({
     setCurrentPage(1);
   }, [searchQuery, selectedCategory, only3D]);
 
-  // Trích xuất các phân loại hiện vật
+  // Trích xuất các phân loại hiện vật có ý nghĩa (tinh giản các nhãn mặc định trùng lặp)
   const categories = useMemo(() => {
     const set = new Set<string>();
     artifacts.forEach((a) => {
-      if (a.category) set.add(a.category);
+      const c = (a.category || '').trim();
+      if (c && c.toLowerCase() !== 'cổ vật di sản' && c.toLowerCase() !== 'cổ vật' && c.toLowerCase() !== 'di sản') {
+        set.add(c);
+      }
     });
     return Array.from(set);
   }, [artifacts]);
 
-  // Lọc hiện vật theo tìm kiếm, danh mục và trạng thái 3D
+  // Lọc hiện vật theo tìm kiếm và danh mục
   const filteredArtifacts = useMemo(() => {
     return artifacts.filter((a) => {
       const name = localize(a, 'name', a.name).toLowerCase();
@@ -72,11 +75,10 @@ export const ClientArtifactsPage: React.FC<ClientArtifactsPageProps> = ({
         period.includes(searchQuery.toLowerCase());
 
       const matchCategory = selectedCategory === 'all' || cat === selectedCategory;
-      const match3D = !only3D || !!a.model3dUrl;
 
-      return matchSearch && matchCategory && match3D;
+      return matchSearch && matchCategory;
     });
-  }, [artifacts, searchQuery, selectedCategory, only3D, localize]);
+  }, [artifacts, searchQuery, selectedCategory, localize]);
 
   // Phân trang hiện vật
   const paginatedArtifacts = useMemo(() => {
@@ -178,22 +180,10 @@ export const ClientArtifactsPage: React.FC<ClientArtifactsPageProps> = ({
             <div className="client-subpage-filters">
               <button
                 type="button"
-                className={`client-subpage-filter-btn ${!only3D && selectedCategory === 'all' ? 'active' : ''}`}
-                onClick={() => {
-                  setSelectedCategory('all');
-                  setOnly3D(false);
-                }}
+                className={`client-subpage-filter-btn ${selectedCategory === 'all' ? 'active' : ''}`}
+                onClick={() => setSelectedCategory('all')}
               >
                 <span>{t('common.all', 'Tất cả')} ({artifacts.length})</span>
-              </button>
-
-              <button
-                type="button"
-                className={`client-subpage-filter-btn ${only3D ? 'active' : ''}`}
-                onClick={() => setOnly3D((prev) => !prev)}
-              >
-                <RotateCw size={13} />
-                <span>{t('artifacts.only3D', 'Có mô hình 3D xoay')}</span>
               </button>
 
               {categories.map((c) => (
@@ -230,7 +220,7 @@ export const ClientArtifactsPage: React.FC<ClientArtifactsPageProps> = ({
           ) : (
             <>
               <div className="client-subpage-grid">
-                {paginatedArtifacts.map((art) => {
+                {paginatedArtifacts.map((art, idx) => {
                   const title = localize(art, 'name', art.name);
                   const period = localize(art, 'period', art.period || '');
                   const category = art.category || 'Cổ vật di sản';
@@ -252,7 +242,8 @@ export const ClientArtifactsPage: React.FC<ClientArtifactsPageProps> = ({
                             src={thumb}
                             alt={title}
                             className="client-gallery-img client-artifact-img"
-                            loading="lazy"
+                            loading={idx < 4 ? 'eager' : 'lazy'}
+                            decoding="async"
                             onError={() => setFailedThumbs((prev) => ({ ...prev, [artId]: true }))}
                           />
                         ) : (

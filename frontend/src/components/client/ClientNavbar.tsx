@@ -81,7 +81,7 @@ export const ClientNavbar: React.FC<ClientNavbarProps> = ({
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Đóng dropdown khi click ra ngoài
+  // Đóng dropdown khi click ra ngoài hoặc khi cuộn trang
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (userDropdownRef.current && !userDropdownRef.current.contains(e.target as Node)) {
@@ -94,9 +94,19 @@ export const ClientNavbar: React.FC<ClientNavbarProps> = ({
         setActiveDropdownId(null);
       }
     };
+
+    const handleScrollClose = () => {
+      if (isUserDropdownOpen) setIsUserDropdownOpen(false);
+      if (isLangDropdownOpen) setIsLangDropdownOpen(false);
+    };
+
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+    window.addEventListener('scroll', handleScrollClose, { passive: true });
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      window.removeEventListener('scroll', handleScrollClose);
+    };
+  }, [isUserDropdownOpen, isLangDropdownOpen]);
 
   // Tự động đóng Mobile Menu khi xoay màn hình hoặc resize lên màn hình lớn (Desktop)
   useEffect(() => {
@@ -459,7 +469,12 @@ export const ClientNavbar: React.FC<ClientNavbarProps> = ({
               </button>
 
               {isUserDropdownOpen && (
-                <div className="client-user-dropdown" style={{ minWidth: 200 }}>
+                <>
+                  <div
+                    className="client-dropdown-backdrop"
+                    onClick={() => setIsUserDropdownOpen(false)}
+                  />
+                  <div className="client-user-dropdown" style={{ minWidth: 200 }}>
                   <div style={{ padding: '8px 12px', borderBottom: '1px solid var(--c-border-subtle)', marginBottom: 4 }}>
                     <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--c-text-primary)', wordBreak: 'break-all' }}>
                       {user.email || user.username}
@@ -505,7 +520,8 @@ export const ClientNavbar: React.FC<ClientNavbarProps> = ({
                     <span>{t('nav.logout', 'Đăng xuất')}</span>
                   </button>
                 </div>
-              )}
+              </>
+            )}
             </div>
           ) : (
             <button
