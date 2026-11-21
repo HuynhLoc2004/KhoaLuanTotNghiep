@@ -469,5 +469,68 @@ def add_chapter_2(doc, helper):
         width_cm=15.0, height_cm=7.5
     )
     
+    # 2.2.5. Nền tảng quan sát và giám sát hệ thống thời gian thực (Grafana & Prometheus)
+    helper.add_heading_3(doc, "2.2.5. Nền tảng quan sát và giám sát hệ thống thời gian thực (Grafana & Prometheus)")
+    helper.add_body_p(doc,
+        "Để đảm bảo hệ thống số hóa bảo tàng vận hành liên tục 24/7 với độ sẵn sàng cao, nhóm tác giả tích hợp nền tảng quan sát toàn diện "
+        "(Observability Platform) dựa trên sự kết hợp giữa Grafana và Prometheus [32], [35]. Mục đích cốt lõi của phân hệ này là cung cấp bức tranh "
+        "trực quan, tức thời về hai khía cạnh trọng yếu: Sức khỏe hạ tầng kỹ thuật (Hạ tầng VPS, Docker Container, độ trễ API) và Chỉ số kinh doanh nghiệp vụ "
+        "(Doanh thu bán vé trực tuyến VietQR qua PayOS, số lượng khách tham quan, tiến độ số hóa 18 phòng và kho cổ vật di sản)."
+    )
+    helper.add_body_p(doc,
+        "Về mặt kiến trúc thu thập dữ liệu, Prometheus đóng vai trò là cơ sở dữ liệu chuỗi thời gian (Time-Series Database - TSDB) thực hiện cơ chế "
+        "kéo (Pull/Scraping) các chỉ số định lượng từ các thành phần giám sát (cAdvisor thu thập số liệu tiêu thụ CPU/RAM của từng container, Node Exporter "
+        "theo dõi tải phần cứng máy chủ chủ quản). Đồng thời, Grafana Engine kết nối trực tiếp với hệ quản trị CSDL quan hệ PostgreSQL 16 thông qua tài khoản "
+        "truy vấn an toàn chỉ đọc (Read-Only user: pg_readonly). Cơ chế này đảm bảo Grafana chỉ thực hiện các lệnh SELECT tổng hợp số liệu vé và doanh thu, "
+        "hoàn toàn triệt tiêu nguy cơ sửa đổi hoặc làm rò rỉ dữ liệu gốc của bảo tàng [13], [32]."
+    )
+    helper.add_body_p(doc,
+        "Đặc biệt, để ban quản trị bảo tàng có thể theo dõi số liệu trực tiếp ngay bên trong cổng quản trị Admin (mục Báo cáo & Thống kê và Nhật ký & Giám sát) "
+        "mà không cần đăng nhập rời rạc vào cổng phụ của Grafana, nhóm nghiên cứu đã hiện thực kỹ thuật nhúng bảng điều khiển bảo mật (Secure Dashboard Embedding). "
+        "Các cơ chế an ninh mạng được cấu hình nghiêm ngặt bao gồm: kích hoạt cờ allow_embedding = true trong tệp cấu hình grafana.ini, cấu hình Cookie phiên "
+        "làm việc chuẩn SameSite=None; Secure, và thiết lập chính sách bảo mật nội dung HTTP Content-Security-Policy: frame-ancestors 'self' https://museumhcm.duckdns.org "
+        "nhằm triệt tiêu triệt để nguy cơ tấn công chiếm quyền nhấp chuột (Clickjacking) từ các tên miền giả mạo bên ngoài [18], [32]."
+    )
+    
+    # Placeholder Hình 2.14
+    helper.add_figure_placeholder(doc, "2.14",
+        "Sơ đồ kiến trúc thu thập và hiển thị dữ liệu giám sát hệ thống với Grafana & Prometheus",
+        "Mô hình tích hợp đa nguồn: Thu thập Metrics hạ tầng VPS, Container cAdvisor, APM API và CSDL PostgreSQL Read-Only nhúng bảo mật vào Admin",
+        width_cm=15.0, height_cm=7.5
+    )
+    
+    # 2.2.6. Công nghệ dịch thuật ngữ cảnh di sản và xử lý ngôn ngữ tự nhiên đa ngôn ngữ
+    helper.add_heading_3(doc, "2.2.6. Công nghệ dịch thuật ngữ cảnh di sản và xử lý ngôn ngữ tự nhiên đa ngôn ngữ")
+    helper.add_body_p(doc,
+        "Bảo tàng Lịch sử TP. Hồ Chí Minh là điểm đến văn hóa quốc tế, thường xuyên đón tiếp đông đảo du khách nước ngoài và các nhà nghiên cứu đa quốc gia. "
+        "Do đó, yêu cầu bản địa hóa ngôn ngữ không chỉ dừng lại ở việc chuyển đổi các nhãn tĩnh giao diện (UI labels) mà đòi hỏi chuyển ngữ chính xác thuật ngữ "
+        "lịch sử, niên đại triều đại và giá trị khảo cổ của từng hiện vật trưng bày [2], [28]. Nhóm nghiên cứu kết hợp công nghệ Dịch máy thần kinh (Neural Machine "
+        "Translation - NMT) của Google Cloud Translation API [36] và Mô hình ngôn ngữ lớn (LLM) Google Gemini [25], [26] để xử lý dịch thuật chuyên sâu."
+    )
+    helper.add_body_p(doc,
+        "Về mặt kiến trúc ứng dụng, nhóm tác giả đề xuất nguyên lý thiết kế phân tách độc lập giữa Ngôn ngữ giao diện hệ thống (System UI Language) và "
+        "Ngôn ngữ thuyết minh không gian/cổ vật (Entity Context Language). Trong thực tế tham quan, khách quốc tế hoặc người dùng nghiên cứu có nhu cầu giữ "
+        "giao diện hệ thống quen thuộc nhưng chủ động chuyển đổi ngôn ngữ thuyết minh của một gian phòng cụ thể hoặc một hiện vật đang xem sang tiếng Anh hoặc tiếng Pháp. "
+        "Kiến trúc này cho phép chuyển đổi ngôn ngữ cục bộ ngay trên màn hình Tour 360° một cách mượt mà mà không làm tải lại toàn bộ trang web hoặc làm xáo trộn "
+        "ngôn ngữ điều hướng chung của ứng dụng."
+    )
+    
+    # 2.2.7. Công nghệ tổng hợp giọng nói Text-to-Speech và Cơ chế lưu trữ đệm âm thanh (Audio Caching Architecture)
+    helper.add_heading_3(doc, "2.2.7. Công nghệ tổng hợp giọng nói Text-to-Speech và Cơ chế lưu trữ đệm âm thanh (Audio Caching Architecture)")
+    helper.add_body_p(doc,
+        "Để nâng cao trải nghiệm tham quan sống động như có hướng dẫn viên thực thụ tại bảo tàng, hệ thống tích hợp công nghệ tổng hợp giọng nói trí tuệ nhân tạo "
+        "Google Cloud Text-to-Speech thế hệ Neural2 [31]. Công nghệ này sử dụng mạng nơ-ron sâu mô phỏng ngữ điệu con người với chất giọng tự nhiên, ấm áp, "
+        "rất phù hợp với không gian trang nghiêm của bảo tàng lịch sử. Hệ thống áp dụng chuẩn ngôn ngữ đánh dấu tổng hợp tiếng nói (Speech Synthesis Markup Language - SSML) "
+        "để tinh chỉnh điểm ngắt nghỉ sau các niên đại lịch sử, điều chỉnh cao độ (pitch) và tốc độ đọc (speaking rate) phù hợp với từng ngôn ngữ (Việt, Anh, Pháp)."
+    )
+    helper.add_body_p(doc,
+        "Đặc biệt, nhằm tối ưu hóa chi phí gọi API đám mây và triệt tiêu độ trễ mạng khi phát âm thanh, nhóm nghiên cứu thiết kế Kiến trúc lưu trữ đệm âm thanh dạng băm "
+        "(Hash-based Audio Storage Architecture). Khi quản trị viên biên tập bài thuyết minh cho một gian phòng hoặc cổ vật, hệ thống tính toán một khóa băm tĩnh duy nhất: "
+        "AudioKey = MD5(entity_id + lang + voice_code + text_content). Hệ thống kiểm tra trong thư mục lưu trữ tĩnh /audio_cache/ xem tệp {AudioKey}.mp3 đã tồn tại hay chưa. "
+        "Nếu tệp đã tồn tại, đường dẫn tĩnh được trả về ngay lập tức với tiêu đề HTTP Cache-Control: public, max-age=31536000, immutable cho phép trình duyệt máy khách "
+        "lưu đệm vĩnh viễn và phát trực tuyến tức thì với độ trễ dưới 50ms. Nếu tệp chưa tồn tại, hệ thống mới tiến hành gọi API Google Cloud TTS để kết xuất âm thanh, "
+        "ghi tệp vào đĩa cứng máy chủ và cập nhật liên kết vào CSDL. Cơ chế này giúp bảo tàng tiết kiệm 100% chi phí gọi lại API cho các lượt nghe tiếp theo [18], [31]."
+    )
+    
     doc.add_page_break()
     print("Chapter 2 added successfully.")

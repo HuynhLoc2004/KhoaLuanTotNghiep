@@ -447,7 +447,7 @@ def add_chapter_4(doc, helper):
     helper.add_heading_3(doc, "4.2.6. Tập hợp các giao diện website thực tế (Khách tham quan, Quản trị CMS, Studio)")
     helper.add_body_p(doc,
         "Dưới đây là tập hợp toàn bộ các giao diện thực tế của hệ thống, được thiết kế chuẩn mực theo ngôn ngữ di sản văn hóa, "
-        "hỗ trợ tương thích hoàn hảo trên cả máy tính để bàn và điện thoại di động (từ Hình 4.9 đến Hình 4.30):"
+        "hỗ trợ tương thích hoàn hảo trên cả máy tính để bàn và điện thoại di động (từ Hình 4.9 đến Hình 4.36):"
     )
     
     helper.add_figure_placeholder(doc, "4.9",
@@ -561,6 +561,121 @@ def add_chapter_4(doc, helper):
         width_cm=15.0, height_cm=7.5
     )
     
+    # 4.2.7. Phân hệ Báo cáo Thống kê nghiệp vụ và Giám sát vận hành hệ thống qua Grafana
+    helper.add_heading_3(doc, "4.2.7. Phân hệ Báo cáo Thống kê nghiệp vụ và Giám sát vận hành hệ thống qua Grafana")
+    helper.add_body_p(doc,
+        "Nhằm hỗ trợ Ban giám đốc và các cán bộ chuyên trách bảo tàng nắm bắt chính xác hiện trạng hoạt động mà không phụ thuộc vào các báo cáo thủ công, "
+        "nhóm tác giả đã tích hợp hoàn chỉnh dịch vụ Grafana v11.x (container museum_grafana) liên kết với cụm máy chủ và hệ quản trị CSDL PostgreSQL 16 [13], [32]. "
+        "Dữ liệu được trích xuất an toàn thông qua cơ chế phân quyền tài khoản chỉ đọc (PostgreSQL Read-Only Mode: pg_readonly), đảm bảo tuân thủ tuyệt đối an toàn thông tin."
+    )
+    helper.add_body_p(doc,
+        "Phân hệ cung cấp ba bảng điều khiển (Dashboards) chuyên sâu được nhúng trực tiếp vào giao diện quản trị Admin:"
+    )
+    helper.add_bullet_item(doc,
+        "Thống kê tổng doanh thu thực tế từ cổng thanh toán PayOS / VietQR [16], [17], số lượng vé bán ra theo các mốc thời gian (Hôm nay, Tuần này, Tháng này, Năm nay), "
+        "tỷ lệ chuyển đổi đơn hàng (Đã thanh toán vs Hết hạn), và tiến độ số hóa di sản (tỷ lệ phần trăm 18 gian phòng và danh mục cổ vật 3D đã đưa lên không gian mạng).",
+        bold_prefix="1. Bảng điều khiển Nghiệp vụ Di sản & Doanh thu Vé: "
+    )
+    helper.add_bullet_item(doc,
+        "Theo dõi trực quan mức độ chiếm dụng tài nguyên của máy chủ Cloud VPS (tỷ lệ CPU %, dung lượng RAM sử dụng/còn trống, lưu lượng đọc/ghi ổ cứng NVMe SSD), "
+        "và giám sát trạng thái thời gian thực của toàn bộ cụm container Docker (Nginx, Backend API, PostgreSQL, MongoDB, Redis, Python AI Studio) [19], [32].",
+        bold_prefix="2. Bảng điều khiển Hạ tầng VPS & Container: "
+    )
+    helper.add_bullet_item(doc,
+        "Phân tích hiệu năng giao diện lập trình ứng dụng (Application Performance Monitoring - APM): Đo lường độ trễ phản hồi (Response Latency), thông lượng yêu cầu "
+        "(Throughput req/s) và phân loại mã trạng thái HTTP (2xx thành công, 4xx lỗi người dùng, 5xx lỗi máy chủ) theo thời gian thực [23], [32].",
+        bold_prefix="3. Bảng điều khiển Hiệu năng API & Mạng (APM): "
+    )
+    
+    # Placeholders Hình 4.31 & 4.32
+    helper.add_figure_placeholder(doc, "4.31",
+        "Giao diện Bảng điều khiển Báo cáo & Thống kê Nghiệp vụ Di sản & Doanh thu Vé tích hợp Grafana",
+        "Ảnh chụp màn hình bảng điều khiển Grafana nhúng trực tiếp trong trang quản trị Admin, hiển thị biểu đồ diễn biến doanh thu VietQR và tỷ lệ số hóa phòng 360° [17], [32]",
+        width_cm=15.0, height_cm=7.5
+    )
+    helper.add_figure_placeholder(doc, "4.32",
+        "Giao diện Bảng điều khiển Giám sát Hạ tầng VPS và Docker Container trên Grafana",
+        "Màn hình theo dõi tài nguyên phần cứng máy chủ VPS (CPU, RAM, Disk I/O) và trạng thái sống còn của cụm container điều phối [19], [32]",
+        width_cm=15.0, height_cm=7.5
+    )
+    
+    # 4.2.8. Hiện thực Phân hệ Dịch thuật Đa ngôn ngữ Độc lập cho Không gian 360° và Cổ vật
+    helper.add_heading_3(doc, "4.2.8. Hiện thực Phân hệ Dịch thuật Đa ngôn ngữ Độc lập cho Không gian 360° và Cổ vật")
+    helper.add_body_p(doc,
+        "Phân hệ Dịch thuật đa ngôn ngữ được hiện thực theo nguyên lý bản địa hóa ngữ cảnh độc lập (Local Context Localization). Trong CSDL PostgreSQL, "
+        "các bảng lưu trữ gian phòng (rooms) và hiện vật di sản (artifacts) được thiết kế mở rộng các trường ngôn ngữ quốc tế (name_vi, name_en, name_fr, "
+        "description_vi, description_en, description_fr). Nhờ đó, quản trị viên có thể vừa sử dụng công cụ dịch thuật tự động Google Cloud Translation / Gemini API [25], [36] "
+        "để khởi tạo bản dịch thô, vừa có thể hiệu đính thuật ngữ chuyên ngành bảo tàng để đạt độ chuẩn xác học thuật cao nhất."
+    )
+    helper.add_body_p(doc,
+        "Trên giao diện Tour 360° của khách tham quan, menu tùy chọn ngôn ngữ thuyết minh được thiết kế dưới dạng nút bấm nổi tinh gọn. Khi du khách quốc tế chọn chuyển đổi "
+        "sang tiếng Anh hoặc tiếng Pháp, hệ thống chỉ kích hoạt làm mới tiêu đề phòng, nội dung thuyết minh văn bản và danh sách hiện vật trong không gian phòng đang xem, "
+        "hoàn toàn giữ nguyên ngôn ngữ điều hướng tổng thể của hệ thống. Cơ chế này đem lại trải nghiệm mượt mà, không gián đoạn tương tác xoay hình cầu 3D của du khách."
+    )
+    
+    # Placeholder Hình 4.33
+    helper.add_figure_placeholder(doc, "4.33",
+        "Giao diện Tùy chọn ngôn ngữ thuyết minh trong Không gian Tour 360° và bảng thông tin cổ vật bản địa hóa",
+        "Menu chuyển đổi ngôn ngữ độc lập (Tiếng Việt, English, Français) trong phòng tham quan 360° và cửa sổ thông tin cổ vật đã được dịch chuẩn hóa [36]",
+        width_cm=15.0, height_cm=7.5
+    )
+    
+    # 4.2.9. Hiện thực Phân hệ Thuyết minh Giọng đọc Audio và Cơ chế Lưu trữ Đệm mượt mà
+    helper.add_heading_3(doc, "4.2.9. Hiện thực Phân hệ Thuyết minh Giọng đọc Audio và Cơ chế Lưu trữ Đệm mượt mà")
+    helper.add_body_p(doc,
+        "Phân hệ Thuyết minh âm thanh (Audio Guide) được hiện thực với hai tính năng song hành: Cho phép quản trị viên tải lên các tệp ghi âm giọng đọc thực tế "
+        "của các thuyết minh viên gạo cội tại Bảo tàng Lịch sử TP. Hồ Chí Minh, hoặc kích hoạt chức năng 'Tự động sinh giọng AI' sử dụng Google Cloud Text-to-Speech Neural2 [31]. "
+        "Hệ thống tích hợp bộ lọc chuẩn hóa văn bản trước khi đọc, loại bỏ các ký tự đặc biệt, mở rộng các chữ viết tắt lịch sử và gán các thẻ SSML kiểm soát nhịp ngắt trang trọng."
+    )
+    helper.add_body_p(doc,
+        "Đặc biệt, cơ chế lưu trữ đệm băm (Hash Storage) giải quyết triệt để bài toán chi phí và độ trễ: Mỗi đoạn thuyết minh sau khi sinh được lưu trữ dưới dạng tệp tĩnh "
+        "/audio_cache/{AudioKey}.mp3 (với AudioKey là chuỗi băm MD5 duy nhất). Máy chủ Nginx hỗ trợ giao thức truyền phát phân đoạn HTTP 206 Partial Content, "
+        "cho phép trình duyệt của khách tham quan bắt đầu phát âm thanh ngay lập tức sau chưa đầy 50ms mà không cần đợi tải toàn bộ tệp âm thanh lớn về máy. "
+        "Khi chuyển sang phòng khác, trình phát âm thanh nổi sẽ tự động dừng êm ái và nạp bài thuyết minh của phòng mới, tránh xung đột âm thanh trong không gian ảo."
+    )
+    
+    # Placeholders Hình 4.34 & 4.35
+    helper.add_figure_placeholder(doc, "4.34",
+        "Giao diện Quản trị thuyết minh âm thanh và cấu hình sinh giọng đọc AI tự động",
+        "Màn hình quản trị cho phép nghe thử giọng đọc, điều chỉnh tốc độ, cao độ, tải lên file âm thanh thực địa hoặc bấm sinh giọng AI tự động qua Google TTS [31]",
+        width_cm=15.0, height_cm=7.5
+    )
+    helper.add_figure_placeholder(doc, "4.35",
+        "Giao diện Trình phát thuyết minh âm thanh nổi trên không gian Tour 360°",
+        "Thanh điều khiển Audio Player trang nhã tích hợp nút Play/Pause, tua thời gian, thanh âm lượng và tự động đồng bộ theo từng gian phòng tham quan",
+        width_cm=15.0, height_cm=7.5
+    )
+    
+    # 4.2.10. Tối ưu hóa Giao diện Người dùng và Thiết kế Thích ứng (Responsive Mobile First)
+    helper.add_heading_3(doc, "4.2.10. Tối ưu hóa Giao diện Người dùng và Thiết kế Thích ứng (Responsive Mobile First)")
+    helper.add_body_p(doc,
+        "Dựa trên khảo sát thực tế có hơn 72% khách tham quan bảo tàng sử dụng điện thoại thông minh để quét mã QR và trải nghiệm không gian số, nhóm tác giả "
+        "đặc biệt chú trọng tối ưu hóa trải nghiệm giao diện người dùng theo triết lý Mobile-First [20], [24]:"
+    )
+    helper.add_bullet_item(doc,
+        "Trên màn hình máy tính (Desktop/Laptop), bộ lọc hiển thị dưới dạng Dropdown tinh tế với chiều rộng 350px, bo góc mềm mại 16px và thanh cuộn mỏng màu vàng hoàng gia (5px) "
+        "thay thế thanh cuộn trắng thô mặc định của hệ điều hành. Trên điện thoại di động, bộ lọc tự động chuyển hóa thành một ngăn kéo vuốt ra từ cạnh phải (Drawer Panel) với "
+        "thanh tiêu đề tuân thủ vùng an toàn (Safe-Area Inset), nút đóng tròn tiện lợi và cơ chế chặn nổi bọt sự kiện giúp thao tác chạm chọn thời kỳ diễn ra tức thì, không bị trễ hoặc đóng nhầm.",
+        bold_prefix="1. Bộ lọc Thời kỳ và Không gian thích ứng (Adaptive Filter Drawer): "
+    )
+    helper.add_bullet_item(doc,
+        "Danh sách các hiện vật di sản trong không gian 360° được tổ chức dạng khay trượt từ đáy màn hình (Bottom Sheet), cho phép du khách vừa quan sát không gian toàn cảnh "
+        "vừa cuộn mượt mà xem danh mục cổ vật trưng bày trong phòng mà không bị che khuất tầm nhìn.",
+        bold_prefix="2. Khay trượt danh sách hiện vật trong Tour 360° (Bottom Sheet Modal): "
+    )
+    helper.add_bullet_item(doc,
+        "Khung hội thoại với Trợ lý Di sản Ảo AI được cố định tọa độ linh hoạt (Fixed Viewport Container), triệt tiêu hoàn toàn hiện tượng giật nảy màn hình (Viewport Jump) "
+        "khi bàn phím ảo của các thiết bị di động iOS Safari và Android Chrome xuất hiện.",
+        bold_prefix="3. Cố định vùng nhìn cho Trợ lý Trò chuyện AI: "
+    )
+    
+    # Placeholder Hình 4.36
+    helper.add_figure_placeholder(doc, "4.36",
+        "Giao diện Drawer lọc thời kỳ và danh sách hiện vật dạng Bottom Sheet tối ưu cho thiết bị di động",
+        "Thiết kế thích ứng thông minh trên màn hình điện thoại di động: Ngăn kéo lọc thời kỳ vuốt mượt mà và khay trượt hiện vật không che khuất góc nhìn 360°",
+        width_cm=15.0, height_cm=7.5
+    )
+    
     # -------------------------------------------------------------------------
     # 4.3. ĐÁNH GIÁ HIỆU SUẤT HỆ THỐNG
     # -------------------------------------------------------------------------
@@ -633,7 +748,7 @@ def add_chapter_4(doc, helper):
     # 4.3.3. Bảng số liệu và phân tích kết quả thử nghiệm hiệu năng
     helper.add_heading_3(doc, "4.3.3. Bảng số liệu và phân tích kết quả thử nghiệm hiệu năng")
     helper.add_body_p(doc,
-        "Kết quả đo lường thực tế từ Apache JMeter được tổng hợp chi tiết trong Bảng 4.4 và các biểu đồ phân tích tương ứng (Hình 4.31 đến Hình 4.33):"
+        "Kết quả đo lường thực tế từ Apache JMeter được tổng hợp chi tiết trong Bảng 4.4 và các biểu đồ phân tích tương ứng (Hình 4.37 đến Hình 4.39):"
     )
     
     # Bảng 4.4: Kết quả đo lường JMeter
@@ -680,18 +795,18 @@ def add_chapter_4(doc, helper):
                 c.paragraphs[0].paragraph_format.space_before = Pt(2)
                 c.paragraphs[0].paragraph_format.space_after = Pt(2)
 
-    # Placeholders Hình 4.31 -> 4.33
-    helper.add_figure_placeholder(doc, "4.31",
+    # Placeholders Hình 4.37 -> 4.39
+    helper.add_figure_placeholder(doc, "4.37",
         "Biểu đồ thời gian phản hồi trung bình (Response Time) theo số lượng users",
         "Đồ thị biểu diễn thời gian đáp ứng tăng tuyến tính nhẹ từ 42ms đến 112ms khi tải từ 50 đến 200 users và duy trì dưới 550ms ở mức tải cực đại 1000 users [23]",
         width_cm=15.0, height_cm=7.5
     )
-    helper.add_figure_placeholder(doc, "4.32",
+    helper.add_figure_placeholder(doc, "4.38",
         "Biểu đồ thông lượng hệ thống (Throughput - Requests/sec) kiểm thử bằng JMeter",
         "Đồ thị thông lượng đạt điểm bão hòa tối ưu ở mức xấp xỉ 295 requests/giây trên cấu hình 2 vCPU [23]",
         width_cm=15.0, height_cm=7.5
     )
-    helper.add_figure_placeholder(doc, "4.33",
+    helper.add_figure_placeholder(doc, "4.39",
         "Biểu đồ tỷ lệ lỗi (Error Rate) khi tăng tải từ 50 đến 1000 người dùng đồng thời",
         "Tỷ lệ lỗi duy trì mức 0.00% tuyệt đối từ 50 đến 200 users và chỉ đạt 0.45% khi chịu tải cực hạn 1000 users đồng thời [23]",
         width_cm=15.0, height_cm=7.5
@@ -700,7 +815,7 @@ def add_chapter_4(doc, helper):
     # 4.3.4. Đánh giá chỉ số Web Vitals và giải pháp tối ưu
     helper.add_heading_3(doc, "4.3.4. Đánh giá chỉ số Web Vitals và giải pháp tối ưu")
     helper.add_body_p(doc,
-        "Đánh giá trải nghiệm người dùng thực tế trên trình duyệt web được thực hiện bằng công cụ Google Lighthouse (chạy trên Google Chrome DevTools). Kết quả kiểm tra phiên bản Mobile và Desktop đạt điểm số xuất sắc (Bảng 4.5 và Hình 4.34) [24]:"
+        "Đánh giá trải nghiệm người dùng thực tế trên trình duyệt web được thực hiện bằng công cụ Google Lighthouse (chạy trên Google Chrome DevTools). Kết quả kiểm tra phiên bản Mobile và Desktop đạt điểm số xuất sắc (Bảng 4.5 và Hình 4.40) [24]:"
     )
     
     # Bảng 4.5: Google Lighthouse
@@ -747,8 +862,8 @@ def add_chapter_4(doc, helper):
                 c.paragraphs[0].paragraph_format.space_before = Pt(2)
                 c.paragraphs[0].paragraph_format.space_after = Pt(2)
 
-    # Placeholder Hình 4.34
-    helper.add_figure_placeholder(doc, "4.34",
+    # Placeholder Hình 4.40
+    helper.add_figure_placeholder(doc, "4.40",
         "Kết quả đánh giá chỉ số hiệu năng và Web Vitals bằng Google Lighthouse",
         "Ảnh chụp bảng điểm Lighthouse đạt Performance 94, Accessibility 98, Best Practices 100 và SEO 96 [24]",
         width_cm=15.0, height_cm=7.5

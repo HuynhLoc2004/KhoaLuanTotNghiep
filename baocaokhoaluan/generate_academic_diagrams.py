@@ -1291,6 +1291,178 @@ def gen_fig_4_8():
     fig.savefig(os.path.join(DIAGRAMS_DIR, "hinh_4_8_payment_ticket_flow.png"), bbox_inches='tight')
     plt.close(fig)
 
+def gen_fig_2_14():
+    """Hinh 2.14: So do kien truc thu thap va hien thi du lieu giam sat he thong voi Grafana & Prometheus"""
+    fig, ax = plt.subplots(figsize=(10.5, 4.4), dpi=300)
+    ax.set_xlim(0, 10.5)
+    ax.set_ylim(0, 4.4)
+    ax.axis('off')
+    
+    # Title
+    ax.text(5.25, 4.25, 'KIẾN TRÚC GIÁM SÁT HỆ THỐNG VÀ PHÂN TÍCH QUAN SÁT (OBSERVABILITY ARCHITECTURE)',
+            ha='center', va='center', fontsize=9.5, fontweight='bold', color=C_DARK_TEXT)
+    ax.text(5.25, 3.98, 'Thu thập Metrics phần cứng VPS, Container Docker, APM API và CSDL PostgreSQL Read-Only',
+            ha='center', va='center', fontsize=7.8, color=C_MUTED_TEXT)
+            
+    # Cột 1: Nguồn dữ liệu giám sát (Data Sources)
+    draw_clean_node(ax, 1.4, 3.1, 2.2, 0.9, 'Hạ tầng VPS & Host OS', 'Ubuntu Linux 24.04 LTS\nCPU, RAM, Disk I/O, Network', bg='#F1F5F9')
+    draw_clean_node(ax, 1.4, 1.9, 2.2, 0.9, 'Docker Containers', 'cAdvisor / Engine Metrics\nNginx, Node, Python, Redis', bg='#F1F5F9')
+    draw_clean_node(ax, 1.4, 0.7, 2.2, 0.9, 'PostgreSQL Database', 'Số liệu vé, doanh thu, phòng 360\nRead-Only User (pg_readonly)', bg='#F1F5F9')
+    
+    # Cột 2: Thu thập & Lưu trữ chuỗi thời gian (Collectors & TSDB)
+    draw_server(ax, 4.4, 2.5, w=1.9, h=1.6, title='Prometheus Server', sub='Time-Series Database (TSDB)\nScraping Engine / Pull Metrics')
+    draw_database(ax, 4.4, 0.7, w=1.6, h=0.85, title='PostgreSQL Adapter', sub='Direct SQL Query Driver')
+    
+    # Cột 3: Trực quan hóa & Phân tích (Grafana Observability Engine)
+    draw_server(ax, 7.3, 2.0, w=2.1, h=2.5, title='Grafana Engine v11.x', sub='Provisioned Dashboards\n- Di sản & Doanh thu Vé\n- Hạ tầng VPS & Container\n- Hiệu năng APM & Latency\n- Secure iframe Embedding')
+    
+    # Cột 4: Người dùng quản trị (Admin Dashboard)
+    draw_actor(ax, 9.6, 2.7, 'Quản trị viên', 'Admin CMS Portal', scale=0.9)
+    draw_device(ax, 9.6, 1.1, w=1.1, h=0.9, title='Admin UI (Web)', sub='Embedded Iframe', kind='laptop')
+    
+    # Kết nối mũi tên
+    draw_step_arrow(ax, 2.5, 3.1, 3.45, 2.8, step='1', label='Pull Metrics')
+    draw_step_arrow(ax, 2.5, 1.9, 3.45, 2.2, step='1', label='cAdvisor')
+    draw_step_arrow(ax, 2.5, 0.7, 3.6, 0.7, step='2', label='SQL Query')
+    
+    draw_step_arrow(ax, 5.35, 2.5, 6.25, 2.5, step='3', label='TSDB Query')
+    draw_step_arrow(ax, 5.2, 0.7, 6.25, 1.3, step='4', label='Direct Query')
+    
+    draw_step_arrow(ax, 8.35, 2.0, 9.05, 1.4, step='5', label='Render Panels')
+    draw_step_arrow(ax, 9.6, 2.0, 9.6, 1.6, step='6', label='Theo dõi')
+    
+    fig.savefig(os.path.join(DIAGRAMS_DIR, "hinh_2_14_grafana_architecture.png"), bbox_inches='tight')
+    plt.close(fig)
+
+def gen_fig_3_9():
+    """Hinh 3.9: So do tuan tu quy trinh giam sat he thong va nhung Dashboard Grafana vao cong Quan tri"""
+    fig, ax = plt.subplots(figsize=(10.5, 4.4), dpi=300)
+    ax.set_xlim(0, 10.5)
+    ax.set_ylim(0, 4.4)
+    ax.axis('off')
+    
+    # Title
+    ax.text(5.25, 4.25, 'SƠ ĐỒ TUẦN TỰ: NHÚNG BẢNG ĐIỀU KHIỂN GRAFANA VÀO CỔNG QUẢN TRỊ ADMIN',
+            ha='center', va='center', fontsize=9.5, fontweight='bold', color=C_DARK_TEXT)
+    ax.text(5.25, 3.98, 'Quy trình xác thực phân quyền JWT, khởi tạo Iframe an toàn và truy vấn số liệu Read-Only',
+            ha='center', va='center', fontsize=7.8, color=C_MUTED_TEXT)
+            
+    # Lifelines
+    col_x = [1.2, 3.3, 5.7, 7.9, 9.6]
+    labels = ['Admin Browser\n(React UI)', 'Nginx Gateway\n(Reverse Proxy)', 'Backend API\n(Auth & Token)', 'Grafana Server\n(Port 3000)', 'PostgreSQL DB\n(Read-Only)']
+    
+    for i, x in enumerate(col_x):
+        # Header box
+        draw_clean_node(ax, x, 3.5, 1.6, 0.55, labels[i], bg='#E2E8F0')
+        # Vertical dotted line
+        ax.plot([x, x], [0.3, 3.2], color='#94A3B8', linestyle='--', lw=1.1, zorder=2)
+        
+    # Sequence messages
+    # Step 1: Admin truy cập trang Báo cáo & Thống kê
+    draw_step_arrow(ax, 1.2, 3.0, 3.3, 3.0, step='1', label='GET /admin/reports (JWT Token)', label_offset=0.18)
+    # Step 2: Nginx xác thực header bảo mật
+    draw_step_arrow(ax, 3.3, 2.65, 5.7, 2.65, step='2', label='Verify JWT & Role Admin', label_offset=0.18)
+    # Step 3: API trả về quyền truy cập hợp lệ
+    draw_step_arrow(ax, 5.7, 2.35, 3.3, 2.35, step='3', label='Auth OK: Grant Report View', label_offset=0.18)
+    # Step 4: Trình duyệt mở iframe Grafana với CSP an toàn
+    draw_step_arrow(ax, 1.2, 2.05, 7.9, 2.05, step='4', label='Load iframe /grafana/d/heritage-biz', label_offset=0.18)
+    # Step 5: Grafana kiểm tra allow_embedding & SameSite
+    draw_step_arrow(ax, 7.9, 1.70, 7.9, 1.45, step='5', label='Check Embedding Policy (CSP OK)', rad=0.25, label_offset=0.22)
+    # Step 6: Grafana truy vấn số liệu từ CSDL
+    draw_step_arrow(ax, 7.9, 1.15, 9.6, 1.15, step='6', label='SQL: SELECT metrics (Read-Only)', label_offset=0.18)
+    # Step 7: CSDL trả kết quả
+    draw_step_arrow(ax, 9.6, 0.85, 7.9, 0.85, step='7', label='Result rows (Vé, Doanh thu)', label_offset=0.18)
+    # Step 8: Hiển thị Panel trực tiếp lên Admin
+    draw_step_arrow(ax, 7.9, 0.50, 1.2, 0.50, step='8', label='Stream Dashboard Panels vào UI', label_offset=0.18)
+    
+    fig.savefig(os.path.join(DIAGRAMS_DIR, "hinh_3_9_grafana_sequence.png"), bbox_inches='tight')
+    plt.close(fig)
+
+def gen_fig_3_10():
+    """Hinh 3.10: So do hoat dong quy trinh dich thuat va tai noi dung ban dia hoa cuc bo cho khong gian 360 va co vat"""
+    fig, ax = plt.subplots(figsize=(10.5, 4.4), dpi=300)
+    ax.set_xlim(0, 10.5)
+    ax.set_ylim(0, 4.4)
+    ax.axis('off')
+    
+    # Title
+    ax.text(5.25, 4.25, 'QUY TRÌNH DỊCH THUẬT VÀ TẢI DỮ LIỆU BẢN ĐỊA HÓA CỤC BỘ (LOCALIZATION WORKFLOW)',
+            ha='center', va='center', fontsize=9.5, fontweight='bold', color=C_DARK_TEXT)
+    ax.text(5.25, 3.98, 'Phân tách độc lập ngôn ngữ thuyết minh phòng/hiện vật với ngôn ngữ chung của giao diện hệ thống',
+            ha='center', va='center', fontsize=7.8, color=C_MUTED_TEXT)
+            
+    # Node 1: Người dùng chọn ngôn ngữ thuyết minh
+    draw_actor(ax, 0.9, 2.5, 'Khách tham quan', 'Chọn VI / EN / FR\ntại phòng 360°', scale=0.85)
+    
+    # Node 2: Bộ điều khiển Client Context
+    draw_clean_node(ax, 2.8, 2.5, 1.9, 1.2, 'Client Controller', 'Đọc mã phòng / cổ vật\nKiểm tra ngôn ngữ đích\nGiữ nguyên System UI', bg='#F8FAFC')
+    
+    # Node 3: Kiểm tra Cache Local (IndexedDB / Memory)
+    draw_clean_node(ax, 5.1, 2.5, 1.8, 1.2, 'Bộ nhớ đệm Client', 'Tra cứu Cache cục bộ\n(LanguageCacheKey)', bg='#FEF3C7')
+    
+    # Node 4: Backend API
+    draw_server(ax, 7.6, 2.5, w=1.8, h=1.4, title='Localization API', sub='GET /api/localize\nTrích xuất bản dịch CSDL')
+    
+    # Node 5: AI Translation Engine (Fallback khi chưa có dịch sẵn)
+    draw_cloud(ax, 7.6, 0.75, w=1.9, h=0.85, title='Google Translate / Gemini AI', sub='Dịch tự động thuật ngữ di sản')
+    
+    # Node 6: Cập nhật giao diện 360
+    draw_clean_node(ax, 10.0, 2.5, 1.8, 1.2, 'Cập nhật UI 360°', 'Đổi văn bản mô tả\nĐổi Audio thuyết minh\nCập nhật danh sách hiện vật', bg='#DCFCE7')
+    
+    # Mũi tên luồng
+    draw_step_arrow(ax, 1.4, 2.5, 1.85, 2.5, step='1', label='Chọn ngôn ngữ')
+    draw_step_arrow(ax, 3.75, 2.5, 4.2, 2.5, step='2', label='Check cache')
+    draw_step_arrow(ax, 6.0, 2.5, 6.7, 2.5, step='3', label='Cache Miss')
+    draw_step_arrow(ax, 7.6, 1.8, 7.6, 1.25, step='4', label='AI Translation')
+    draw_step_arrow(ax, 7.6, 1.25, 7.6, 1.8, step='5', label='Lưu DB', rad=0.3)
+    draw_step_arrow(ax, 8.5, 2.5, 9.1, 2.5, step='6', label='Trả bản dịch')
+    draw_step_arrow(ax, 5.1, 3.1, 10.0, 3.1, step='2b', label='Cache Hit: Cập nhật tức thì (<10ms)', rad=0.25)
+    
+    fig.savefig(os.path.join(DIAGRAMS_DIR, "hinh_3_10_translation_flow.png"), bbox_inches='tight')
+    plt.close(fig)
+
+def gen_fig_3_11():
+    """Hinh 3.11: So do hoat dong quy trinh sinh, luu tru dem bam (Hash Storage) va phat truc tuyen giong doc thuyet minh Audio"""
+    fig, ax = plt.subplots(figsize=(10.5, 4.4), dpi=300)
+    ax.set_xlim(0, 10.5)
+    ax.set_ylim(0, 4.4)
+    ax.axis('off')
+    
+    # Title
+    ax.text(5.25, 4.25, 'QUY TRÌNH SINH, LƯU TRỮ ĐỆM (HASH STORAGE) VÀ STREAMING THUYẾT MINH AUDIO',
+            ha='center', va='center', fontsize=9.5, fontweight='bold', color=C_DARK_TEXT)
+    ax.text(5.25, 3.98, 'Tối ưu hóa chi phí API và độ trễ phát âm thanh di sản bằng cơ chế mã băm MD5 và lưu trữ tĩnh',
+            ha='center', va='center', fontsize=7.8, color=C_MUTED_TEXT)
+            
+    # Node 1: Yêu cầu phát thuyết minh
+    draw_actor(ax, 0.9, 2.4, 'Khách tham quan', 'Bấm nghe thuyết minh\nphòng hoặc hiện vật', scale=0.85)
+    
+    # Node 2: Bộ tính toán băm (Hash Calculator)
+    draw_clean_node(ax, 2.9, 2.4, 1.9, 1.3, 'Thuật toán băm MD5', 'Key = MD5(text +\nlang + voice_id)\nKhóa định danh tĩnh duy nhất', bg='#F8FAFC')
+    
+    # Node 3: Kiểm tra Storage tĩnh (Disk / MinIO / CDN)
+    draw_database(ax, 5.3, 2.4, w=1.4, h=1.0, title='Audio Cache Storage', sub='Thư mục /audio_cache/\n{AudioKey}.mp3', color=C_FILL_DB)
+    
+    # Node 4: Dịch vụ Google Cloud Neural TTS (khi chưa có cache)
+    draw_cloud(ax, 5.3, 0.7, w=1.9, h=0.85, title='Google Cloud TTS', sub='Neural2 & Wavenet AI\nChuẩn âm điệu Việt/Anh/Pháp')
+    
+    # Node 5: Máy chủ phân phối Audio Streaming
+    draw_server(ax, 8.0, 2.4, w=1.8, h=1.4, title='Nginx Audio Streamer', sub='HTTP 206 Partial Content\nCache-Control: Immutable\nLatency < 50ms')
+    
+    # Node 6: Trình phát Audio Player nổi
+    draw_clean_node(ax, 10.0, 2.4, 1.6, 1.2, 'Trình phát Audio', 'HTML5 Audio Engine\nHiển thị thời lượng\nĐồng bộ theo không gian', bg='#DCFCE7')
+    
+    # Mũi tên luồng
+    draw_step_arrow(ax, 1.4, 2.4, 1.95, 2.4, step='1', label='Yêu cầu phát')
+    draw_step_arrow(ax, 3.85, 2.4, 4.6, 2.4, step='2', label='Check file {Key}.mp3')
+    draw_step_arrow(ax, 5.3, 1.8, 5.3, 1.2, step='3', label='Chưa có: Gọi TTS')
+    draw_step_arrow(ax, 5.3, 1.2, 5.3, 1.8, step='4', label='Ghi đĩa tĩnh', rad=0.3)
+    draw_step_arrow(ax, 6.0, 2.4, 7.1, 2.4, step='5', label='Phát file tĩnh')
+    draw_step_arrow(ax, 8.9, 2.4, 9.2, 2.4, step='6', label='Stream MP3')
+    
+    fig.savefig(os.path.join(DIAGRAMS_DIR, "hinh_3_11_voice_tts_storage_pipeline.png"), bbox_inches='tight')
+    plt.close(fig)
+
 def gen_all():
     print(">>> DANG TAO TOAN BO SO DO CHUYEN NGHIEP CHUAN HOC THUAT (MAU SAM, TEXT DEN)...")
     gen_fig_1_1()
@@ -1308,14 +1480,18 @@ def gen_all():
     gen_fig_2_11()
     gen_fig_2_12()
     gen_fig_2_13()
+    gen_fig_2_14()
     gen_fig_3_1()
     gen_fig_3_5()
+    gen_fig_3_9()
+    gen_fig_3_10()
+    gen_fig_3_11()
     gen_fig_4_1()
     gen_fig_4_3()
     gen_fig_4_5()
     gen_fig_4_7()
     gen_fig_4_8()
-    print(">>> HOAN THANH TAO 23 SO DO HOC THUAT MAU SAM HOAN HAO!")
+    print(">>> HOAN THANH TAO 27 SO DO HOC THUAT MAU SAM HOAN HAO!")
 
 if __name__ == "__main__":
     gen_all()

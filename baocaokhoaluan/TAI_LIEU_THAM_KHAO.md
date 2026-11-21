@@ -35,3 +35,13 @@
 [17] E. W. Dijkstra, "A note on two problems in connexion with graphs," *Numerische Mathematik*, vol. 1, no. 1, pp. 269–271, 1959.
 
 [18] Ngân hàng Nhà nước Việt Nam, "Quyết định số 130/QĐ-NHNN về Tiêu chuẩn kỹ thuật thanh toán qua mã phản hồi nhanh (VietQR)," Hà Nội, 2021.
+
+[19] PayOS Team, "PayOS Open Payment Platform Documentation: VietQR Open API & HMAC-SHA256 Webhook Verification," 2024. [Trực tuyến]. Địa chỉ: https://payos.vn [Truy cập 28/09/2026].
+
+[20] Google Cloud, "Cloud Text-to-Speech Documentation: Neural2 and Multilingual Speech Synthesis," 2024. [Trực tuyến]. Địa chỉ: https://cloud.google.com/text-to-speech [Truy cập 18/10/2026].
+
+[21] Grafana Labs, "Grafana and Prometheus: Open Observability and Real-Time Systems Monitoring Platform Documentation," 2024. [Trực tuyến]. Địa chỉ: https://grafana.com/docs [Truy cập 26/10/2026].
+
+[22] Prometheus Authors, "Prometheus: Monitoring System and Time Series Database Documentation," The Linux Foundation, 2024. [Trực tuyến]. Địa chỉ: https://prometheus.io/docs [Truy cập 15/10/2026].
+
+[23] Google Cloud, "Cloud Translation API Documentation: Neural Machine Translation (NMT) and Advanced Localization," 2024. [Trực tuyến]. Địa chỉ: https://cloud.google.com/translate [Truy cập 20/10/2026].

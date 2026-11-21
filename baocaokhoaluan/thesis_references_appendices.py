@@ -57,7 +57,9 @@ def add_references_and_appendices(doc, helpers):
         (31, 'Google Cloud, "Cloud Text-to-Speech Documentation: Neural2 and Multilingual Speech Synthesis," 2024. Available: https://cloud.google.com/text-to-speech. [Accessed: 18/10/2026].'),
         (32, 'Grafana Labs, "Grafana and Prometheus: Open Observability and Real-Time Systems Monitoring Platform Documentation," 2024. Available: https://grafana.com/docs. [Accessed: 26/10/2026].'),
         (33, 'GitHub Inc., "GitHub Actions Documentation: Continuous Integration and Continuous Delivery (CI/CD) Automation," 2024. Available: https://docs.github.com/actions. [Accessed: 27/10/2026].'),
-        (34, 'Cloudflare Inc., "Cloudflare R2 Object Storage Documentation: S3-Compatible Cloud Storage Architecture," 2024. Available: https://developers.cloudflare.com/r2. [Accessed: 28/10/2026].')
+        (34, 'Cloudflare Inc., "Cloudflare R2 Object Storage Documentation: S3-Compatible Cloud Storage Architecture," 2024. Available: https://developers.cloudflare.com/r2. [Accessed: 28/10/2026].'),
+        (35, 'Prometheus Authors, "Prometheus: Monitoring System and Time Series Database Documentation," The Linux Foundation, 2024. Available: https://prometheus.io/docs. [Accessed: 15/10/2026].'),
+        (36, 'Google Cloud, "Cloud Translation API Documentation: Neural Machine Translation (NMT) and Advanced Localization," 2024. Available: https://cloud.google.com/translate. [Accessed: 20/10/2026].')
     ]
 
     for ref_id, citation_text in references_data:

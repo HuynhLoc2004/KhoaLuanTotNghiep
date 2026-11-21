@@ -166,7 +166,7 @@ def add_chapter_3(doc, helper):
     
     # Bảng 3.3
     helper.add_table_caption(doc, "3.3", "Bảng tổng hợp danh mục các Use Case trong hệ thống")
-    tbl_uclist = doc.add_table(rows=23, cols=3)
+    tbl_uclist = doc.add_table(rows=26, cols=3)
     tbl_uclist.alignment = WD_TABLE_ALIGNMENT.CENTER
     tbl_uclist.autofit = False
     helper.set_table_borders(tbl_uclist, color="475569", sz="6", val="single")
@@ -205,7 +205,10 @@ def add_chapter_3(doc, helper):
         ("UC-19", "Quản lý đơn hàng và doanh thu", "Quản trị viên"),
         ("UC-20", "Quản lý người dùng và phân quyền", "Quản trị viên"),
         ("UC-21", "Quản lý nhận diện thương hiệu CMS", "Quản trị viên"),
-        ("UC-22", "Ghép ảnh toàn cảnh Panorama Studio", "Quản trị viên / Kỹ thuật viên")
+        ("UC-22", "Ghép ảnh toàn cảnh Panorama Studio", "Quản trị viên / Kỹ thuật viên"),
+        ("UC-23", "Dịch thuật đa ngôn ngữ cục bộ theo không gian và cổ vật", "Khách tham quan"),
+        ("UC-24", "Giám sát hiệu năng hệ thống và tài nguyên máy chủ qua Grafana", "Quản trị viên"),
+        ("UC-25", "Quản lý và cấu hình giọng đọc thuyết minh Audio đa ngôn ngữ", "Quản trị viên")
     ]
     for idx, (uc_id, uc_name, act_nm) in enumerate(ucl_data):
         row = tbl_uclist.rows[idx + 1]
@@ -680,7 +683,7 @@ def add_chapter_3(doc, helper):
         "Để đảm bảo tính nhất quán giữa các phân hệ, các sơ đồ tuần tự dưới đây làm rõ luồng thông điệp bất đồng bộ diễn ra trong các quy trình nghiệp vụ trọng tâm của hệ thống:"
     )
     
-    # Placeholders Hình 3.6 -> 3.8
+    # Placeholders Hình 3.6 -> 3.11
     helper.add_figure_placeholder(doc, "3.6",
         "Sơ đồ tuần tự quy trình đặt vé và thanh toán VietQR PayOS",
         "Luồng gọi API từ Client -> Server Bảo tàng -> Cổng PayOS [17] -> Webhook ngân hàng cập nhật trạng thái đơn hàng [16]",
@@ -694,6 +697,21 @@ def add_chapter_3(doc, helper):
     helper.add_figure_placeholder(doc, "3.8",
         "Sơ đồ tuần tự quy trình tương tác không gian 360° và chuyển phòng qua Hotspot",
         "Luồng sự kiện Three.js [7], [8] Raycaster bắt sự kiện click -> Chuyển đổi trạng thái phòng -> Nạp Texture mới mượt mà",
+        width_cm=15.0, height_cm=8.0
+    )
+    helper.add_figure_placeholder(doc, "3.9",
+        "Sơ đồ tuần tự quy trình giám sát hệ thống và nhúng Dashboard Grafana vào cổng Quản trị",
+        "Luồng gọi API xác thực JWT, Nginx Reverse Proxy, kiểm tra cờ allow_embedding, kết nối CSDL PostgreSQL Read-Only và hiển thị Dashboard [32]",
+        width_cm=15.0, height_cm=8.0
+    )
+    helper.add_figure_placeholder(doc, "3.10",
+        "Sơ đồ hoạt động quy trình dịch thuật và tải nội dung bản địa hóa cục bộ cho không gian 360° và cổ vật",
+        "Quy trình chuyển đổi ngôn ngữ độc lập tại phòng xem 360°, đối soát Cache cục bộ, gọi API dịch thuật Google/Gemini và cập nhật UI mượt mà [36]",
+        width_cm=15.0, height_cm=8.0
+    )
+    helper.add_figure_placeholder(doc, "3.11",
+        "Sơ đồ hoạt động quy trình sinh, lưu trữ đệm băm (Hash Storage) và phát trực tuyến giọng đọc thuyết minh Audio",
+        "Kiến trúc băm MD5(text + voice + lang), kiểm tra file MP3 tĩnh, gọi Google Cloud Neural TTS và phân phối phân đoạn HTTP 206 Partial Content [31]",
         width_cm=15.0, height_cm=8.0
     )
     
