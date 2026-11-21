@@ -566,6 +566,40 @@ export const api = {
     return json.info;
   },
 
+  // === SAO LƯU & XUẤT CƠ SỞ DỮ LIỆU BẢO TÀNG (DATABASE BACKUP) ===
+  async getBackupStats(): Promise<{
+    mongo: { rooms: number; panoramas: number; artifacts: number };
+    postgres: { orders: number; tickets: number };
+    timestamp: string;
+  }> {
+    const res = await fetch(`${API_BASE}/system/backup/stats?t=${Date.now()}`, {
+      headers: getAuthHeaders(true),
+      cache: 'no-store'
+    });
+    const json = await res.json();
+    if (!json.success) throw new Error(json.message || 'Lỗi tải thống kê sao lưu');
+    return json.data;
+  },
+
+  async downloadDatabaseBackup(): Promise<void> {
+    const res = await fetch(`${API_BASE}/system/backup/download?t=${Date.now()}`, {
+      headers: getAuthHeaders(true),
+      cache: 'no-store'
+    });
+    if (!res.ok) throw new Error('Lỗi tải bản sao lưu cơ sở dữ liệu');
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const now = new Date();
+    const dateStr = now.toISOString().replace(/[:.]/g, '-').slice(0, 19);
+    a.download = `museum_database_backup_${dateStr}.json`;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+  },
+
   // === QUẢN TRỊ NHẬN DIỆN THƯƠNG HIỆU ĐA BẢO TÀNG (SYSTEM BRANDING) ===
   async getBranding(): Promise<SystemBranding> {
     const res = await fetch(`${API_BASE}/system/branding?t=${Date.now()}`, {

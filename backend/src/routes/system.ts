@@ -1046,5 +1046,99 @@ systemRouter.post('/cleanup-vps-disk', authenticate, requireAdmin, async (req: R
   }
 });
 
+/**
+ * GET /api/system/backup/stats
+ * Lấy số liệu thống kê CSDL trước khi tạo bản sao lưu
+ */
+systemRouter.get('/backup/stats', authenticate, requireAdmin, async (_req: Request, res: Response) => {
+  try {
+    const [roomsCount, panosCount, artifactsCount, pgOrdersCount, pgTicketsCount] = await Promise.all([
+      RoomModel.countDocuments(),
+      PanoramaModel.countDocuments(),
+      ArtifactModel.countDocuments(),
+      pgPool.query('SELECT COUNT(*) as count FROM orders').then((r: any) => parseInt(r.rows[0]?.count || '0')).catch(() => 0),
+      pgPool.query('SELECT COUNT(*) as count FROM museum_tickets').then((r: any) => parseInt(r.rows[0]?.count || '0')).catch(() => 0)
+    ]);
+
+    res.json({
+      success: true,
+      data: {
+        mongo: {
+          rooms: roomsCount,
+          panoramas: panosCount,
+          artifacts: artifactsCount
+        },
+        postgres: {
+          orders: pgOrdersCount,
+          tickets: pgTicketsCount
+        },
+        timestamp: new Date().toISOString()
+      }
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: 'Lỗi lấy thống kê sao lưu: ' + err.message });
+  }
+});
+
+/**
+ * GET /api/system/backup/download
+ * Xuất trọn bộ bản sao lưu CSDL MongoDB + PostgreSQL thành file JSON tải về
+ */
+systemRouter.get('/backup/download', authenticate, requireAdmin, async (req: Request, res: Response) => {
+  try {
+    const adminUser = (req as any).user?.username || 'Admin';
+
+    // 1. Thu thập dữ liệu MongoDB
+    const [rooms, panoramas, artifacts, branding] = await Promise.all([
+      RoomModel.find({}).lean(),
+      PanoramaModel.find({}).lean(),
+      ArtifactModel.find({}).lean(),
+      getSystemBrandingConfig()
+    ]);
+
+    // 2. Thu thập dữ liệu PostgreSQL
+    const [ordersResult, orderItemsResult, ticketsResult, usersResult] = await Promise.all([
+      pgPool.query('SELECT * FROM orders ORDER BY created_at DESC').catch(() => ({ rows: [] })),
+      pgPool.query('SELECT * FROM order_items').catch(() => ({ rows: [] })),
+      pgPool.query('SELECT * FROM museum_tickets ORDER BY created_at DESC').catch(() => ({ rows: [] })),
+      pgPool.query('SELECT id, username, email, full_name, role, is_active, created_at FROM users').catch(() => ({ rows: [] }))
+    ]);
+
+    const backupPayload = {
+      meta: {
+        system: 'Bảo tàng Lịch sử TP. Hồ Chí Minh - Hệ thống Tour 360',
+        version: '1.0',
+        exportedAt: new Date().toISOString(),
+        exportedBy: adminUser,
+        description: 'Bản sao lưu CSDL toàn diện gồm Di sản (MongoDB) và Nghiệp vụ Vé (PostgreSQL)'
+      },
+      heritage_database_mongo: {
+        rooms,
+        panoramas,
+        artifacts,
+        system_branding: branding
+      },
+      business_database_postgres: {
+        orders: ordersResult.rows,
+        order_items: orderItemsResult.rows,
+        tickets: ticketsResult.rows,
+        users: usersResult.rows
+      }
+    };
+
+    const now = new Date();
+    const dateStr = now.toISOString().replace(/[:.]/g, '-').slice(0, 19);
+    const fileName = `museum_database_backup_${dateStr}.json`;
+
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+    res.send(JSON.stringify(backupPayload, null, 2));
+  } catch (err: any) {
+    console.error('[API System Backup] Lỗi xuất bản sao lưu:', err);
+    res.status(500).json({ success: false, message: 'Lỗi xuất bản sao lưu CSDL: ' + err.message });
+  }
+});
+
+
 
 

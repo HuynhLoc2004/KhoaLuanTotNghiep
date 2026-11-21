@@ -4,18 +4,10 @@ import {
   RefreshCw,
   Search,
   Download,
-  Trash2,
   ChevronRight,
   Copy,
   Check,
-  X,
-  Radio,
-  Archive,
-  RotateCcw,
-  ShieldCheck,
-  AlertTriangle,
-  HardDrive,
-  CheckCircle2
+  X
 } from 'lucide-react';
 import { api } from '../../services/api';
 import { SystemLogItem, SystemLogStats, LogLevel } from '../../types';
@@ -64,34 +56,10 @@ export const AdminLogsPage: React.FC = () => {
   // Modal chi tiết log
   const [selectedLog, setSelectedLog] = useState<SystemLogItem | null>(null);
   const [isCopied, setIsCopied] = useState<boolean>(false);
-  const [activeDetailTab, setActiveDetailTab] = useState<'overview' | 'error' | 'context' | 'payload'>('overview');
-
-  // Modal Dọn dẹp & Lưu trữ / Khôi phục
-  const [isCleanupModalOpen, setIsCleanupModalOpen] = useState<boolean>(false);
-  const [cleanupModalTab, setCleanupModalTab] = useState<'clean' | 'archives'>('clean');
-  const [cleanType, setCleanType] = useState<'BOT_SCANS_ONLY' | 'ROUTINE_INFO' | 'FULL_PRUNE_WITH_TRACE_PRESERVED'>('BOT_SCANS_ONLY');
-  const [cleanupDays, setCleanupDays] = useState<number>(3);
-  const [backupBeforeDelete, setBackupBeforeDelete] = useState<boolean>(true);
-  const [previewData, setPreviewData] = useState<{
-    candidateCount: number;
-    totalLogsCount: number;
-    protectedErrorsCount: number;
-    protectedAdminAuditCount: number;
-    estimatedFreeMb: number;
-  } | null>(null);
-  const [loadingPreview, setLoadingPreview] = useState<boolean>(false);
-  const [cleaningUp, setCleaningUp] = useState<boolean>(false);
   const [exporting, setExporting] = useState<boolean>(false);
-
-  // Danh sách gói lưu trữ & khôi phục
-  const [archivesList, setArchivesList] = useState<any[]>([]);
-  const [loadingArchives, setLoadingArchives] = useState<boolean>(false);
-  const [restoringId, setRestoringId] = useState<string | null>(null);
-  const [deletingArchiveId, setDeletingArchiveId] = useState<string | null>(null);
 
   // Chống đóng nhầm modal khi vuốt chuột hoặc scroll trượt ra ngoài
   const inspectorBackdropRef = React.useRef(false);
-  const cleanupBackdropRef = React.useRef(false);
 
   // Debounce tìm kiếm từ khóa (350ms) để không bị giật lag khi gõ
   useEffect(() => {
@@ -254,146 +222,6 @@ export const AdminLogsPage: React.FC = () => {
     }
   };
 
-  // Định dạng kích thước tệp
-  const formatBytes = (bytes?: number) => {
-    if (!bytes || bytes === 0) return '0 B';
-    const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
-  };
-
-  const getCategoryLabel = (cat: string) => {
-    switch (cat) {
-      case 'BOT_SCANS_ONLY':
-        return 'Chỉ bot dò quét 404 & request rác';
-      case 'ROUTINE_INFO':
-        return 'Nhật ký thường nhật cũ (INFO / SUCCESS)';
-      case 'FULL_PRUNE_WITH_TRACE_PRESERVED':
-        return 'Toàn diện (Bảo lưu Sự cố & Admin)';
-      default:
-        return cat;
-    }
-  };
-
-  // Tải dự báo dọn dẹp trước khi thực hiện
-  const fetchCleanupPreview = useCallback(async (type = cleanType, days = cleanupDays) => {
-    setLoadingPreview(true);
-    try {
-      const res = await api.previewCleanupLogs({
-        cleanType: type,
-        olderThanDays: days,
-        preserveErrors: true,
-        preserveAdminAudit: true
-      });
-      if (res.success && res.data) {
-        setPreviewData(res.data);
-      }
-    } catch (err: any) {
-      console.error('Lỗi tải dự báo dọn dẹp:', err);
-    } finally {
-      setLoadingPreview(false);
-    }
-  }, [cleanType, cleanupDays]);
-
-  // Tải danh sách các gói nén đã lưu trữ
-  const fetchArchivesList = useCallback(async () => {
-    setLoadingArchives(true);
-    try {
-      const res = await api.getLogArchives();
-      if (res.success && res.data) {
-        setArchivesList(res.data);
-      }
-    } catch (err: any) {
-      console.error('Lỗi tải danh sách gói lưu trữ:', err);
-    } finally {
-      setLoadingArchives(false);
-    }
-  }, []);
-
-  const handleOpenCleanupModal = () => {
-    setIsCleanupModalOpen(true);
-    setCleanupModalTab('clean');
-    fetchCleanupPreview(cleanType, cleanupDays);
-    fetchArchivesList();
-  };
-
-  // Xử lý dọn dẹp & nén đóng gói lưu trữ
-  const handleExecuteArchiveAndPrune = async () => {
-    if (!previewData || previewData.candidateCount === 0) {
-      showToast('Không có bản ghi nào phù hợp điều kiện để dọn dẹp', 'info');
-      return;
-    }
-    setCleaningUp(true);
-    try {
-      const res = await api.archiveAndPruneLogs({
-        cleanType,
-        olderThanDays: cleanupDays,
-        preserveErrors: true,
-        preserveAdminAudit: true,
-        backupBeforeDelete
-      });
-      showToast(res.message || 'Đã dọn dẹp & lưu trữ an toàn!', 'success');
-      fetchLogs();
-      fetchStats();
-      fetchCleanupPreview(cleanType, cleanupDays);
-      fetchArchivesList();
-      if (backupBeforeDelete) {
-        setCleanupModalTab('archives');
-      }
-    } catch (err: any) {
-      showToast(err.message || 'Lỗi khi dọn dẹp nhật ký', 'error');
-    } finally {
-      setCleaningUp(false);
-    }
-  };
-
-  // Khôi phục dữ liệu từ gói nén vào MongoDB
-  const handleRestoreArchive = async (archiveId: string, archiveName: string) => {
-    if (!window.confirm(`Bạn có chắc chắn muốn khôi phục dữ liệu từ gói "${archiveName}" trở lại vào MongoDB?`)) {
-      return;
-    }
-    setRestoringId(archiveId);
-    try {
-      const res = await api.restoreLogArchive(archiveId);
-      showToast(res.message || 'Khôi phục nhật ký thành công!', 'success');
-      fetchLogs();
-      fetchStats();
-      fetchArchivesList();
-    } catch (err: any) {
-      showToast(err.message || 'Lỗi khôi phục gói lưu trữ', 'error');
-    } finally {
-      setRestoringId(null);
-    }
-  };
-
-  // Tải tệp nén gzip về máy
-  const handleDownloadArchive = async (archiveId: string, fileName: string) => {
-    try {
-      await api.downloadLogArchive(archiveId, fileName);
-      showToast(`Đang tải tệp ${fileName}`, 'success');
-    } catch (err: any) {
-      showToast(err.message || 'Lỗi tải tệp lưu trữ', 'error');
-    }
-  };
-
-  // Xóa gói lưu trữ khỏi đĩa VPS
-  const handleDeleteArchive = async (archiveId: string) => {
-    if (!window.confirm('Bạn có chắc muốn xóa vĩnh viễn tệp nén này khỏi VPS? Thao tác này không thể hoàn tác.')) {
-      return;
-    }
-    setDeletingArchiveId(archiveId);
-    try {
-      const res = await api.deleteLogArchive(archiveId);
-      showToast(res.message || 'Đã xóa gói lưu trữ', 'success');
-      fetchArchivesList();
-    } catch (err: any) {
-      showToast(err.message || 'Lỗi xóa gói lưu trữ', 'error');
-    } finally {
-      setDeletingArchiveId(null);
-    }
-  };
-
   // Định dạng thời gian chuẩn
   const formatDateTime = (dateStr?: string) => {
     if (!dateStr) return '—';
@@ -540,17 +368,6 @@ export const AdminLogsPage: React.FC = () => {
             <Download size={13} />
             <span>{exporting ? 'Đang xuất...' : 'Xuất JSON'}</span>
           </button>
-
-          <button
-            type="button"
-            className="btn btn-secondary btn-sm"
-            onClick={handleOpenCleanupModal}
-            title="Dọn dẹp & Lưu trữ nhật ký an toàn"
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
-          >
-            <Archive size={13} />
-            <span>Lưu trữ & Dọn dẹp</span>
-          </button>
         </div>
       </div>
 
@@ -694,12 +511,11 @@ export const AdminLogsPage: React.FC = () => {
             <table className="logs-table logs-desktop-table">
               <thead>
                 <tr>
-                  <th style={{ width: 100 }}>MỨC ĐỘ</th>
+                  <th style={{ width: 110 }}>MỨC ĐỘ</th>
                   <th style={{ width: 140 }}>PHÂN HỆ</th>
-                  <th style={{ width: 145 }}>THỜI GIAN</th>
-                  <th>HÀNH ĐỘNG & NỘI DUNG</th>
-                  <th style={{ width: 85 }}>HTTP</th>
-                  <th style={{ width: 185 }}>TÁC NHÂN & IP</th>
+                  <th style={{ width: 155 }}>THỜI GIAN</th>
+                  <th>NỘI DUNG HOẠT ĐỘNG</th>
+                  <th style={{ width: 195 }}>NGƯỜI THỰC HIỆN & IP</th>
                   <th style={{ width: 80, textAlign: 'center' }}>CHI TIẾT</th>
                 </tr>
               </thead>
@@ -712,10 +528,7 @@ export const AdminLogsPage: React.FC = () => {
                     <tr
                       key={log._id}
                       className={`log-row ${isErr ? 'log-row-error' : ''}`}
-                      onClick={() => {
-                        setSelectedLog(log);
-                        setActiveDetailTab(log.error ? 'error' : 'overview');
-                      }}
+                      onClick={() => setSelectedLog(log)}
                     >
                       {/* Cột 1: Mức độ */}
                       <td>{renderLevelBadge(log.level)}</td>
@@ -730,39 +543,17 @@ export const AdminLogsPage: React.FC = () => {
                         {formatDateTime(log.createdAt)}
                       </td>
 
-                      {/* Cột 4: Thông điệp & Endpoint */}
+                      {/* Cột 4: Thông điệp hoạt động */}
                       <td>
                         {renderActionContent(log)}
                       </td>
 
-                      {/* Cột 5: Mã HTTP */}
-                      <td style={{ fontSize: 12 }}>
-                        {log.statusCode ? (
-                          <span
-                            style={{
-                              fontFamily: 'monospace',
-                              fontWeight: 600,
-                              color: log.statusCode >= 500 ? '#EF4444' : log.statusCode >= 400 ? '#F59E0B' : '#22C55E'
-                            }}
-                          >
-                            {log.statusCode}
-                          </span>
-                        ) : (
-                          <span style={{ color: 'var(--text-muted)' }}>—</span>
-                        )}
-                        {log.durationMs !== undefined && log.durationMs > 0 && (
-                          <span style={{ fontSize: 11, color: 'var(--text-muted)', marginLeft: 4, fontFamily: 'monospace' }}>
-                            {log.durationMs}ms
-                          </span>
-                        )}
-                      </td>
-
-                      {/* Cột 6: Tác nhân */}
+                      {/* Cột 5: Tác nhân */}
                       <td>
                         {renderActorInfo(log)}
                       </td>
 
-                      {/* Cột 7: Thao tác */}
+                      {/* Cột 6: Thao tác */}
                       <td style={{ textAlign: 'center' }}>
                         <button
                           type="button"
@@ -770,7 +561,6 @@ export const AdminLogsPage: React.FC = () => {
                           onClick={(e) => {
                             e.stopPropagation();
                             setSelectedLog(log);
-                            setActiveDetailTab(log.error ? 'error' : 'overview');
                           }}
                           title="Xem chi tiết bản ghi"
                           style={{ padding: '3px 7px' }}
@@ -794,27 +584,12 @@ export const AdminLogsPage: React.FC = () => {
                   <div
                     key={log._id}
                     className={`log-mobile-card ${isErr ? 'log-mobile-card-error' : ''}`}
-                    onClick={() => {
-                      setSelectedLog(log);
-                      setActiveDetailTab(log.error ? 'error' : 'overview');
-                    }}
+                    onClick={() => setSelectedLog(log)}
                   >
                     <div className="log-mobile-header">
                       <div className="log-mobile-tags">
                         {renderLevelBadge(log.level)}
                         <span className="log-module-tag">{modLabel}</span>
-                        {log.statusCode && (
-                          <span
-                            className={`log-status-pill status-${
-                              log.statusCode >= 500 ? '5xx' : log.statusCode >= 400 ? '4xx' : '2xx'
-                            }`}
-                          >
-                            {log.statusCode}
-                          </span>
-                        )}
-                        {log.durationMs !== undefined && log.durationMs > 0 && (
-                          <span className="log-duration-text">{log.durationMs}ms</span>
-                        )}
                       </div>
                       <span className="log-mobile-time">{formatDateTime(log.createdAt)}</span>
                     </div>
@@ -927,212 +702,71 @@ export const AdminLogsPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Modal Navigation Tabs */}
-            <div className="inspector-nav-tabs">
-              <button
-                type="button"
-                className={`inspector-tab ${activeDetailTab === 'overview' ? 'active' : ''}`}
-                onClick={() => setActiveDetailTab('overview')}
-              >
-                <span>1. Tổng quan</span>
-              </button>
-
-              <button
-                type="button"
-                className={`inspector-tab ${activeDetailTab === 'error' ? 'active' : ''} ${
-                  selectedLog.error ? 'has-error-tab' : ''
-                }`}
-                onClick={() => setActiveDetailTab('error')}
-              >
-                <span>2. Chi tiết lỗi {selectedLog.error ? '(Có lỗi)' : ''}</span>
-              </button>
-
-              <button
-                type="button"
-                className={`inspector-tab ${activeDetailTab === 'context' ? 'active' : ''}`}
-                onClick={() => setActiveDetailTab('context')}
-              >
-                <span>3. Bối cảnh HTTP</span>
-              </button>
-
-              <button
-                type="button"
-                className={`inspector-tab ${activeDetailTab === 'payload' ? 'active' : ''}`}
-                onClick={() => setActiveDetailTab('payload')}
-              >
-                <span>4. Tham số chi tiết</span>
-              </button>
-            </div>
-
             {/* Modal Body */}
-            <div className="inspector-body">
-              {/* TAB 1: TỔNG QUAN */}
-              {activeDetailTab === 'overview' && (
-                <div className="inspector-tab-content">
-                  <div className="inspector-message-box">
-                    <span className="box-label">Thông điệp chính:</span>
-                    <p className="box-text">{selectedLog.message}</p>
-                  </div>
+            <div className="inspector-body" style={{ padding: '20px 24px', overflowY: 'auto', flex: 1 }}>
+              <div className="inspector-message-box" style={{ marginBottom: 18, background: 'rgba(0,0,0,0.12)', border: '1px solid var(--border-color)', borderRadius: 8, padding: '14px 16px' }}>
+                <span className="box-label" style={{ fontSize: 11, textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.5px', fontWeight: 600 }}>Nội dung hoạt động:</span>
+                <p className="box-text" style={{ fontSize: 13.5, lineHeight: 1.5, margin: '6px 0 0 0', color: 'var(--heading-color)', fontWeight: 500 }}>
+                  {selectedLog.message}
+                </p>
+              </div>
 
-                  <div className="inspector-grid-props">
-                    <div className="prop-item">
-                      <span className="prop-name">Thời gian ghi nhận:</span>
-                      <span className="prop-val">{formatDateTime(selectedLog.createdAt)}</span>
-                    </div>
-
-                    <div className="prop-item">
-                      <span className="prop-name">Hành động:</span>
-                      <span className="prop-val"><code>{selectedLog.action}</code></span>
-                    </div>
-
-                    <div className="prop-item">
-                      <span className="prop-name">Mã phản hồi HTTP:</span>
-                      <span className="prop-val">
-                        {selectedLog.statusCode ? (
-                          <span className={`log-status-pill status-${String(selectedLog.statusCode)[0]}xx`}>
-                            {selectedLog.statusCode}
-                          </span>
-                        ) : '—'}
-                      </span>
-                    </div>
-
-                    <div className="prop-item">
-                      <span className="prop-name">Thời gian thực thi:</span>
-                      <span className="prop-val">{selectedLog.durationMs || 0} ms</span>
-                    </div>
-
-                    <div className="prop-item">
-                      <span className="prop-name">Tài nguyên:</span>
-                      <span className="prop-val">{selectedLog.resource || 'Toàn hệ thống'}</span>
-                    </div>
-
-                    <div className="prop-item">
-                      <span className="prop-name">Tác nhân:</span>
-                      <span className="prop-val">
-                        <strong>{selectedLog.username || 'Hệ thống'}</strong> ({selectedLog.role || 'guest'})
-                      </span>
-                    </div>
-                  </div>
+              <div className="inspector-grid-props" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 14 }}>
+                <div className="prop-item" style={{ background: 'rgba(0,0,0,0.06)', border: '1px solid var(--border-color)', borderRadius: 6, padding: '10px 14px' }}>
+                  <span className="prop-name" style={{ fontSize: 11.5, color: 'var(--text-muted)', display: 'block', marginBottom: 3 }}>Thời gian ghi nhận:</span>
+                  <span className="prop-val" style={{ fontSize: 13, color: 'var(--text-main)', fontWeight: 500 }}>{formatDateTime(selectedLog.createdAt)}</span>
                 </div>
-              )}
 
-              {/* TAB 2: PHÂN TÍCH LỖI */}
-              {activeDetailTab === 'error' && (
-                <div className="inspector-tab-content">
-                  {selectedLog.error ? (
-                    <div>
-                      <div className="error-callout-panel">
-                        <div className="error-callout-title">
-                          Chi tiết lỗi: {selectedLog.error.name || 'Exception'}
-                        </div>
-                        <p className="error-callout-msg">
-                          {selectedLog.error.message || 'Không có thông báo lỗi cụ thể'}
-                        </p>
-                        {selectedLog.error.code && (
-                          <div style={{ marginTop: 6, fontSize: 12, color: 'var(--text-muted)' }}>
-                            Mã lỗi: <code>{selectedLog.error.code}</code>
-                          </div>
-                        )}
-                      </div>
-
-                      {selectedLog.error.stack && (
-                        <div style={{ marginTop: 14 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                            <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--heading-color)' }}>
-                              Vết ngăn xếp thực thi (Call Stack):
-                            </span>
-                            <button
-                              type="button"
-                              className="btn btn-secondary btn-xs"
-                              onClick={() => {
-                                navigator.clipboard.writeText(selectedLog.error?.stack || '');
-                                showToast('Đã sao chép Callstack', 'info');
-                              }}
-                            >
-                              <Copy size={12} />
-                              <span>Sao chép Callstack</span>
-                            </button>
-                          </div>
-                          <pre className="stack-trace-view">{selectedLog.error.stack}</pre>
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <div style={{ textAlign: 'center', padding: '36px 10px', color: 'var(--text-muted)' }}>
-                      <p style={{ fontSize: 13 }}>Không phát hiện lỗi ngoại lệ trong bản ghi này.</p>
-                    </div>
-                  )}
+                <div className="prop-item" style={{ background: 'rgba(0,0,0,0.06)', border: '1px solid var(--border-color)', borderRadius: 6, padding: '10px 14px' }}>
+                  <span className="prop-name" style={{ fontSize: 11.5, color: 'var(--text-muted)', display: 'block', marginBottom: 3 }}>Người thực hiện:</span>
+                  <span className="prop-val" style={{ fontSize: 13, color: 'var(--text-main)', fontWeight: 600 }}>
+                    {selectedLog.username || 'Hệ thống'} {selectedLog.role ? <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>({selectedLog.role})</span> : ''}
+                  </span>
                 </div>
-              )}
 
-              {/* TAB 3: BỐI CẢNH HTTP & MẠNG */}
-              {activeDetailTab === 'context' && (
-                <div className="inspector-tab-content">
-                  <div className="inspector-grid-props">
-                    <div className="prop-item">
-                      <span className="prop-name">Phương thức HTTP:</span>
-                      <span className="prop-val">
-                        <span className={`method-badge method-${selectedLog.method || 'GET'}`}>
-                          {selectedLog.method || 'GET'}
-                        </span>
-                      </span>
-                    </div>
-
-                    <div className="prop-item">
-                      <span className="prop-name">Đường dẫn:</span>
-                      <span className="prop-val"><code>{selectedLog.path || '—'}</code></span>
-                    </div>
-
-                    <div className="prop-item">
-                      <span className="prop-name">Địa chỉ IP:</span>
-                      <span className="prop-val"><code>{selectedLog.ipAddress || '127.0.0.1'}</code></span>
-                    </div>
-
-                    <div className="prop-item">
-                      <span className="prop-name">User ID:</span>
-                      <span className="prop-val"><code>{selectedLog.userId || 'system'}</code></span>
-                    </div>
-                  </div>
-
-                  <div style={{ marginTop: 14 }}>
-                    <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--heading-color)', display: 'block', marginBottom: 6 }}>
-                      Trình duyệt Client (User-Agent):
-                    </span>
-                    <div className="user-agent-box">
-                      {selectedLog.userAgent || 'Không xác định / Máy chủ nội bộ'}
-                    </div>
-                  </div>
+                <div className="prop-item" style={{ background: 'rgba(0,0,0,0.06)', border: '1px solid var(--border-color)', borderRadius: 6, padding: '10px 14px' }}>
+                  <span className="prop-name" style={{ fontSize: 11.5, color: 'var(--text-muted)', display: 'block', marginBottom: 3 }}>Phân hệ chức năng:</span>
+                  <span className="prop-val" style={{ fontSize: 13, color: 'var(--text-main)', fontWeight: 500 }}>{MODULE_LABELS[selectedLog.module] || selectedLog.module}</span>
                 </div>
-              )}
 
-              {/* TAB 4: THAM SỐ CHI TIẾT */}
-              {activeDetailTab === 'payload' && (
-                <div className="inspector-tab-content">
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                    <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--heading-color)' }}>
-                      Dữ liệu tham số chi tiết (Details):
-                    </span>
-                    <button
-                      type="button"
-                      className="btn btn-secondary btn-xs"
-                      onClick={() => handleCopyJson(selectedLog.details || {})}
-                    >
-                      <Copy size={12} />
-                      <span>Sao chép JSON</span>
-                    </button>
+                <div className="prop-item" style={{ background: 'rgba(0,0,0,0.06)', border: '1px solid var(--border-color)', borderRadius: 6, padding: '10px 14px' }}>
+                  <span className="prop-name" style={{ fontSize: 11.5, color: 'var(--text-muted)', display: 'block', marginBottom: 3 }}>Hành động:</span>
+                  <span className="prop-val"><code style={{ fontSize: 12, background: 'rgba(0,0,0,0.2)', padding: '2px 6px', borderRadius: 4 }}>{selectedLog.action}</code></span>
+                </div>
+
+                <div className="prop-item" style={{ background: 'rgba(0,0,0,0.06)', border: '1px solid var(--border-color)', borderRadius: 6, padding: '10px 14px' }}>
+                  <span className="prop-name" style={{ fontSize: 11.5, color: 'var(--text-muted)', display: 'block', marginBottom: 3 }}>Tài nguyên bị tác động:</span>
+                  <span className="prop-val" style={{ fontSize: 13, color: 'var(--text-main)' }}>{selectedLog.resource || 'Toàn hệ thống'}</span>
+                </div>
+
+                <div className="prop-item" style={{ background: 'rgba(0,0,0,0.06)', border: '1px solid var(--border-color)', borderRadius: 6, padding: '10px 14px' }}>
+                  <span className="prop-name" style={{ fontSize: 11.5, color: 'var(--text-muted)', display: 'block', marginBottom: 3 }}>Địa chỉ IP:</span>
+                  <span className="prop-val"><code style={{ fontSize: 12 }}>{(selectedLog.ipAddress || '127.0.0.1').replace(/^::ffff:/, '')}</code></span>
+                </div>
+              </div>
+
+              {/* Chi tiết lỗi nếu có */}
+              {selectedLog.error && (
+                <div style={{ marginTop: 18 }}>
+                  <div className="error-callout-panel" style={{ padding: '14px 16px', background: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.25)', borderRadius: 8 }}>
+                    <div className="error-callout-title" style={{ color: '#EF4444', fontWeight: 600, fontSize: 13, marginBottom: 4 }}>
+                      Chi tiết lỗi ngoại lệ: {selectedLog.error.name || 'Exception'}
+                    </div>
+                    <p className="error-callout-msg" style={{ margin: 0, fontSize: 12.5, color: 'var(--text-main)' }}>
+                      {selectedLog.error.message || 'Không có mô tả lỗi cụ thể'}
+                    </p>
+                    {selectedLog.error.stack && (
+                      <pre style={{ marginTop: 10, padding: 10, borderRadius: 6, background: '#111217', color: '#F87171', fontSize: 11, overflowX: 'auto', maxHeight: 150 }}>
+                        {selectedLog.error.stack}
+                      </pre>
+                    )}
                   </div>
-                  <pre className="json-code-block">
-                    {JSON.stringify(selectedLog.details || {}, null, 2)}
-                  </pre>
                 </div>
               )}
             </div>
 
             {/* Modal Footer */}
-            <div className="inspector-footer">
-              <span style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>
-                Bản ghi nhật ký được lưu trữ an toàn trong cơ sở dữ liệu.
-              </span>
+            <div style={{ padding: '12px 20px', borderTop: '1px solid var(--border-color)', display: 'flex', justifyContent: 'flex-end', background: 'rgba(0,0,0,0.08)', flexShrink: 0 }}>
               <button
                 type="button"
                 className="btn btn-secondary btn-sm"
@@ -1145,443 +779,6 @@ export const AdminLogsPage: React.FC = () => {
         </div>
       )}
 
-      {/* 6. MODAL QUẢN LÝ LƯU TRỮ & DỌN DẸP NHẬT KÝ */}
-      {isCleanupModalOpen && (
-        <div
-          className="modal-backdrop"
-          onMouseDown={(e) => {
-            cleanupBackdropRef.current = e.target === e.currentTarget;
-          }}
-          onMouseUp={(e) => {
-            if (cleanupBackdropRef.current && e.target === e.currentTarget) {
-              setIsCleanupModalOpen(false);
-            }
-            cleanupBackdropRef.current = false;
-          }}
-          onTouchStart={(e) => {
-            cleanupBackdropRef.current = e.target === e.currentTarget;
-          }}
-          onTouchEnd={(e) => {
-            if (cleanupBackdropRef.current && e.target === e.currentTarget) {
-              setIsCleanupModalOpen(false);
-            }
-            cleanupBackdropRef.current = false;
-          }}
-        >
-          <div
-            className="log-inspector-modal"
-            onMouseDown={(e) => e.stopPropagation()}
-            onMouseUp={(e) => e.stopPropagation()}
-            onTouchStart={(e) => e.stopPropagation()}
-            onTouchEnd={(e) => e.stopPropagation()}
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              width: '100%',
-              maxWidth: 620,
-              height: 560,
-              maxHeight: 'calc(100vh - 32px)',
-              minHeight: 460,
-              display: 'flex',
-              flexDirection: 'column',
-              boxSizing: 'border-box',
-              overflow: 'hidden'
-            }}
-          >
-            {/* Header */}
-            <div
-              style={{
-                padding: '14px 20px',
-                borderBottom: '1px solid var(--border-color)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                background: 'rgba(0, 0, 0, 0.14)',
-                flexShrink: 0
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-                <Archive size={16} style={{ color: 'var(--primary)' }} />
-                <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--heading-color)' }}>
-                  Lưu trữ & Dọn dẹp nhật ký
-                </span>
-              </div>
-              <button
-                type="button"
-                className="btn-close-modal"
-                onClick={() => setIsCleanupModalOpen(false)}
-                title="Đóng"
-              >
-                <X size={15} />
-              </button>
-            </div>
-
-            {/* Tabs */}
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                padding: '0 16px',
-                borderBottom: '1px solid var(--border-color)',
-                background: 'rgba(0, 0, 0, 0.08)',
-                flexShrink: 0
-              }}
-            >
-              <button
-                type="button"
-                className={`inspector-tab ${cleanupModalTab === 'clean' ? 'active' : ''}`}
-                onClick={() => {
-                  setCleanupModalTab('clean');
-                  fetchCleanupPreview(cleanType, cleanupDays);
-                }}
-              >
-                <Trash2 size={13} style={{ marginRight: 6, display: 'inline', verticalAlign: '-1px' }} />
-                <span>Dọn dẹp nhật ký</span>
-              </button>
-              <button
-                type="button"
-                className={`inspector-tab ${cleanupModalTab === 'archives' ? 'active' : ''}`}
-                onClick={() => {
-                  setCleanupModalTab('archives');
-                  fetchArchivesList();
-                }}
-              >
-                <RotateCcw size={13} style={{ marginRight: 6, display: 'inline', verticalAlign: '-1px' }} />
-                <span>Bản sao lưu</span>
-                {archivesList.length > 0 && (
-                  <span style={{
-                    marginLeft: 6,
-                    background: 'rgba(212, 168, 106, 0.15)',
-                    color: 'var(--primary)',
-                    fontSize: 10.5,
-                    fontWeight: 600,
-                    padding: '1px 6px',
-                    borderRadius: 10
-                  }}>
-                    {archivesList.length}
-                  </span>
-                )}
-              </button>
-            </div>
-
-            {/* Modal Body */}
-            <div
-              className="inspector-body"
-              style={{
-                padding: '18px 20px',
-                flex: '1 1 auto',
-                overflowY: 'auto',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between',
-                boxSizing: 'border-box'
-              }}
-            >
-              {/* TAB 1: DỌN DẸP */}
-              {cleanupModalTab === 'clean' && (
-                <div style={{ display: 'flex', flexDirection: 'column', flex: 1, justifyContent: 'space-between' }}>
-                  <div>
-                    {/* Chọn đối tượng dọn dẹp */}
-                    <div style={{ marginBottom: 14 }}>
-                      <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--heading-color)', marginBottom: 8 }}>
-                        Phạm vi dọn dẹp:
-                      </label>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                        {([
-                          {
-                            type: 'BOT_SCANS_ONLY',
-                            title: 'Yêu cầu không hợp lệ & Dò quét cổng',
-                            desc: 'Dọn các yêu cầu lỗi 404 và truy cập quét tự động từ Internet.'
-                          },
-                          {
-                            type: 'ROUTINE_INFO',
-                            title: 'Nhật ký truy cập thường nhật',
-                            desc: 'Dọn lượt xem trang và gọi API định kỳ. Luôn bảo lưu lỗi sự cố và tác vụ quản trị.'
-                          },
-                          {
-                            type: 'FULL_PRUNE_WITH_TRACE_PRESERVED',
-                            title: 'Dọn dẹp tối ưu dung lượng',
-                            desc: 'Giải phóng bộ nhớ tối đa, luôn bảo lưu sự cố và toàn bộ lịch sử quản trị.'
-                          }
-                        ] as const).map((item) => {
-                          const isSelected = cleanType === item.type;
-                          return (
-                            <label
-                              key={item.type}
-                              style={{
-                                display: 'flex',
-                                alignItems: 'flex-start',
-                                gap: 10,
-                                padding: '10px 12px',
-                                borderRadius: 6,
-                                border: isSelected ? '1px solid var(--primary)' : '1px solid var(--border-color)',
-                                background: isSelected ? 'rgba(212, 168, 106, 0.06)' : 'rgba(0, 0, 0, 0.1)',
-                                cursor: 'pointer',
-                                transition: 'all 0.15s ease'
-                              }}
-                            >
-                              <input
-                                type="radio"
-                                name="cleanType"
-                                checked={isSelected}
-                                onChange={() => {
-                                  setCleanType(item.type);
-                                  fetchCleanupPreview(item.type, cleanupDays);
-                                }}
-                                style={{ marginTop: 2, accentColor: 'var(--primary)' }}
-                              />
-                              <div style={{ flex: 1 }}>
-                                <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--heading-color)' }}>
-                                  {item.title}
-                                </div>
-                                <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 2, lineHeight: 1.4 }}>
-                                  {item.desc}
-                                </div>
-                              </div>
-                            </label>
-                          );
-                        })}
-                      </div>
-                    </div>
-
-                    {/* Khoảng thời gian */}
-                    <div style={{ marginBottom: 14 }}>
-                      <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--heading-color)', marginBottom: 5 }}>
-                        Thời gian lưu trữ:
-                      </label>
-                      <select
-                        className="form-control"
-                        value={cleanupDays}
-                        onChange={(e) => {
-                          const days = parseInt(e.target.value, 10);
-                          setCleanupDays(days);
-                          fetchCleanupPreview(cleanType, days);
-                        }}
-                        style={{ fontSize: 12.5, width: '100%', boxSizing: 'border-box' }}
-                      >
-                        <option value={3}>Bản ghi cũ hơn 3 ngày</option>
-                        <option value={7}>Bản ghi cũ hơn 7 ngày</option>
-                        <option value={14}>Bản ghi cũ hơn 14 ngày</option>
-                        <option value={30}>Bản ghi cũ hơn 30 ngày</option>
-                        <option value={60}>Bản ghi cũ hơn 60 ngày</option>
-                        <option value={90}>Bản ghi cũ hơn 90 ngày</option>
-                      </select>
-                    </div>
-
-                    {/* Dự kiến giải phóng (Preview Card) */}
-                    <div style={{
-                      background: 'rgba(0, 0, 0, 0.18)',
-                      border: '1px solid var(--border-color)',
-                      borderRadius: 6,
-                      padding: '10px 14px',
-                      marginBottom: 12
-                    }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                        <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                          Dự kiến giải phóng:
-                        </span>
-                        {loadingPreview && (
-                          <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Đang tính toán...</span>
-                        )}
-                      </div>
-
-                      {previewData && (
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
-                          <div>
-                            <span style={{ fontSize: 14.5, fontWeight: 700, color: 'var(--heading-color)' }}>
-                              {previewData.candidateCount.toLocaleString('vi-VN')} bản ghi
-                            </span>
-                            <span style={{ fontSize: 11.5, color: 'var(--text-muted)', marginLeft: 6 }}>
-                              (~{previewData.estimatedFreeMb} MB)
-                            </span>
-                          </div>
-                          <div style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>
-                            Bảo lưu an toàn: <strong style={{ color: 'var(--heading-color)' }}>{previewData.protectedErrorsCount} sự cố</strong> • <strong style={{ color: 'var(--heading-color)' }}>{previewData.protectedAdminAuditCount} quản trị</strong>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Tùy chọn đóng gói sao lưu */}
-                    <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, cursor: 'pointer', marginBottom: 6, color: 'var(--text-main)' }}>
-                      <input
-                        type="checkbox"
-                        checked={backupBeforeDelete}
-                        onChange={(e) => setBackupBeforeDelete(e.target.checked)}
-                        style={{ accentColor: 'var(--primary)' }}
-                      />
-                      <span>Tạo bản sao lưu nén (.json.gz) trước khi xóa để khôi phục khi cần</span>
-                    </label>
-                  </div>
-
-                  {/* Action buttons */}
-                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 'auto', paddingTop: 14, borderTop: '1px solid var(--border-color)' }}>
-                    <button
-                      type="button"
-                      className="btn btn-secondary btn-sm"
-                      onClick={() => setIsCleanupModalOpen(false)}
-                      disabled={cleaningUp}
-                    >
-                      Đóng
-                    </button>
-                    <button
-                      type="button"
-                      className="btn btn-primary btn-sm"
-                      onClick={handleExecuteArchiveAndPrune}
-                      disabled={cleaningUp || !previewData || previewData.candidateCount === 0}
-                      style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
-                    >
-                      <Trash2 size={13} />
-                      <span>{cleaningUp ? 'Đang dọn dẹp...' : `Dọn dẹp (${previewData ? previewData.candidateCount.toLocaleString('vi-VN') : 0} bản ghi)`}</span>
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* TAB 2: LỊCH SỬ LƯU TRỮ & KHÔI PHỤC */}
-              {cleanupModalTab === 'archives' && (
-                <div style={{ display: 'flex', flexDirection: 'column', flex: 1, justifyContent: 'space-between', overflow: 'hidden' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, flexShrink: 0 }}>
-                    <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: 0 }}>
-                      Danh sách các bản sao lưu có thể khôi phục lại cơ sở dữ liệu bất cứ lúc nào.
-                    </p>
-                    <button
-                      type="button"
-                      className="btn btn-secondary btn-xs"
-                      onClick={fetchArchivesList}
-                      disabled={loadingArchives}
-                      style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
-                    >
-                      <RefreshCw size={11} className={loadingArchives ? 'spin' : ''} />
-                      <span>Làm mới</span>
-                    </button>
-                  </div>
-
-                  {loadingArchives && (
-                    <div style={{ padding: '24px 0', textAlign: 'center', fontSize: 12.5, color: 'var(--text-muted)' }}>
-                      Đang tải danh sách bản sao lưu...
-                    </div>
-                  )}
-
-                  {!loadingArchives && archivesList.length === 0 && (
-                    <div style={{
-                      flex: 1,
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      padding: '30px 20px',
-                      textAlign: 'center',
-                      background: 'rgba(0, 0, 0, 0.1)',
-                      borderRadius: 8,
-                      border: '1px dashed var(--border-color)',
-                      marginBottom: 14
-                    }}>
-                      <Archive size={28} style={{ color: 'var(--text-muted)', marginBottom: 8, opacity: 0.4 }} />
-                      <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--heading-color)', marginBottom: 3 }}>
-                        Chưa có bản sao lưu nào
-                      </div>
-                      <div style={{ fontSize: 11.5, color: 'var(--text-muted)', maxWidth: 360 }}>
-                        Khi thực hiện dọn dẹp và bật tùy chọn sao lưu, các gói nén sẽ xuất hiện tại đây để khôi phục hoặc tải về.
-                      </div>
-                    </div>
-                  )}
-
-                  {!loadingArchives && archivesList.length > 0 && (
-                    <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14, paddingRight: 4 }}>
-                      {archivesList.map((pkg: any) => (
-                        <div
-                          key={pkg._id}
-                          style={{
-                            background: 'rgba(0, 0, 0, 0.2)',
-                            border: '1px solid var(--border-color)',
-                            borderRadius: 6,
-                            padding: '10px 12px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            flexWrap: 'wrap',
-                            gap: 8
-                          }}
-                        >
-                          <div style={{ flex: 1, minWidth: 220 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
-                              <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--heading-color)' }}>
-                                {pkg.fileName}
-                              </span>
-                              {pkg.restoredAt && (
-                                <span style={{
-                                  fontSize: 10,
-                                  fontWeight: 600,
-                                  color: 'var(--primary)',
-                                  background: 'rgba(212, 168, 106, 0.12)',
-                                  padding: '1px 5px',
-                                  borderRadius: 4
-                                }}>
-                                  Đã khôi phục
-                                </span>
-                              )}
-                            </div>
-
-                            <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 10, fontSize: 11, color: 'var(--text-muted)' }}>
-                              <span>Số lượng: <strong style={{ color: 'var(--text-main)' }}>{pkg.recordCount?.toLocaleString('vi-VN')}</strong></span>
-                              <span>Dung lượng: <strong>{formatBytes(pkg.fileSizeBytes)}</strong></span>
-                              <span>{formatDateTime(pkg.createdAt)}</span>
-                            </div>
-                          </div>
-
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                            <button
-                              type="button"
-                              className="btn btn-secondary btn-xs"
-                              onClick={() => handleRestoreArchive(pkg._id, pkg.fileName)}
-                              disabled={restoringId === pkg._id}
-                              title="Khôi phục lại vào cơ sở dữ liệu"
-                              style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
-                            >
-                              <RotateCcw size={11} className={restoringId === pkg._id ? 'spin' : ''} />
-                              <span>{restoringId === pkg._id ? 'Đang nạp...' : 'Khôi phục'}</span>
-                            </button>
-
-                            <button
-                              type="button"
-                              className="btn btn-secondary btn-xs"
-                              onClick={() => handleDownloadArchive(pkg._id, pkg.fileName)}
-                              title="Tải tệp nén về máy tính"
-                            >
-                              <Download size={11} />
-                            </button>
-
-                            <button
-                              type="button"
-                              className="btn btn-secondary btn-xs"
-                              onClick={() => handleDeleteArchive(pkg._id)}
-                              disabled={deletingArchiveId === pkg._id}
-                              title="Xóa tệp lưu trữ"
-                              style={{ color: '#EF4444' }}
-                            >
-                              <Trash2 size={11} />
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 'auto', paddingTop: 14, borderTop: '1px solid var(--border-color)', flexShrink: 0 }}>
-                    <button
-                      type="button"
-                      className="btn btn-secondary btn-sm"
-                      onClick={() => setIsCleanupModalOpen(false)}
-                    >
-                      Đóng
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

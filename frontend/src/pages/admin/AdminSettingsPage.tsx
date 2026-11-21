@@ -33,6 +33,7 @@ import {
   Trash2,
   Landmark,
   Lock,
+  Download,
   Loader2,
   CheckCircle2,
   Bot,
@@ -151,6 +152,33 @@ export const AdminSettingsPage: React.FC = () => {
     updatedAt: new Date().toISOString(),
     updatedBy: 'Admin'
   });
+
+  // State Sao lưu CSDL Bảo tàng
+  const [downloadingBackup, setDownloadingBackup] = useState(false);
+  const [backupStats, setBackupStats] = useState<{
+    mongo: { rooms: number; panoramas: number; artifacts: number };
+    postgres: { orders: number; tickets: number };
+    timestamp: string;
+  } | null>(null);
+
+  const fetchBackupStats = async () => {
+    try {
+      const stats = await api.getBackupStats();
+      setBackupStats(stats);
+    } catch {}
+  };
+
+  const handleDownloadBackup = async () => {
+    setDownloadingBackup(true);
+    try {
+      await api.downloadDatabaseBackup();
+      showToast('Đã tạo và tải bản sao lưu CSDL toàn diện (.json) thành công!', 'success');
+    } catch (err: any) {
+      showToast(err.message || 'Lỗi tải bản sao lưu CSDL', 'error');
+    } finally {
+      setDownloadingBackup(false);
+    }
+  };
 
   useEffect(() => {
     if (branding) {
@@ -382,6 +410,7 @@ export const AdminSettingsPage: React.FC = () => {
   useEffect(() => {
     fetchData();
     handlePing();
+    fetchBackupStats();
   }, []);
 
   const handleToggleAndApply = async (targetEnabled: boolean) => {
@@ -2738,6 +2767,65 @@ export const AdminSettingsPage: React.FC = () => {
                 </span>
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* THẺ SAO LƯU & XUẤT CƠ SỞ DỮ LIỆU BẢO TÀNG (DATABASE BACKUP) */}
+        <div className="panel settings-card" style={{ marginTop: 24 }}>
+          <div className="settings-card-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <Database size={20} style={{ color: 'var(--primary)' }} />
+              <div>
+                <h3 style={{ margin: 0, fontSize: 14.5, fontWeight: 600, color: 'var(--heading-color)' }}>
+                  Sao Lưu & Xuất Dữ Liệu Cơ Sở Dữ Liệu Toàn Diện (MongoDB & PostgreSQL)
+                </h3>
+                <p style={{ margin: '3px 0 0 0', fontSize: 12, color: 'var(--text-muted)' }}>
+                  Trích xuất trọn bộ CSDL Di sản (18 Gian phòng 360°, Hotspots, 19 Cổ vật 3D) và CSDL Nghiệp vụ (Đơn hàng, Vé QR PayOS)
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={handleDownloadBackup}
+              disabled={downloadingBackup}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '9px 18px', fontSize: 13 }}
+            >
+              <Download size={15} className={downloadingBackup ? 'spin' : ''} />
+              <span>{downloadingBackup ? 'Đang trích xuất CSDL...' : 'Tải bản sao lưu CSDL (.json)'}</span>
+            </button>
+          </div>
+
+          <div style={{ padding: '16px 20px', background: 'rgba(0,0,0,0.06)', borderRadius: 8, marginTop: 14, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
+            <div style={{ border: '1px solid var(--border-color)', borderRadius: 8, padding: '14px 16px', background: 'var(--bg-card)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                <span style={{ fontSize: 15 }}>🏛️</span>
+                <strong style={{ fontSize: 13, color: 'var(--heading-color)' }}>CSDL Di sản (MongoDB NoSQL)</strong>
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.6 }}>
+                • Gian phòng 360° & Hotspots: <strong style={{ color: 'var(--text-main)' }}>{backupStats?.mongo.rooms ?? (sysInfo?.database?.roomsCount || 18)} phòng ({backupStats?.mongo.panoramas ?? (sysInfo?.database?.panoramasCount || 18)} ảnh)</strong><br />
+                • Cổ vật di sản & Mô hình 3D: <strong style={{ color: 'var(--text-main)' }}>{backupStats?.mongo.artifacts ?? 19} hiện vật</strong><br />
+                • Cấu hình Đa bảo tàng & Từ điển: <strong style={{ color: 'var(--text-main)' }}>Đầy đủ</strong>
+              </div>
+            </div>
+
+            <div style={{ border: '1px solid var(--border-color)', borderRadius: 8, padding: '14px 16px', background: 'var(--bg-card)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                <span style={{ fontSize: 15 }}>🎫</span>
+                <strong style={{ fontSize: 13, color: 'var(--heading-color)' }}>CSDL Nghiệp vụ & Vé (PostgreSQL 16)</strong>
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.6 }}>
+                • Đơn đặt vé PayOS / VietQR: <strong style={{ color: 'var(--text-main)' }}>{backupStats?.postgres.orders ?? 0} đơn hàng</strong><br />
+                • Mã vé tham quan QR & Soát vé: <strong style={{ color: 'var(--text-main)' }}>{backupStats?.postgres.tickets ?? 0} vé</strong><br />
+                • Tài khoản quản trị & Người dùng: <strong style={{ color: 'var(--text-main)' }}>Đầy đủ</strong>
+              </div>
+            </div>
+          </div>
+
+          <div style={{ padding: '10px 14px', marginTop: 12, borderRadius: 6, background: 'rgba(212, 160, 23, 0.08)', border: '1px solid rgba(212, 160, 23, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, fontSize: 11.5, color: 'var(--text-muted)' }}>
+            <span>💡 <strong>Sao lưu tự động cấp máy chủ (VPS):</strong> Bạn có thể chạy lệnh <code>./backup.sh</code> trực tiếp trên terminal VPS để nén CSDL thành file <code>.tar.gz</code> bất cứ lúc nào.</span>
+            <span style={{ fontFamily: 'monospace', background: 'rgba(0,0,0,0.2)', padding: '2px 8px', borderRadius: 4, color: 'var(--text-main)' }}>bash ./backup.sh</span>
           </div>
         </div>
         </>
