@@ -11,7 +11,8 @@ import {
   Filter,
   ChevronDown,
   Check,
-  RotateCcw
+  RotateCcw,
+  X
 } from 'lucide-react';
 import { API_ROOT, resolveMediaUrl } from '../../services/api';
 import { useClientTranslation } from '../../context/ClientTranslationContext';
@@ -45,7 +46,15 @@ export const ClientRoomsPage: React.FC<ClientRoomsPageProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPeriod, setSelectedPeriod] = useState<string>('all');
   const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false);
+  const [isMobileScreen, setIsMobileScreen] = useState(() => typeof window !== 'undefined' ? window.innerWidth < 768 : false);
   const filterDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Theo dõi kích thước màn hình để hiển thị Drawer vuốt ra mượt mà trên mobile
+  useEffect(() => {
+    const handleResize = () => setIsMobileScreen(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Phân trang chuẩn Dashboard (6 - 9 - 12 - 18 - 24)
   const [currentPage, setCurrentPage] = useState<number>(1);
@@ -144,13 +153,95 @@ export const ClientRoomsPage: React.FC<ClientRoomsPageProps> = ({
   const getRoomThumb = (room: MuseumRoom) => {
     const raw = room.thumbnailUrl || room.panoramaUrl;
     if (!raw) return '';
-    return resolveMediaUrl(raw);
+    const resolved = resolveMediaUrl(raw);
+    if (resolved && resolved.includes('cloudinary.com') && resolved.includes('/upload/')) {
+      return resolved.replace('/upload/', '/upload/f_auto,q_auto,w_600,c_fill,ar_16:9/');
+    }
+    return resolved;
   };
 
   const currentFilterLabel =
     selectedPeriod === 'all'
       ? `${t('common.all', 'Tất cả thời kỳ')} (${rooms.length})`
       : selectedPeriod;
+
+  // Danh sách các mục thời kỳ / chuyên đề để lọc
+  const renderFilterOptions = () => (
+    <>
+      {/* Option: Tất cả */}
+      <button
+        type="button"
+        onClick={() => {
+          setSelectedPeriod('all');
+          setIsFilterDropdownOpen(false);
+        }}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          width: '100%',
+          padding: '10px 12px',
+          borderRadius: 8,
+          border: 'none',
+          background: selectedPeriod === 'all' ? 'rgba(212, 168, 106, 0.16)' : 'transparent',
+          color: selectedPeriod === 'all' ? '#D4A86A' : '#E5E7EB',
+          fontSize: '13px',
+          fontWeight: selectedPeriod === 'all' ? 600 : 400,
+          cursor: 'pointer',
+          textAlign: 'left',
+          transition: 'background 0.15s'
+        }}
+      >
+        <span>{t('common.all', 'Tất cả thời kỳ')}</span>
+        <span style={{ fontSize: '11px', opacity: 0.85, color: '#D4A86A', fontWeight: 600 }}>
+          ({rooms.reduce((acc, r) => acc + ((r as any).artifactCount || 0), 0) || rooms.length} hiện vật)
+        </span>
+      </button>
+
+      {/* Options từng thời kỳ */}
+      {periods.map((p) => {
+        const isSelected = selectedPeriod === p;
+        const matchingRooms = rooms.filter((r) => sanitizeMuseumText((r as any).period || r.category || '') === p);
+        const countArtifacts = matchingRooms.reduce((acc, r) => acc + ((r as any).artifactCount || 0), 0);
+        return (
+          <button
+            key={p}
+            type="button"
+            onClick={() => {
+              setSelectedPeriod(p);
+              setIsFilterDropdownOpen(false);
+            }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              width: '100%',
+              padding: '10px 12px',
+              borderRadius: 8,
+              border: 'none',
+              background: isSelected ? 'rgba(212, 168, 106, 0.16)' : 'transparent',
+              color: isSelected ? '#D4A86A' : '#E5E7EB',
+              fontSize: '13px',
+              fontWeight: isSelected ? 600 : 400,
+              cursor: 'pointer',
+              textAlign: 'left',
+              transition: 'background 0.15s'
+            }}
+          >
+            <span style={{ flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', paddingRight: 6 }}>
+              {t(p, p)}
+            </span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+              <span style={{ fontSize: '11px', opacity: 0.85, color: '#D4A86A', fontWeight: 600 }}>
+                ({countArtifacts > 0 ? `${countArtifacts} hiện vật` : `${matchingRooms.length} phòng`})
+              </span>
+              {isSelected && <Check size={13} style={{ color: '#D4A86A' }} />}
+            </span>
+          </button>
+        );
+      })}
+    </>
+  );
 
   return (
     <div className="client-portal" data-client-theme="dark">
@@ -199,7 +290,7 @@ export const ClientRoomsPage: React.FC<ClientRoomsPageProps> = ({
           </div>
 
           {/* Thanh công cụ tìm kiếm và bộ lọc Select Dropdown tinh gọn */}
-          <div className="client-subpage-toolbar" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', margin: '28px 0 36px 0', paddingBottom: 20, borderBottom: '1px solid rgba(255, 255, 255, 0.08)' }}>
+          <div className="client-subpage-toolbar" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', margin: '24px 0 32px 0', paddingBottom: 16, borderBottom: '1px solid rgba(255, 255, 255, 0.08)' }}>
             {/* Ô tìm kiếm */}
             <div className="client-subpage-search-wrap" style={{ position: 'relative', width: 340, maxWidth: '100%' }}>
               <Search size={16} className="client-subpage-search-icon" style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', color: '#9CA3AF', pointerEvents: 'none' }} />
@@ -213,8 +304,8 @@ export const ClientRoomsPage: React.FC<ClientRoomsPageProps> = ({
               />
             </div>
 
-            {/* BỘ LỌC THỜI KỲ / CHUYÊN ĐỀ DẠNG SELECT DROPDOWN GỌN GÀNG */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            {/* BỘ LỌC THỜI KỲ / CHUYÊN ĐỀ */}
+            <div className="client-rooms-filter-action-wrap" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <div ref={filterDropdownRef} style={{ position: 'relative' }}>
                 <button
                   type="button"
@@ -250,117 +341,13 @@ export const ClientRoomsPage: React.FC<ClientRoomsPageProps> = ({
                   />
                 </button>
 
-                {/* Dropdown danh sách thời kỳ */}
-                {isFilterDropdownOpen && (
-                  <div
-                    style={{
-                      position: 'absolute',
-                      top: 'calc(100% + 8px)',
-                      right: 0,
-                      width: 290,
-                      maxHeight: '55vh',
-                      overflowY: 'auto',
-                      background: 'rgba(18, 22, 30, 0.97)',
-                      backdropFilter: 'blur(16px)',
-                      WebkitBackdropFilter: 'blur(16px)',
-                      border: '1px solid rgba(212, 168, 106, 0.35)',
-                      borderRadius: 14,
-                      padding: '8px',
-                      boxShadow: '0 16px 40px rgba(0, 0, 0, 0.65)',
-                      zIndex: 150,
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: 3
-                    }}
-                  >
+                {/* Dropdown danh sách thời kỳ trên Desktop */}
+                {isFilterDropdownOpen && !isMobileScreen && (
+                  <div className="client-rooms-desktop-dropdown">
                     <div style={{ fontSize: '11px', fontWeight: 600, color: '#D4A86A', textTransform: 'uppercase', letterSpacing: 0.5, padding: '4px 8px 6px 8px', borderBottom: '1px solid rgba(255,255,255,0.08)', marginBottom: 2 }}>
                       {t('rooms.filterTitle', 'Lọc theo thời kỳ & không gian')}
                     </div>
-
-                    {/* Option: Tất cả */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedPeriod('all');
-                        setIsFilterDropdownOpen(false);
-                      }}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        width: '100%',
-                        padding: '9px 12px',
-                        borderRadius: 8,
-                        border: 'none',
-                        background: selectedPeriod === 'all' ? 'rgba(212, 168, 106, 0.16)' : 'transparent',
-                        color: selectedPeriod === 'all' ? '#D4A86A' : '#E5E7EB',
-                        fontSize: '12.5px',
-                        fontWeight: selectedPeriod === 'all' ? 600 : 400,
-                        cursor: 'pointer',
-                        textAlign: 'left',
-                        transition: 'background 0.15s'
-                      }}
-                      onMouseEnter={(e) => {
-                        if (selectedPeriod !== 'all') e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
-                      }}
-                      onMouseLeave={(e) => {
-                        if (selectedPeriod !== 'all') e.currentTarget.style.background = 'transparent';
-                      }}
-                    >
-                      <span>{t('common.all', 'Tất cả thời kỳ')}</span>
-                      <span style={{ fontSize: '11px', opacity: 0.8, color: '#D4A86A', fontWeight: 600 }}>
-                        ({rooms.reduce((acc, r) => acc + ((r as any).artifactCount || 0), 0) || rooms.length} hiện vật)
-                      </span>
-                    </button>
-
-                    {/* Options từng thời kỳ */}
-                    {periods.map((p) => {
-                      const isSelected = selectedPeriod === p;
-                      const matchingRooms = rooms.filter((r) => sanitizeMuseumText((r as any).period || r.category || '') === p);
-                      const countArtifacts = matchingRooms.reduce((acc, r) => acc + ((r as any).artifactCount || 0), 0);
-                      return (
-                        <button
-                          key={p}
-                          type="button"
-                          onClick={() => {
-                            setSelectedPeriod(p);
-                            setIsFilterDropdownOpen(false);
-                          }}
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            width: '100%',
-                            padding: '9px 12px',
-                            borderRadius: 8,
-                            border: 'none',
-                            background: isSelected ? 'rgba(212, 168, 106, 0.16)' : 'transparent',
-                            color: isSelected ? '#D4A86A' : '#E5E7EB',
-                            fontSize: '12.5px',
-                            fontWeight: isSelected ? 600 : 400,
-                            cursor: 'pointer',
-                            textAlign: 'left',
-                            transition: 'background 0.15s'
-                          }}
-                          onMouseEnter={(e) => {
-                            if (!isSelected) e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
-                          }}
-                          onMouseLeave={(e) => {
-                            if (!isSelected) e.currentTarget.style.background = 'transparent';
-                          }}
-                        >
-                          <span style={{ flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', paddingRight: 6 }}>
-                            {t(p, p)}
-                          </span>
-                          <span style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-                            <span style={{ fontSize: '11px', opacity: 0.8, color: '#D4A86A', fontWeight: 600 }}>
-                              ({countArtifacts > 0 ? `${countArtifacts} hiện vật` : `${matchingRooms.length} phòng`})
-                            </span>
-                            {isSelected && <Check size={13} style={{ color: '#D4A86A' }} />}
-                          </span>
-                        </button>
-                      );
-                    })}
+                    {renderFilterOptions()}
                   </div>
                 )}
               </div>
@@ -390,6 +377,88 @@ export const ClientRoomsPage: React.FC<ClientRoomsPageProps> = ({
               )}
             </div>
           </div>
+
+          {/* DRAWER VUỐT RA TỪ BÊN PHẢI TRÊN MOBILE */}
+          {isFilterDropdownOpen && isMobileScreen && (
+            <>
+              <div
+                className="client-rooms-drawer-backdrop"
+                onClick={() => setIsFilterDropdownOpen(false)}
+              />
+              <aside className="client-rooms-drawer-panel">
+                <div
+                  style={{
+                    padding: '16px 18px',
+                    borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    background: 'rgba(212, 168, 106, 0.06)'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <Filter size={16} style={{ color: '#D4A86A' }} />
+                    <span style={{ fontSize: '13px', fontWeight: 700, color: '#F8FAFC', textTransform: 'uppercase' }}>
+                      {t('rooms.filterTitle', 'Bộ Lọc Thời Kỳ')}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsFilterDropdownOpen(false)}
+                    style={{
+                      background: 'rgba(255, 255, 255, 0.06)',
+                      border: '1px solid rgba(255, 255, 255, 0.1)',
+                      borderRadius: 6,
+                      width: 28,
+                      height: 28,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#94A3B8',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <X size={15} />
+                  </button>
+                </div>
+
+                <div
+                  style={{
+                    flex: 1,
+                    overflowY: 'auto',
+                    padding: '12px 14px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 4,
+                    WebkitOverflowScrolling: 'touch',
+                    touchAction: 'pan-y'
+                  }}
+                >
+                  {renderFilterOptions()}
+                </div>
+
+                <div style={{ padding: '12px 14px', borderTop: '1px solid rgba(255, 255, 255, 0.08)', background: '#121724' }}>
+                  <button
+                    type="button"
+                    onClick={() => setIsFilterDropdownOpen(false)}
+                    style={{
+                      width: '100%',
+                      padding: '10px',
+                      borderRadius: 24,
+                      background: 'linear-gradient(135deg, #D4AF37 0%, #AA8010 100%)',
+                      color: '#0A0D14',
+                      border: 'none',
+                      fontWeight: 700,
+                      fontSize: '13px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Đóng & Xem kết quả
+                  </button>
+                </div>
+              </aside>
+            </>
+          )}
 
           {/* Danh sách lưới gian phòng */}
           {filteredRooms.length === 0 ? (
@@ -437,7 +506,8 @@ export const ClientRoomsPage: React.FC<ClientRoomsPageProps> = ({
                             src={thumb}
                             alt={title}
                             className="client-gallery-img client-room-gallery-img"
-                            loading="lazy"
+                            loading={index < 4 ? 'eager' : 'lazy'}
+                            decoding="async"
                             onError={() => setFailedThumbs((prev) => ({ ...prev, [room.id]: true }))}
                           />
                         ) : (
@@ -445,7 +515,8 @@ export const ClientRoomsPage: React.FC<ClientRoomsPageProps> = ({
                             src="/images/default_banner.jpg"
                             alt={title}
                             className="client-gallery-img client-room-gallery-img"
-                            loading="lazy"
+                            loading={index < 4 ? 'eager' : 'lazy'}
+                            decoding="async"
                           />
                         )}
                         <div className="client-zigzag-badge-float">

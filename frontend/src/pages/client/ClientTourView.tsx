@@ -1244,7 +1244,11 @@ export const ClientTourView: React.FC<ClientTourViewProps> = ({
               </div>
             ) : (
               matchingArtifacts.map((art) => {
-                const thumb = getMediaUrl(art.thumbnailUrl || (art.images && art.images[0]));
+                const rawThumb = art.thumbnailUrl || (art.images && art.images[0]);
+                let thumb = getMediaUrl(rawThumb);
+                if (thumb && thumb.includes('cloudinary.com') && thumb.includes('/upload/')) {
+                  thumb = thumb.replace('/upload/', '/upload/f_auto,q_auto,w_200,c_limit/');
+                }
                 const has3D = Boolean(art.model3dUrl);
 
                 return (
@@ -1253,128 +1257,132 @@ export const ClientTourView: React.FC<ClientTourViewProps> = ({
                     className="client-tour-artifact-card"
                     onClick={() => setActive3DArtifact(art)}
                     style={{
-                      background: 'rgba(24, 30, 44, 0.75)',
-                      border: '1px solid rgba(212, 168, 106, 0.25)',
+                      background: 'rgba(20, 26, 38, 0.85)',
+                      border: '1px solid rgba(212, 168, 106, 0.22)',
                       borderRadius: 12,
-                      overflow: 'hidden',
+                      padding: '8px 12px',
                       cursor: 'pointer',
-                      transition: 'all 0.2s ease',
+                      transition: 'all 0.18s ease',
                       display: 'flex',
-                      flexDirection: 'column',
-                      boxShadow: '0 4px 16px rgba(0, 0, 0, 0.3)'
+                      alignItems: 'center',
+                      gap: 12,
+                      boxShadow: '0 4px 14px rgba(0, 0, 0, 0.35)',
+                      minHeight: 66,
+                      flexShrink: 0
                     }}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.borderColor = '#D4A86A';
-                      e.currentTarget.style.transform = 'translateY(-2px)';
-                      e.currentTarget.style.boxShadow = '0 8px 24px rgba(0, 0, 0, 0.5), 0 0 16px rgba(212, 168, 106, 0.2)';
+                      e.currentTarget.style.transform = 'translateY(-1px)';
+                      e.currentTarget.style.background = 'rgba(26, 34, 50, 0.95)';
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.borderColor = 'rgba(212, 168, 106, 0.25)';
+                      e.currentTarget.style.borderColor = 'rgba(212, 168, 106, 0.22)';
                       e.currentTarget.style.transform = 'translateY(0)';
-                      e.currentTarget.style.boxShadow = '0 4px 16px rgba(0, 0, 0, 0.3)';
+                      e.currentTarget.style.background = 'rgba(20, 26, 38, 0.85)';
                     }}
                   >
-                    {/* Ảnh hiện vật */}
+                    {/* Ảnh thu nhỏ hiện vật ở góc trái */}
                     <div
                       style={{
-                        position: 'relative',
-                        height: 135,
-                        background: 'radial-gradient(circle at center, #1c2436 0%, #0c1018 100%)',
+                        width: 52,
+                        height: 52,
+                        minWidth: 52,
+                        borderRadius: 8,
+                        background: 'radial-gradient(circle at center, #1E2638 0%, #0F1420 100%)',
+                        border: '1px solid rgba(212, 168, 106, 0.25)',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        padding: 10
+                        overflow: 'hidden',
+                        padding: 4,
+                        flexShrink: 0
                       }}
                     >
                       {thumb ? (
                         <img
                           src={thumb}
                           alt={art.name}
+                          loading="lazy"
+                          decoding="async"
                           style={{
                             maxHeight: '100%',
                             maxWidth: '100%',
                             objectFit: 'contain',
-                            filter: 'drop-shadow(0 6px 14px rgba(0,0,0,0.7))'
+                            filter: 'drop-shadow(0 3px 6px rgba(0,0,0,0.6))'
                           }}
                         />
                       ) : (
-                        <Box size={28} style={{ opacity: 0.4, color: '#94A3B8' }} />
+                        <Box size={22} style={{ opacity: 0.4, color: '#94A3B8' }} />
                       )}
+                    </div>
 
+                    {/* Tên và thông tin cổ vật ở bên trái, cỡ chữ vừa phải dễ nhận biết */}
+                    <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span
+                          style={{
+                            fontSize: '10px',
+                            fontWeight: 700,
+                            color: '#D4A86A',
+                            textTransform: 'uppercase',
+                            letterSpacing: 0.3
+                          }}
+                        >
+                          {art.period || 'Di sản lịch sử'}
+                        </span>
+                        {art.code && (
+                          <span
+                            style={{
+                              fontSize: '9.5px',
+                              color: '#94A3B8',
+                              background: 'rgba(255, 255, 255, 0.06)',
+                              padding: '1px 5px',
+                              borderRadius: 3
+                            }}
+                          >
+                            {art.code}
+                          </span>
+                        )}
+                      </div>
+
+                      <div
+                        style={{
+                          fontSize: '13px',
+                          fontWeight: 600,
+                          color: '#F8FAFC',
+                          lineHeight: 1.35,
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis'
+                        }}
+                        title={art.name}
+                      >
+                        {art.name}
+                      </div>
+                    </div>
+
+                    {/* Huy hiệu 3D Scan & Icon mũi tên bên phải */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
                       {has3D && (
                         <div
                           style={{
-                            position: 'absolute',
-                            top: 8,
-                            right: 8,
-                            background: 'rgba(10, 14, 22, 0.88)',
-                            border: '1px solid rgba(212, 168, 106, 0.55)',
+                            background: 'rgba(212, 168, 106, 0.16)',
+                            border: '1px solid rgba(212, 168, 106, 0.45)',
                             color: '#FDE68A',
                             fontSize: '10px',
                             fontWeight: 700,
                             padding: '2px 7px',
-                            borderRadius: 10,
-                            backdropFilter: 'blur(4px)',
+                            borderRadius: 8,
                             display: 'flex',
                             alignItems: 'center',
-                            gap: 4
+                            gap: 3
                           }}
                         >
                           <Sparkles size={10} style={{ color: '#D4A86A' }} />
                           <span>3D Scan</span>
                         </div>
                       )}
-                    </div>
-
-                    {/* Nội dung thông tin hiện vật */}
-                    <div style={{ padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 4 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
-                        <span style={{ fontSize: 10.5, color: '#D4A86A', fontWeight: 700, textTransform: 'uppercase' }}>
-                          {art.period || 'Di sản lịch sử'}
-                        </span>
-                        {art.code && (
-                          <span style={{ fontSize: 10, color: '#94A3B8', background: 'rgba(255,255,255,0.06)', padding: '1px 5px', borderRadius: 3 }}>
-                            {art.code}
-                          </span>
-                        )}
-                      </div>
-
-                      <div style={{ fontSize: '13px', fontWeight: 700, color: '#F8FAFC', lineHeight: 1.35 }}>
-                        {art.name}
-                      </div>
-
-                      {(art as any).description && (
-                        <div
-                          style={{
-                            fontSize: '11px',
-                            color: '#94A3B8',
-                            lineHeight: 1.45,
-                            display: '-webkit-box',
-                            WebkitLineClamp: 2,
-                            WebkitBoxOrient: 'vertical',
-                            overflow: 'hidden',
-                            margin: '2px 0 6px 0'
-                          }}
-                        >
-                          {(art as any).description}
-                        </div>
-                      )}
-
-                      <div
-                        style={{
-                          marginTop: 4,
-                          paddingTop: 8,
-                          borderTop: '1px solid rgba(255, 255, 255, 0.06)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between'
-                        }}
-                      >
-                        <span style={{ fontSize: '11px', color: '#D4A86A', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
-                          {has3D ? 'Chiêm ngưỡng 3D 360°' : 'Xem thông tin khảo cứu'}
-                          <ChevronRight size={12} />
-                        </span>
-                      </div>
+                      <ChevronRight size={14} style={{ color: '#94A3B8', opacity: 0.7 }} />
                     </div>
                   </div>
                 );
@@ -1655,14 +1663,27 @@ export const ClientTourView: React.FC<ClientTourViewProps> = ({
             top: auto !important;
             width: 100% !important;
             max-width: 100% !important;
-            max-height: 72vh !important;
-            height: auto !important;
+            height: 72dvh !important;
+            max-height: 76dvh !important;
+            display: flex !important;
+            flex-direction: column !important;
+            overflow: hidden !important;
             border-radius: 20px 20px 0 0 !important;
             border-top: 1px solid rgba(212, 168, 106, 0.45) !important;
             border-left: none !important;
             box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.85) !important;
             z-index: 120 !important;
             animation: slideUpMobile 0.28s cubic-bezier(0.16, 1, 0.3, 1) !important;
+          }
+          .client-tour-artifacts-scrollable {
+            flex: 1 1 0% !important;
+            min-height: 0 !important;
+            height: auto !important;
+            overflow-y: auto !important;
+            -webkit-overflow-scrolling: touch !important;
+            touch-action: pan-y !important;
+            overscroll-behavior: contain !important;
+            padding-bottom: max(48px, calc(env(safe-area-inset-bottom, 20px) + 36px)) !important;
           }
           .client-tour-mobile-drag-handle {
             display: flex !important;
@@ -1693,7 +1714,8 @@ export const ClientTourView: React.FC<ClientTourViewProps> = ({
         }
         @media (max-width: 480px) {
           .client-tour-artifacts-sidebar {
-            max-height: 75vh !important;
+            height: 75dvh !important;
+            max-height: 78dvh !important;
           }
           .artifacts-btn-reopen-text {
             font-size: 11px !important;

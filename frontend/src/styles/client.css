@@ -173,6 +173,7 @@ html {
     left: 50%;
     transform: translateX(-50%);
   }
+
   .client-navbar.is-scrolled {
     top: 8px;
     left: 50%;
@@ -389,8 +390,17 @@ html {
 }
 
 @keyframes navPulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.35; transform: scale(0.85); }
+
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.35;
+    transform: scale(0.85);
+  }
 }
 
 /* 2. Menu Điều hướng Dạng Floating Capsule Island (Cân bằng tự nhiên giữa Navbar) */
@@ -472,6 +482,7 @@ html {
     opacity: 0;
     transform: translate(-50%, -6px);
   }
+
   to {
     opacity: 1;
     transform: translate(-50%, 0);
@@ -644,32 +655,39 @@ html {
 }
 
 @media (max-width: 1440px) {
+
   /* 1. Thu gọn cụm logo bên trái: ẩn bớt dòng subtitle dài để nhường không gian cho menu */
   .client-nav-subtitle-row {
     display: none !important;
   }
+
   .client-nav-title {
     font-size: 0.92rem;
     white-space: nowrap;
   }
+
   .client-nav-brand {
     gap: 8px;
     flex-shrink: 0;
   }
+
   /* 2. Cân chỉnh menu giữa gọn gàng, tránh tràn hoặc đè sang nút hành động */
   .client-nav-menu-wrapper {
     flex-shrink: 0;
     min-width: 0;
   }
+
   .client-nav-menu {
     padding: 2px 4px;
     gap: 2px;
   }
+
   .client-nav-link {
     font-size: 0.8rem;
     padding: 5px 9px;
     white-space: nowrap;
   }
+
   /* 3. Thu gọn cụm hành động góc phải: icon tròn chuẩn mực */
   .client-nav-qr-btn {
     width: 36px !important;
@@ -680,9 +698,11 @@ html {
     border-radius: 50% !important;
     justify-content: center;
   }
+
   .client-nav-qr-text {
     display: none !important;
   }
+
   .client-nav-booking-btn {
     width: 36px !important;
     height: 36px !important;
@@ -692,24 +712,29 @@ html {
     border-radius: 50% !important;
     justify-content: center;
   }
+
   .client-nav-booking-text {
     display: none !important;
   }
+
   .client-nav-login-btn {
     padding: 6px 12px;
     font-size: 0.82rem;
     gap: 5px;
   }
+
   .client-user-name {
     max-width: 85px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+
   .client-user-btn {
     padding: 4px 8px 4px 4px;
     font-size: 0.82rem;
   }
+
   .client-nav-lang-btn,
   .client-theme-toggle {
     width: 36px !important;
@@ -723,6 +748,7 @@ html {
     justify-content: center !important;
     box-sizing: border-box !important;
   }
+
   .client-nav-lang-code {
     font-size: 0.76rem !important;
     line-height: 1 !important;
@@ -813,8 +839,13 @@ html {
 }
 
 @keyframes fadeInBackdrop {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 .client-user-dropdown {
@@ -840,6 +871,7 @@ html {
     opacity: 0;
     transform: translateY(-8px) scale(0.97);
   }
+
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
@@ -896,6 +928,7 @@ html {
 /* --- RESPONSIVE CHO CLIENT NAVBAR & MOBILE MENU DRAWER --- */
 /* Đảm bảo ở màn hình Desktop (min-width: 1141px), toàn bộ Mobile Drawer, Backdrop và Mobile Toggle tuyệt đối không được hiển thị */
 @media (min-width: 1141px) {
+
   .client-mobile-drawer,
   .client-mobile-backdrop,
   .client-nav-mobile-toggle {
@@ -917,8 +950,13 @@ html {
 }
 
 @keyframes mobileBackdropFadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 .client-mobile-drawer {
@@ -954,6 +992,7 @@ html {
     opacity: 0;
     transform: translateY(-8px) scale(0.97);
   }
+
   100% {
     opacity: 1;
     transform: translateY(0) scale(1);
@@ -961,24 +1000,52 @@ html {
 }
 
 /* Stagger animation cho từng mục con bên trong mobile drawer tạo độ mượt tuyệt đỉnh */
-.client-mobile-drawer > * {
+.client-mobile-drawer>* {
   animation: mobileItemFadeUp 0.32s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
-.client-mobile-drawer > *:nth-child(1) { animation-delay: 0.03s; }
-.client-mobile-drawer > *:nth-child(2) { animation-delay: 0.06s; }
-.client-mobile-drawer > *:nth-child(3) { animation-delay: 0.09s; }
-.client-mobile-drawer > *:nth-child(4) { animation-delay: 0.12s; }
-.client-mobile-drawer > *:nth-child(5) { animation-delay: 0.15s; }
-.client-mobile-drawer > *:nth-child(6) { animation-delay: 0.18s; }
-.client-mobile-drawer > *:nth-child(7) { animation-delay: 0.21s; }
-.client-mobile-drawer > *:nth-child(8) { animation-delay: 0.24s; }
-.client-mobile-drawer > *:nth-child(n+9) { animation-delay: 0.27s; }
+
+.client-mobile-drawer>*:nth-child(1) {
+  animation-delay: 0.03s;
+}
+
+.client-mobile-drawer>*:nth-child(2) {
+  animation-delay: 0.06s;
+}
+
+.client-mobile-drawer>*:nth-child(3) {
+  animation-delay: 0.09s;
+}
+
+.client-mobile-drawer>*:nth-child(4) {
+  animation-delay: 0.12s;
+}
+
+.client-mobile-drawer>*:nth-child(5) {
+  animation-delay: 0.15s;
+}
+
+.client-mobile-drawer>*:nth-child(6) {
+  animation-delay: 0.18s;
+}
+
+.client-mobile-drawer>*:nth-child(7) {
+  animation-delay: 0.21s;
+}
+
+.client-mobile-drawer>*:nth-child(8) {
+  animation-delay: 0.24s;
+}
+
+.client-mobile-drawer>*:nth-child(n+9) {
+  animation-delay: 0.27s;
+}
 
 @keyframes mobileItemFadeUp {
   0% {
     opacity: 0;
     transform: translateY(8px);
   }
+
   100% {
     opacity: 1;
     transform: translateY(0);
@@ -995,6 +1062,7 @@ html {
     opacity: 0;
     transform: translateY(-6px);
   }
+
   100% {
     opacity: 1;
     transform: translateY(0);
@@ -1104,11 +1172,13 @@ html {
     left: 50%;
     transform: translateX(-50%);
   }
+
   .client-navbar.is-scrolled {
     top: 8px;
     left: 50%;
     transform: translateX(-50%);
   }
+
   .client-nav-inner {
     display: flex;
     justify-content: space-between;
@@ -1117,13 +1187,16 @@ html {
     padding: 0 16px;
     gap: 12px;
   }
+
   .client-nav-menu-wrapper {
     display: none !important;
   }
+
   /* Ẩn nút đăng nhập to trên top bar, chuyển vào mobile drawer */
   .client-nav-actions .client-nav-login-btn {
     display: none !important;
   }
+
   /* Thu gọn nút user thành icon tròn hoàn hảo căn giữa */
   .client-user-btn {
     width: 34px !important;
@@ -1139,15 +1212,18 @@ html {
     background: transparent !important;
     box-sizing: border-box !important;
   }
+
   .client-user-avatar {
     width: 34px !important;
     height: 34px !important;
     margin: 0 !important;
   }
+
   .client-user-name,
   .client-user-btn span:last-child {
     display: none !important;
   }
+
   .client-nav-mobile-toggle {
     display: flex !important;
     align-items: center;
@@ -1162,31 +1238,38 @@ html {
     flex-shrink: 0;
     transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   }
+
   .client-nav-mobile-toggle svg {
     transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   }
+
   .client-nav-mobile-toggle:hover {
     background: rgba(212, 175, 55, 0.25);
     border-color: #D4AF37;
     color: #FFFFFF;
     transform: scale(1.05);
   }
+
   .client-nav-mobile-toggle:active {
     transform: scale(0.95);
   }
+
   .client-nav-mobile-toggle.is-active {
     background: rgba(212, 175, 55, 0.28);
     border-color: #D4AF37;
     color: #FFFFFF;
   }
+
   .client-nav-mobile-toggle.is-active svg {
     transform: rotate(90deg);
   }
+
   .client-portal[data-client-theme="light"] .client-nav-mobile-toggle {
     background: rgba(180, 138, 60, 0.12);
     border-color: rgba(180, 138, 60, 0.4);
     color: #8A6018;
   }
+
   .client-portal[data-client-theme="light"] .client-nav-mobile-toggle.is-active {
     background: rgba(180, 138, 60, 0.25);
     border-color: #8A6018;
@@ -1199,33 +1282,39 @@ html {
     width: calc(100% - 20px);
     top: 8px;
   }
+
   .client-nav-inner {
     height: 52px;
     padding: 0 10px 0 12px;
     gap: 8px;
   }
+
   .client-nav-brand {
     gap: 8px;
     min-width: 0;
     flex: 1;
     overflow: hidden;
   }
+
   .client-nav-emblem {
     width: 32px;
     height: 32px;
     font-size: 12px;
     flex-shrink: 0;
   }
+
   .client-nav-logo {
     height: 30px;
     max-width: 90px;
     flex-shrink: 0;
   }
+
   .client-nav-title-group {
     min-width: 0;
     flex: 1;
     overflow: hidden;
   }
+
   .client-nav-title {
     font-size: clamp(0.85rem, 3.6vw, 0.94rem);
     font-weight: 700;
@@ -1235,18 +1324,22 @@ html {
     max-width: 100%;
     line-height: 1.2;
   }
+
   /* Ẩn dòng phụ đề TP.HCM • TOUR 360 để nhường trọn vẹn không gian cho tên bảo tàng */
   .client-nav-subtitle-row {
     display: none !important;
   }
+
   /* Ẩn nút Quét QR trùng lặp trên top bar vì đã có nút nổi Quét QR và mục trong drawer */
   .client-nav-qr-btn {
     display: none !important;
   }
+
   .client-nav-actions {
     gap: 6px;
     flex-shrink: 0;
   }
+
   .client-nav-lang-btn,
   .client-theme-toggle {
     width: 32px !important;
@@ -1254,11 +1347,13 @@ html {
     min-width: 32px !important;
     max-width: 32px !important;
   }
+
   .client-nav-mobile-toggle {
     width: 34px !important;
     height: 34px !important;
     min-width: 34px !important;
   }
+
   .client-mobile-drawer {
     top: 66px;
     right: 10px;
@@ -1288,14 +1383,17 @@ html {
     width: calc(100% - 12px);
     top: 6px;
   }
+
   .client-nav-inner {
     height: 48px;
     padding: 0 8px 0 10px;
     gap: 6px;
   }
+
   .client-nav-title {
     font-size: 0.84rem;
   }
+
   .client-mobile-drawer {
     top: 58px;
     right: 6px;
@@ -1353,13 +1451,11 @@ html {
 .client-hero-overlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(
-    180deg,
-    rgba(10, 13, 20, 0.65) 0%,
-    rgba(10, 13, 20, 0.15) 30%,
-    rgba(10, 13, 20, 0.3) 65%,
-    var(--c-bg) 100%
-  );
+  background: linear-gradient(180deg,
+      rgba(10, 13, 20, 0.65) 0%,
+      rgba(10, 13, 20, 0.15) 30%,
+      rgba(10, 13, 20, 0.3) 65%,
+      var(--c-bg) 100%);
   pointer-events: none;
   z-index: 2;
 }
@@ -1395,6 +1491,7 @@ html {
     opacity: 0;
     transform: translateY(24px);
   }
+
   100% {
     opacity: 1;
     transform: translateY(0);
@@ -1647,12 +1744,19 @@ html {
 }
 
 @keyframes heroBounce {
-  0%, 20%, 50%, 80%, 100% {
+
+  0%,
+  20%,
+  50%,
+  80%,
+  100% {
     transform: translateY(0);
   }
+
   40% {
     transform: translateY(7px);
   }
+
   60% {
     transform: translateY(3.5px);
   }
@@ -1666,53 +1770,61 @@ html {
     padding-bottom: 28px;
     justify-content: center;
   }
+
   .client-hero-media {
     filter: brightness(0.8) contrast(1.06);
   }
+
   .client-hero-overlay {
-    background: linear-gradient(
-      180deg,
-      rgba(10, 13, 20, 0.48) 0%,
-      rgba(10, 13, 20, 0.12) 32%,
-      rgba(10, 13, 20, 0.38) 68%,
-      var(--c-bg) 100%
-    );
+    background: linear-gradient(180deg,
+        rgba(10, 13, 20, 0.48) 0%,
+        rgba(10, 13, 20, 0.12) 32%,
+        rgba(10, 13, 20, 0.38) 68%,
+        var(--c-bg) 100%);
   }
+
   .client-hero-content {
     padding: 0 16px;
     max-width: 100%;
   }
+
   .client-hero-tag {
     font-size: 0.72rem;
     letter-spacing: 0.12em;
     margin-bottom: 8px;
   }
+
   .client-hero-headline {
     font-size: clamp(1.65rem, 5.8vw, 2.25rem);
     line-height: 1.25;
     margin-bottom: 10px;
     text-shadow: 0 2px 14px rgba(0, 0, 0, 0.9);
   }
+
   .client-hero-lead {
     font-size: 0.88rem;
     line-height: 1.58;
     max-width: 92%;
     margin-bottom: 18px;
   }
+
   .client-hero-actions {
     gap: 10px;
     margin-bottom: 18px;
     width: 100%;
     justify-content: center;
   }
+
   .client-btn-primary {
     padding: 10px 22px;
     font-size: 0.88rem;
   }
+
   .client-btn-secondary {
     padding: 9px 20px;
     font-size: 0.88rem;
   }
+
   /* Bố cục stats DẠNG VIÊN THUỐC NGANG (HORIZONTAL CAPSULE) - GIỮ NGUYÊN NẰM NGANG, KHÔNG BAO GIỜ XẾP DỌC BẾ TẮC */
   .client-hero-stats {
     flex-direction: row !important;
@@ -1730,6 +1842,7 @@ html {
     border: 1px solid rgba(212, 175, 55, 0.35) !important;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.55);
   }
+
   .client-hero-stat-item {
     padding: 2px 4px;
     flex: 1;
@@ -1739,10 +1852,12 @@ html {
     justify-content: center;
     text-align: center;
   }
+
   .client-hero-stat-value {
     font-size: 1.25rem !important;
     line-height: 1.1;
   }
+
   .client-hero-stat-label {
     font-size: 0.62rem !important;
     letter-spacing: 0.04em;
@@ -1751,6 +1866,7 @@ html {
     text-align: center;
     line-height: 1.25;
   }
+
   .client-hero-stat-divider {
     width: 1px !important;
     height: 24px !important;
@@ -1763,6 +1879,7 @@ html {
   .client-hero-headline {
     font-size: 1.55rem;
   }
+
   .client-hero-actions {
     flex-direction: column;
     align-items: stretch;
@@ -1770,18 +1887,22 @@ html {
     margin-left: auto;
     margin-right: auto;
   }
+
   .client-btn-primary,
   .client-btn-secondary {
     width: 100%;
     justify-content: center;
   }
+
   .client-hero-stats {
     padding: 6px 8px;
     gap: 4px;
   }
+
   .client-hero-stat-value {
     font-size: 1.15rem !important;
   }
+
   .client-hero-stat-label {
     font-size: 0.58rem !important;
   }
@@ -2050,17 +2171,20 @@ html {
   .client-intro-grid {
     gap: 32px;
   }
+
   .client-intro-img-frame {
     aspect-ratio: 16 / 10;
     min-height: 230px;
     border-radius: var(--c-radius-md);
   }
+
   .client-intro-monument-badge {
     top: 12px;
     left: 12px;
     padding: 5px 12px;
     font-size: 0.72rem;
   }
+
   .client-intro-history-card {
     bottom: 12px;
     left: 12px;
@@ -2069,60 +2193,75 @@ html {
     gap: 10px;
     border-radius: var(--c-radius-sm);
   }
+
   .client-intro-history-emblem {
     width: 36px;
     height: 36px;
     border-radius: 8px;
   }
+
   .client-intro-history-year {
     font-size: 0.95rem;
   }
+
   .client-intro-history-sub {
     font-size: 0.76rem;
     line-height: 1.35;
   }
+
   .client-intro-text-col {
     gap: 20px;
   }
+
   .client-intro-title {
     font-size: clamp(1.45rem, 5vw, 1.85rem);
     line-height: 1.28;
   }
+
   .client-intro-paragraph {
     font-size: 0.9rem;
     line-height: 1.65;
   }
+
   .client-intro-paragraph.secondary {
     font-size: 0.86rem;
   }
+
   .client-intro-features {
     gap: 10px;
   }
+
   .client-feature-item {
     padding: 12px 14px;
     gap: 12px;
   }
+
   .client-feature-icon {
     width: 38px;
     height: 38px;
     border-radius: 10px;
   }
+
   .client-feature-title {
     font-size: 0.98rem;
   }
+
   .client-feature-desc {
     font-size: 0.84rem;
     line-height: 1.5;
   }
+
   .client-intro-meta-strip {
     flex-wrap: wrap;
     justify-content: space-around;
     gap: 12px;
     padding: 12px 14px;
   }
+
   .client-intro-meta-num {
     font-size: 1.15rem;
   }
+
   .client-intro-meta-label {
     font-size: 0.7rem;
   }
@@ -2210,10 +2349,13 @@ html {
 }
 
 @keyframes pulseDot {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: scale(1);
     opacity: 1;
   }
+
   50% {
     transform: scale(1.35);
     opacity: 0.65;
@@ -2510,22 +2652,27 @@ html {
     min-height: 380px;
     border-radius: var(--c-radius-md);
   }
+
   .client-room-featured-img-wrap {
     min-height: 240px;
   }
+
   .client-room-featured-overlay {
     padding: 20px 16px;
   }
+
   .client-room-status-badge {
     top: 12px;
     right: 12px;
     padding: 4px 12px;
     font-size: 0.72rem;
   }
+
   .client-room-featured-title {
     font-size: clamp(1.35rem, 5vw, 1.7rem);
     margin-bottom: 6px;
   }
+
   .client-room-featured-desc {
     font-size: 0.85rem;
     line-height: 1.55;
@@ -2536,14 +2683,17 @@ html {
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
+
   .client-room-enter-btn {
     padding: 10px 20px;
     font-size: 0.88rem;
   }
+
   .client-room-picker-item {
     padding: 10px 12px;
     gap: 12px;
   }
+
   .client-room-picker-thumb-wrap {
     width: 72px;
     height: 52px;
@@ -2927,37 +3077,46 @@ html {
     padding: 20px 14px;
     border-radius: var(--c-radius-md);
   }
+
   .client-pedestal-viewer-stage {
     min-height: 280px;
     height: 280px;
   }
+
   .client-pedestal-static-vitrine {
     height: 280px;
   }
+
   .client-pedestal-halo {
     width: 240px;
     height: 240px;
   }
+
   .client-pedestal-static-img {
     max-height: 200px;
   }
+
   .client-pedestal-status-badge {
     top: 12px;
     left: 12px;
     padding: 4px 11px;
     font-size: 0.72rem;
   }
+
   .client-pedestal-interaction-hint {
     bottom: 12px;
     padding: 5px 12px;
     font-size: 0.72rem;
   }
+
   .client-pedestal-placard {
     gap: 12px;
   }
+
   .client-pedestal-title {
     font-size: clamp(1.35rem, 5vw, 1.75rem);
   }
+
   .client-pedestal-desc {
     font-size: 0.86rem;
     line-height: 1.58;
@@ -2967,41 +3126,51 @@ html {
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
+
   .client-pedestal-meta-table {
     gap: 10px;
     padding: 10px 0;
   }
+
   .client-pedestal-meta-label {
     font-size: 0.7rem;
   }
+
   .client-pedestal-meta-val {
     font-size: 0.88rem;
   }
+
   .client-pedestal-actions {
     gap: 10px;
     margin-top: 4px;
   }
+
   .client-pedestal-primary-btn {
     padding: 10px 20px;
     font-size: 0.86rem;
   }
+
   .client-pedestal-secondary-btn {
     padding: 9px 18px;
     font-size: 0.86rem;
   }
+
   .client-pedestal-shelf-wrap {
     margin-top: 18px;
     padding-top: 14px;
   }
+
   .client-pedestal-shelf-item {
     min-width: 170px;
     padding: 8px 12px;
     gap: 10px;
   }
+
   .client-pedestal-shelf-thumb-wrap {
     width: 44px;
     height: 44px;
   }
+
   .client-pedestal-shelf-name {
     font-size: 0.86rem;
     max-width: 110px;
@@ -3822,6 +3991,7 @@ html {
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }
@@ -3850,6 +4020,7 @@ html {
     opacity: 0;
     transform: scale(0.95) translateY(10px);
   }
+
   to {
     opacity: 1;
     transform: scale(1) translateY(0);
@@ -4059,7 +4230,7 @@ html {
   opacity: 0;
   transform: translateY(32px);
   transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1),
-              transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
   will-change: opacity, transform;
 }
 
@@ -4073,7 +4244,7 @@ html {
   opacity: 0;
   transform: translateX(-36px);
   transition: opacity 0.85s cubic-bezier(0.16, 1, 0.3, 1),
-              transform 0.85s cubic-bezier(0.16, 1, 0.3, 1);
+    transform 0.85s cubic-bezier(0.16, 1, 0.3, 1);
   will-change: opacity, transform;
 }
 
@@ -4087,7 +4258,7 @@ html {
   opacity: 0;
   transform: translateX(36px);
   transition: opacity 0.85s cubic-bezier(0.16, 1, 0.3, 1),
-              transform 0.85s cubic-bezier(0.16, 1, 0.3, 1);
+    transform 0.85s cubic-bezier(0.16, 1, 0.3, 1);
   will-change: opacity, transform;
 }
 
@@ -4101,7 +4272,7 @@ html {
   opacity: 0;
   transform: scale(0.95) translateY(20px);
   transition: opacity 0.85s cubic-bezier(0.16, 1, 0.3, 1),
-              transform 0.85s cubic-bezier(0.16, 1, 0.3, 1);
+    transform 0.85s cubic-bezier(0.16, 1, 0.3, 1);
   will-change: opacity, transform;
 }
 
@@ -4111,11 +4282,25 @@ html {
 }
 
 /* Nhịp trễ so le tinh tế (Staggered Delays) */
-.reveal-delay-1 { transition-delay: 0.08s !important; }
-.reveal-delay-2 { transition-delay: 0.16s !important; }
-.reveal-delay-3 { transition-delay: 0.24s !important; }
-.reveal-delay-4 { transition-delay: 0.32s !important; }
-.reveal-delay-5 { transition-delay: 0.40s !important; }
+.reveal-delay-1 {
+  transition-delay: 0.08s !important;
+}
+
+.reveal-delay-2 {
+  transition-delay: 0.16s !important;
+}
+
+.reveal-delay-3 {
+  transition-delay: 0.24s !important;
+}
+
+.reveal-delay-4 {
+  transition-delay: 0.32s !important;
+}
+
+.reveal-delay-5 {
+  transition-delay: 0.40s !important;
+}
 
 /* Thanh tiến độ cuộn trang mạ vàng tinh xảo chạy dọc chân Navbar */
 .client-scroll-progress-line {
@@ -4179,6 +4364,7 @@ html {
 }
 
 @media (prefers-reduced-motion: reduce) {
+
   .reveal-on-scroll,
   .reveal-from-left,
   .reveal-from-right,
@@ -4277,20 +4463,25 @@ html {
 }
 
 @media (max-width: 960px) {
+
   .client-zigzag-card.horizontal-split,
   .client-zigzag-card.horizontal-split.reverse-columns {
     grid-template-columns: 1fr;
   }
+
   .client-zigzag-card.horizontal-split.reverse-columns .client-zigzag-card-media {
     order: 1;
   }
+
   .client-zigzag-card.horizontal-split.reverse-columns .client-zigzag-card-body {
     order: 2;
   }
+
   .client-zigzag-card.horizontal-split .client-zigzag-card-media {
     height: clamp(280px, 40vw, 380px);
     min-height: auto;
   }
+
   .client-zigzag-card.horizontal-split .client-zigzag-card-body {
     padding: 28px 24px;
   }
@@ -4304,6 +4495,7 @@ html {
 }
 
 @media (max-width: 1200px) {
+
   .client-zigzag-card.align-right,
   .client-zigzag-card.align-left {
     margin-left: auto;
@@ -4377,6 +4569,7 @@ html {
 }
 
 @media (max-width: 960px) {
+
   .client-zigzag-card.horizontal-split .client-zigzag-card-media::after,
   .client-zigzag-card.horizontal-split.reverse-columns .client-zigzag-card-media::after {
     background: linear-gradient(180deg, transparent 65%, rgba(11, 15, 23, 0.94) 100%);
@@ -4512,8 +4705,17 @@ html {
 }
 
 @keyframes guidePulse {
-  0%, 100% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.3); opacity: 0.75; }
+
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+
+  50% {
+    transform: scale(1.3);
+    opacity: 0.75;
+  }
 }
 
 /* NÚT CHUYỂN TAB MÔ PHỎNG VS BẢN VẼ */
@@ -5009,7 +5211,7 @@ html {
   border: none;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
 }
 
 .client-intro-btn:hover {
@@ -5229,13 +5431,11 @@ html {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: linear-gradient(
-    180deg,
-    rgba(8, 12, 20, 0.55) 0%,
-    transparent 25%,
-    transparent 75%,
-    rgba(8, 12, 20, 0.65) 100%
-  );
+  background: linear-gradient(180deg,
+      rgba(8, 12, 20, 0.55) 0%,
+      transparent 25%,
+      transparent 75%,
+      rgba(8, 12, 20, 0.65) 100%);
   z-index: 2;
 }
 
@@ -5297,6 +5497,7 @@ html {
   .client-room-featured-teaser {
     grid-template-columns: 1fr;
   }
+
   .client-room-teaser-media {
     min-height: 280px;
   }
@@ -5338,15 +5539,13 @@ html {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: linear-gradient(
-    180deg,
-    rgba(8, 12, 20, 0.68) 0%,
-    rgba(8, 12, 20, 0.22) 18%,
-    transparent 32%,
-    transparent 66%,
-    rgba(8, 12, 20, 0.25) 82%,
-    rgba(8, 12, 20, 0.75) 100%
-  );
+  background: linear-gradient(180deg,
+      rgba(8, 12, 20, 0.68) 0%,
+      rgba(8, 12, 20, 0.22) 18%,
+      transparent 32%,
+      transparent 66%,
+      rgba(8, 12, 20, 0.25) 82%,
+      rgba(8, 12, 20, 0.75) 100%);
   z-index: 2;
   transition: opacity 0.4s ease;
 }
@@ -5501,11 +5700,13 @@ html {
     flex-direction: column;
     max-width: 360px;
   }
+
   .client-artifact-teaser-media {
     width: 100%;
     min-width: 100%;
     height: 240px;
   }
+
   .client-artifact-teaser-content {
     padding: 18px 20px;
   }
@@ -5874,6 +6075,7 @@ html {
 }
 
 @media (max-width: 960px) {
+
   .client-intro-feature-card,
   .client-guide-split-layout {
     grid-template-columns: 1fr;
@@ -5896,6 +6098,7 @@ html {
 }
 
 @media (max-width: 720px) {
+
   .client-artifacts-gallery-grid.two-items,
   .client-artifacts-gallery-grid.count-2,
   .client-artifacts-gallery-grid.three-items,
@@ -5907,6 +6110,7 @@ html {
 }
 
 @media (max-width: 580px) {
+
   .client-artifacts-gallery-grid,
   .client-artifacts-gallery-grid.two-items,
   .client-artifacts-gallery-grid.count-2,
@@ -6705,17 +6909,21 @@ html {
     padding-top: 76px;
     padding-bottom: 48px;
   }
+
   .client-subpage-hero {
     padding: 16px 0 20px 0;
   }
+
   .client-subpage-title {
     font-size: clamp(1.55rem, 5.5vw, 2.1rem);
     margin: 8px 0 10px 0;
   }
+
   .client-subpage-lead {
     font-size: 0.88rem;
     line-height: 1.58;
   }
+
   .client-subpage-toolbar {
     margin: 18px 0 24px 0;
     padding-bottom: 16px;
@@ -6723,10 +6931,12 @@ html {
     align-items: stretch;
     gap: 12px;
   }
+
   .client-subpage-search-wrap {
     width: 100% !important;
     max-width: 100% !important;
   }
+
   .client-subpage-filters {
     width: 100%;
     overflow-x: auto;
@@ -6734,12 +6944,14 @@ html {
     flex-wrap: nowrap;
     -webkit-overflow-scrolling: touch;
   }
+
   .client-subpage-filter-btn {
     white-space: nowrap;
     flex-shrink: 0;
     padding: 6px 14px;
     font-size: 0.8rem;
   }
+
   .client-subpage-grid {
     grid-template-columns: 1fr !important;
     gap: 18px;
@@ -6758,8 +6970,8 @@ html {
   transform: translateY(0);
   animation: clientGalleryCardFade 0.45s cubic-bezier(0.16, 1, 0.3, 1);
   transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1),
-              box-shadow 0.35s ease,
-              border-color 0.35s ease;
+    box-shadow 0.35s ease,
+    border-color 0.35s ease;
 }
 
 @keyframes clientGalleryCardFade {
@@ -6767,6 +6979,7 @@ html {
     opacity: 0;
     transform: translateY(16px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -6807,15 +7020,13 @@ html {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: linear-gradient(
-    180deg,
-    rgba(8, 12, 20, 0.68) 0%,
-    rgba(8, 12, 20, 0.22) 18%,
-    transparent 32%,
-    transparent 66%,
-    rgba(8, 12, 20, 0.25) 82%,
-    rgba(8, 12, 20, 0.75) 100%
-  );
+  background: linear-gradient(180deg,
+      rgba(8, 12, 20, 0.68) 0%,
+      rgba(8, 12, 20, 0.22) 18%,
+      transparent 32%,
+      transparent 66%,
+      rgba(8, 12, 20, 0.25) 82%,
+      rgba(8, 12, 20, 0.75) 100%);
   z-index: 2;
   transition: opacity 0.4s ease;
 }
@@ -6884,6 +7095,7 @@ html {
   .client-artifact-media {
     height: 260px !important;
   }
+
   .client-artifact-img {
     padding: 18px 16px 12px !important;
   }
@@ -7930,6 +8142,7 @@ html {
 }
 
 @media (min-width: 993px) {
+
   /* Trên màn hình Desktop lớn: Nút Quét QR đã có sẵn trên Navbar,
      nút nổi dưới góc thu gọn thành icon tròn sang trọng 48px để KHÔNG đè lên thanh stats hay nội dung */
   .client-floating-qr-btn {
@@ -7939,6 +8152,7 @@ html {
     border-radius: 50%;
     justify-content: center;
   }
+
   .client-floating-qr-btn .client-floating-qr-label {
     display: none;
   }
@@ -7953,6 +8167,7 @@ html {
     gap: 6px;
     box-shadow: 0 8px 24px -2px rgba(0, 0, 0, 0.6), 0 0 16px rgba(212, 175, 55, 0.35);
   }
+
   .client-floating-qr-btn svg {
     width: 17px;
     height: 17px;
@@ -7973,25 +8188,32 @@ html {
   .client-container {
     max-width: 1560px;
   }
+
   .client-navbar {
     max-width: 1500px;
   }
+
   .client-hero-content {
     max-width: 1140px;
   }
+
   .client-hero-headline {
     font-size: 4.2rem;
   }
+
   .client-hero-lead {
     font-size: 1.22rem;
     max-width: 820px;
   }
+
   .client-hero-stats {
     max-width: 740px;
   }
+
   .client-zigzag-card {
     max-width: 1360px;
   }
+
   .client-zigzag-card.horizontal-split .client-zigzag-card-media {
     min-height: 460px;
   }
@@ -8272,11 +8494,13 @@ html {
     padding: 16px;
     margin-top: 24px;
   }
+
   .client-portal .pagination-meta {
     justify-content: center;
     width: 100%;
     text-align: center;
   }
+
   .client-portal .pagination-controls {
     justify-content: center;
     width: 100%;
@@ -8288,25 +8512,30 @@ html {
     padding: 14px 10px;
     gap: 12px;
   }
+
   .client-portal .pagination-meta {
     flex-direction: column;
     gap: 8px;
     font-size: 12px;
   }
+
   .client-portal .pagination-btn.nav-btn .pagination-btn-label {
     display: none;
   }
+
   .client-portal .pagination-btn.nav-btn {
     padding: 0 8px;
     min-width: 36px;
     height: 36px;
   }
+
   .client-portal .pagination-btn.page-btn {
     min-width: 32px;
     height: 36px;
     padding: 0 6px;
     font-size: 12px;
   }
+
   .client-portal .pagination-ellipsis {
     padding: 0 2px;
     font-size: 12px;
@@ -8377,6 +8606,7 @@ html {
   .client-tour-back-btn span {
     display: none !important;
   }
+
   .client-tour-back-btn {
     padding: 6px !important;
     border-radius: 50% !important;
@@ -8600,6 +8830,77 @@ html {
 }
 
 /* ==========================================================================
+   CLIENT ROOMS PAGE - MOBILE SLIDE-IN FILTER DRAWER & DESKTOP DROPDOWN
+   ========================================================================== */
+.client-rooms-drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 999;
+  animation: clientFadeIn 0.2s ease-out;
+  touch-action: none;
+}
+
+.client-rooms-drawer-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(320px, 86vw);
+  background: #0E131F;
+  border-left: 1px solid rgba(212, 168, 106, 0.4);
+  box-shadow: -12px 0 40px rgba(0, 0, 0, 0.9);
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  animation: slideInRight 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  touch-action: pan-y;
+  overflow: hidden;
+}
+
+.client-rooms-desktop-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 300px;
+  max-height: 55vh;
+  overflow-y: auto;
+  background: rgba(18, 22, 30, 0.97);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(212, 168, 106, 0.35);
+  border-radius: 14px;
+  padding: 8px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.65);
+  z-index: 150;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  animation: tourDropdownFadeSlideIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transform-origin: top right;
+}
+
+@media (max-width: 768px) {
+  .client-subpage-toolbar {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+  }
+  .client-subpage-search-wrap {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  .client-rooms-filter-action-wrap {
+    width: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+  }
+}
+
+/* ==========================================================================
    TOUR 360 NARRATION LANGUAGE DROPDOWN (ROOM-SPECIFIC, LUXURY HERITAGE THEME)
    ========================================================================== */
 .client-tour-lang-dropdown {
@@ -8806,6 +9107,7 @@ html {
     opacity: 0;
     transform: translateY(12px) scale(0.97);
   }
+
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
@@ -8816,6 +9118,7 @@ html {
   from {
     transform: translate3d(0, 100%, 0);
   }
+
   to {
     transform: translate3d(0, 0, 0);
   }
@@ -9061,12 +9364,27 @@ html {
   animation: aiDotsPulse 1.2s infinite both;
 }
 
-.ai-dots-bounce span:nth-child(2) { animation-delay: 0.2s; }
-.ai-dots-bounce span:nth-child(3) { animation-delay: 0.4s; }
+.ai-dots-bounce span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.ai-dots-bounce span:nth-child(3) {
+  animation-delay: 0.4s;
+}
 
 @keyframes aiDotsPulse {
-  0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); }
-  40% { opacity: 1; transform: scale(1.15); }
+
+  0%,
+  80%,
+  100% {
+    opacity: 0.3;
+    transform: scale(0.8);
+  }
+
+  40% {
+    opacity: 1;
+    transform: scale(1.15);
+  }
 }
 
 .ai-thinking-text {
@@ -9190,7 +9508,8 @@ html {
 
 @media (max-width: 768px) {
   .ai-footer-input {
-    font-size: 16px; /* Bắt buộc font-size >= 16px để ngăn iOS Safari / WebKit tự động phóng to giật màn hình khi gõ */
+    font-size: 16px;
+    /* Bắt buộc font-size >= 16px để ngăn iOS Safari / WebKit tự động phóng to giật màn hình khi gõ */
   }
 }
 
@@ -9568,10 +9887,12 @@ html {
     transform: scale(0.95);
     opacity: 0.8;
   }
+
   50% {
     transform: scale(1.15);
     opacity: 0.15;
   }
+
   100% {
     transform: scale(0.95);
     opacity: 0.8;
@@ -9620,6 +9941,7 @@ html {
     opacity: 0.5;
     transform: translate(-50%, -50%) scale(0.85);
   }
+
   to {
     opacity: 1;
     transform: translate(-50%, -50%) scale(1.2);
@@ -9668,6 +9990,7 @@ html {
   0% {
     left: -45%;
   }
+
   100% {
     left: 100%;
   }
