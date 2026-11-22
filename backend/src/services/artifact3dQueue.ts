@@ -477,20 +477,14 @@ async function runJobInternal(job: I3DJobData): Promise<void> {
 
   } catch (trellisErr: any) {
     const rawMsg = trellisErr.message || 'Lỗi không xác định từ TRELLIS';
-    const isRateLimitOrQuota = rawMsg.includes('ZeroGPU quota') || rawMsg.includes('Rate Limit') || rawMsg.includes('429') || rawMsg.includes('exceeded') || rawMsg.includes('403');
+    const isRateLimitOrQuota = rawMsg.includes('ZeroGPU') || rawMsg.includes('quota') || rawMsg.includes('Rate Limit') || rawMsg.includes('429') || rawMsg.includes('exceeded') || rawMsg.includes('403');
 
-    // NẾU HẾT HẠN MỨC TOKEN CLOUD GPU: TỰ ĐỘNG CHUYỂN SANG ĐỘNG CƠ CỤC BỘ LOCAL VPS
-    if (isRateLimitOrQuota) {
-      console.warn(`[3D Consumer] ⚠️ HuggingFace TRELLIS tạm hết hạn mức ZeroGPU (${rawMsg}). Hệ thống tự động chuyển sang Động cơ Cục bộ (Local VPS Engine)...`);
-      try {
-        await runLocalVpsReconstruction(job, outGlbPath, model3dUrl, artifactId, imagePath, extraImages);
-        return;
-      } catch (localFallbackErr: any) {
-        console.error(`[3D Consumer] Fallback Local VPS cũng gặp lỗi:`, localFallbackErr.message);
-      }
-    }
+    // Không âm thầm fallback sang CPU nếu người dùng đã chủ động chọn TRELLIS!
+    // Báo lỗi rõ ràng để người dùng biết và có thể đổi HF_TOKEN hoặc bấm thử lại sau, tránh việc âm thầm chuyển sang CPU tạo ra mô hình thô không mong muốn.
+    const errMsg = isRateLimitOrQuota
+      ? 'Hết hạn mức ZeroGPU trên Hugging Face Spaces (Quota Exceeded). Vui lòng cập nhật HF_TOKEN hoặc thử lại sau khi hạn mức hồi phục!'
+      : (rawMsg.startsWith('TRELLIS 3D') || rawMsg.startsWith('Lỗi') ? rawMsg : `Lỗi dựng 3D TRELLIS: ${rawMsg}`);
 
-    const errMsg = rawMsg.startsWith('TRELLIS 3D') || rawMsg.startsWith('Lỗi') ? rawMsg : `Lỗi dựng 3D: ${rawMsg}`;
     console.error(`[3D Consumer] ✗ TRELLIS Job ${jobId} thất bại:`, errMsg);
     job.status = 'failed';
     job.error = errMsg;

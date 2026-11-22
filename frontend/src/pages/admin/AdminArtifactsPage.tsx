@@ -107,7 +107,7 @@ export const AdminArtifactsPage: React.FC = () => {
   const [isProcessing3D, setIsProcessing3D] = useState(false);
   const [autoGenerate3D, setAutoGenerate3D] = useState(true);
   const [reconstructionMode, setReconstructionMode] = useState<'single' | 'front_back' | 'multiview'>('multiview');
-  const [aiEngine, setAiEngine] = useState<'trellis' | 'local'>('local');
+  const [aiEngine, setAiEngine] = useState<'trellis' | 'local'>('trellis');
 
   // Multilingual Voice AI Drawer / Modal
   const [isVoiceModalOpen, setIsVoiceModalOpen] = useState(false);

@@ -293,6 +293,14 @@ def generate_3d_with_trellis(image_path: str, output_glb_path: str, multiimage_p
                 api_name="/generate_and_extract_glb"
             )
         except Exception as inf_err:
+            inf_err_str = str(inf_err)
+            if any(k in inf_err_str.lower() for k in ["zerogpu", "quota", "exceeded", "429"]):
+                log(f"[TRELLIS Service] ⚠️ Hugging Face ZeroGPU Quota Exceeded: {inf_err_str}")
+                return {
+                    "success": False,
+                    "error": "Hết hạn mức ZeroGPU trên Hugging Face Spaces (Quota Exceeded). Vui lòng cập nhật HF_TOKEN hoặc đợi hồi phục hạn mức.",
+                    "raw_error": inf_err_str
+                }
             log(f"[WARN] Lan 1 tao GLB gap loi ({inf_err}), thu lai voi anh transparent truc tiep...")
             result = client.predict(
                 image=handle_file(working_image),
@@ -371,6 +379,11 @@ def generate_3d_with_trellis(image_path: str, output_glb_path: str, multiimage_p
 
     except Exception as e:
         error_msg = str(e)
+        if any(k in error_msg.lower() for k in ["zerogpu", "quota", "exceeded", "429"]):
+            log(f"[TRELLIS Service] ⚠️ Hugging Face ZeroGPU Quota: {error_msg}")
+            friendly = "Hết hạn mức ZeroGPU trên Hugging Face Spaces (Quota Exceeded). Vui lòng cập nhật HF_TOKEN hoặc đợi hồi phục hạn mức."
+            return {"success": False, "error": friendly, "raw_error": error_msg}
+
         import traceback
         log(f"[ERROR] Loi trong qua trinh tao 3D: {error_msg}")
         log(f"[ERROR] Traceback:\n{traceback.format_exc()}")
