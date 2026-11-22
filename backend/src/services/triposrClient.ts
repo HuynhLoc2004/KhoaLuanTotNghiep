@@ -38,13 +38,13 @@ export async function acquireUser3DLock(userId: string, ttlSeconds = 180): Promi
   const cleanId = (userId || 'anonymous').trim();
   const lockKey = `lock:3d_user:${cleanId}`;
 
-  // 1. Thử khóa trên Redis (NX: Chỉ set nếu chưa tồn tại)
-  if (redisClient) {
+  // 1. Thử khóa trên Redis (NX: Chỉ set nếu chưa tồn tại và Redis đang sẵn sàng)
+  if (redisClient && (redisClient as any).status === 'ready') {
     try {
       const result = await redisClient.set(lockKey, '1', 'EX', ttlSeconds, 'NX');
       return result === 'OK';
     } catch (err: any) {
-      console.warn('[3D Lock] Cảnh báo Redis Mutex Lock:', err.message);
+      // Bỏ qua lỗi kết nối redis đóng để không spam log
     }
   }
 
@@ -68,7 +68,7 @@ export async function releaseUser3DLock(userId: string): Promise<void> {
   const lockKey = `lock:3d_user:${cleanId}`;
 
   memoryUserLocks.delete(lockKey);
-  if (redisClient) {
+  if (redisClient && (redisClient as any).status === 'ready') {
     try {
       await redisClient.del(lockKey);
     } catch {}

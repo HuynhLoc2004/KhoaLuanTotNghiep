@@ -82,12 +82,12 @@ export async function acquireUser3DLock(userId: string, ttlSeconds = 300): Promi
   const cleanId = (userId || 'anonymous').trim();
   const lockKey = `lock:3d_user:${cleanId}`;
 
-  if (redisClient) {
+  if (redisClient && (redisClient as any).status === 'ready') {
     try {
       const result = await (redisClient as any).set(lockKey, '1', 'EX', ttlSeconds, 'NX');
       return result === 'OK';
     } catch (err: any) {
-      console.warn('[TRELLIS Lock] Redis Mutex Lock warning:', err.message);
+      // Bỏ qua lỗi kết nối redis đóng để không spam log
     }
   }
 
@@ -104,7 +104,7 @@ export async function releaseUser3DLock(userId: string): Promise<void> {
   const cleanId = (userId || 'anonymous').trim();
   const lockKey = `lock:3d_user:${cleanId}`;
   memoryUserLocks.delete(lockKey);
-  if (redisClient) {
+  if (redisClient && (redisClient as any).status === 'ready') {
     try { await (redisClient as any).del(lockKey); } catch {}
   }
 }

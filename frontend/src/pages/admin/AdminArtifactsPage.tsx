@@ -945,7 +945,7 @@ export const AdminArtifactsPage: React.FC = () => {
       if (res.cached) {
         showToast('Mô hình 3D đã sẵn sàng từ bộ nhớ đệm (Cache)', 'success');
       } else {
-        showToast('Đang tiến hành số hóa mô hình 3D trong tiến trình nền...', 'info');
+        showToast('Đã đưa hiện vật vào hàng đợi số hóa 3D thành công! Tiến trình sẽ tự động xử lý tuần tự trên GPU.', 'info');
       }
 
       setIsGenerateModalOpen(false);

@@ -10,11 +10,14 @@ import { generateQRCodeBuffer, generateQRCodeDataURL } from '../services/qr.js';
 import { cacheGet, cacheSet, cacheDel, cacheDelPattern } from '../services/redis.js';
 import { broadcastRealtimeEvent } from '../services/realtimeSync.js';
 import { enqueue3DReconstruction } from '../services/artifact3dQueue.js';
-import { getTripoSRUrl, setTripoSRUrl, pingTripoSR, acquireUser3DLock, releaseUser3DLock } from '../services/triposrClient.js';
+import { getTripoSRUrl, setTripoSRUrl, pingTripoSR } from '../services/triposrClient.js';
 import { pgPool, logAudit } from '../db/postgres.js';
 import { pgUpsertArtifact, pgDeleteArtifact } from '../db/syncEngine.js';
 
 export const artifactsRouter = Router();
+
+// Bộ nhớ đệm chống gửi lặp (double-click) cho cùng một hiện vật trong 5 giây
+const activeArtifactEnqueueLocks = new Set<string>();
 
 // Thư mục lưu trữ tĩnh cho hiện vật
 const ARTIFACTS_UPLOAD_DIR = path.join(process.cwd(), 'public', 'uploads', 'artifacts');
@@ -879,15 +882,6 @@ artifactsRouter.post('/upload-model', uploadModel.single('file'), async (req: Re
 artifactsRouter.post('/:id/generate-3d', async (req: Request, res: Response) => {
   const userId = (req as any).user?.id || (req as any).user?.email || req.ip || 'anonymous_user';
 
-  // 1. Kiểm tra khóa đồng thời chống spam click (1 tác vụ 3D / 1 tài khoản tại 1 thời điểm)
-  const lockAcquired = await acquireUser3DLock(userId);
-  if (!lockAcquired) {
-    return res.status(429).json({
-      success: false,
-      message: 'Yêu cầu tạo mô hình 3D trước đó của bạn đang được xử lý trên GPU. Vui lòng đợi trong giây lát!'
-    });
-  }
-
   try {
     const id = req.params.id as string;
     const { imageUrl, depthScale, resolution } = req.body;
@@ -897,14 +891,37 @@ artifactsRouter.post('/:id/generate-3d', async (req: Request, res: Response) => 
       : { $or: [{ id }, { code: id }] };
     let artifact = await ArtifactModel.findOne(query);
     if (!artifact) {
-      await releaseUser3DLock(userId);
       return res.status(404).json({ success: false, message: 'Không tìm thấy hiện vật' });
     }
+
+    const targetArtifactId = String(artifact._id || artifact.id);
+
+    // 1. Kiểm tra nếu chính hiện vật này đang trong trạng thái processing (dưới 15 phút)
+    if (artifact.processingStatus === 'processing') {
+      const updatedAt = artifact.updatedAt ? new Date(artifact.updatedAt).getTime() : 0;
+      const isStale = Date.now() - updatedAt > 15 * 60 * 1000;
+      if (!isStale) {
+        return res.status(409).json({
+          success: false,
+          message: 'Hiện vật này đã có trong hàng đợi xử lý 3D. Vui lòng đợi tiến trình hoàn tất!'
+        });
+      }
+    }
+
+    // 2. Chống double-click cho CÙNG MỘT HIỆN VẬT trong 5 giây (không chặn các hiện vật khác)
+    if (activeArtifactEnqueueLocks.has(targetArtifactId)) {
+      return res.status(429).json({
+        success: false,
+        message: 'Yêu cầu cho hiện vật này vừa được tiếp nhận, vui lòng không nhấn liên tục!'
+      });
+    }
+    activeArtifactEnqueueLocks.add(targetArtifactId);
+    setTimeout(() => activeArtifactEnqueueLocks.delete(targetArtifactId), 5000);
 
     // Xác định ảnh nguồn mặt trước
     const targetImageUrl = imageUrl || artifact.thumbnailUrl || (artifact.images.length > 0 ? artifact.images[0] : null);
     if (!targetImageUrl) {
-      await releaseUser3DLock(userId);
+      activeArtifactEnqueueLocks.delete(targetArtifactId);
       return res.status(400).json({ success: false, message: 'Hiện vật chưa có hình ảnh chụp để dựng mô hình 3D' });
     }
 
@@ -925,7 +942,7 @@ artifactsRouter.post('/:id/generate-3d', async (req: Request, res: Response) => 
       }
 
       if (!localImagePath || !fs.existsSync(localImagePath)) {
-        await releaseUser3DLock(userId);
+        activeArtifactEnqueueLocks.delete(targetArtifactId);
         return res.status(400).json({ success: false, message: 'Không thể tìm thấy file ảnh gốc trên máy chủ' });
       }
     }
@@ -1028,7 +1045,6 @@ artifactsRouter.post('/:id/generate-3d', async (req: Request, res: Response) => 
     const dScale = depthScale ? Number(depthScale) : 1.0;
     const resValue = resolution ? Number(resolution) : 110;
 
-    const targetArtifactId = String(artifact._id || artifact.id);
     const result = await enqueue3DReconstruction(
       targetArtifactId,
       localImagePath,
@@ -1050,11 +1066,18 @@ artifactsRouter.post('/:id/generate-3d', async (req: Request, res: Response) => 
       multiview: `Đa góc độ (${angleLabels.length} góc ảnh)`
     };
 
+    // Phát sự kiện SSE để giao diện Admin lập tức cập nhật trạng thái 'processing' mà không cần reload
+    broadcastRealtimeEvent('artifacts_updated', {
+      action: 'update',
+      artifactId: targetArtifactId,
+      processingStatus: result.cached ? 'completed' : 'processing'
+    });
+
     res.json({
       success: true,
       message: result.cached
         ? `Mô hình 3D [${modeLabels[reconstructionMode] || reconstructionMode}] đã được tải ngay lập tức từ bộ nhớ đệm Cache!`
-        : `Đã đưa tác vụ dựng 3D [${modeLabels[reconstructionMode] || reconstructionMode}] vào hàng đợi xử lý nền.`,
+        : `Đã đưa tác vụ dựng 3D [${modeLabels[reconstructionMode] || reconstructionMode}] vào hàng đợi xử lý nền thành công.`,
       data: {
         jobId: result.jobId,
         cached: result.cached,
@@ -1065,7 +1088,6 @@ artifactsRouter.post('/:id/generate-3d', async (req: Request, res: Response) => 
       }
     });
   } catch (err: any) {
-    await releaseUser3DLock(userId);
     res.status(500).json({ success: false, message: 'Lỗi kích hoạt tiến trình 3D: ' + err.message });
   }
 });
