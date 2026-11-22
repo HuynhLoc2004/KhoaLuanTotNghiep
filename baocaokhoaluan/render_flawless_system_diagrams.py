@@ -2,13 +2,18 @@
 """
 render_flawless_system_diagrams.py
 Tạo 100% sơ đồ học thuật chuẩn mực đồ án đại học IUH:
-1. KHÔNG ĐÈ CHỮ: Bounding box của icon được giới hạn chặt chẽ (max_w <= 1.65, max_h <= 1.40).
-   Mũi tên và nhãn chữ được tính toán tọa độ chính xác, cách xa mép ảnh ít nhất 0.3 đơn vị.
-2. KHÔNG ÉP SERVER VÀO SƠ ĐỒ CHỨC NĂNG / THUẬT TOÁN:
-   Các sơ đồ quy trình thuật toán (Tái tạo 3D, Nắn chỉnh ảnh Panorama 360°, Dijkstra, Bản địa hóa)
-   tập trung 100% vào bản chất thuật toán và dữ liệu luân chuyển, không chèn máy chủ trung gian không cần thiết.
-3. KHÔNG DÙNG Ô VUÔNG / HỘP MÀU MÈ CHỨA ĐẦY CHỮ.
-4. SỬ DỤNG ICON CÔNG NGHỆ CHÍNH THỨC, TÁCH NỀN TRONG SUỐT, SẮC NÉT.
+1. ĐẦY ĐỦ CÁC MÁY CHỦ TRONG CODEBASE:
+   - Máy chủ Node.js Express API (Port 5000: Auth, REST, SSE, PayOS, CSDL).
+   - Máy chủ Python AI & Computer Vision Worker (Port 8000: OpenCV Stitching 360, Trellis 3D, Marching Cubes).
+2. KHÔNG ĐÈ CHỮ: Mọi bounding box được giới hạn an toàn (max_w <= 1.60, max_h <= 1.35).
+   Tất cả nhãn chữ trên mũi tên đều được đặt ở vùng trống độc lập, có đệm trắng che vạch.
+3. KHÔNG ÉP SERVER VÀO SƠ ĐỒ CHỨC NĂNG / THUẬT TOÁN:
+   Các sơ đồ quy trình thuật toán (Hình 2.8, 4.3, 4.5, 4.7, 3.10) tập trung vào luồng xử lý dữ liệu.
+4. SỬ DỤNG ĐÚNG ICON:
+   - App Ngân hàng dùng icon điện thoại (icon_phone.png).
+   - Python dùng icon Python chính thức (icon_python.png).
+   - Nginx dùng icon Nginx lục giác (icon_nginx.png).
+   - PostgreSQL dùng icon Slonik chuẩn mực (icon_postgres.png).
 """
 
 import os
@@ -33,7 +38,7 @@ plt.rcParams['font.family'] = 'sans-serif'
 
 C_TEXT = '#0F172A'       # Slate 900
 C_SUB = '#475569'        # Slate 600
-C_LINE = '#1E293B'       # Slate 800 cho toàn bộ mũi tên
+C_LINE = '#1E293B'       # Slate 800
 
 
 def get_icon_path(name):
@@ -45,7 +50,6 @@ def get_icon_path(name):
 
 
 def get_icon_dimensions(icon_name, max_w=1.60, max_h=1.35):
-    """Tính toán kích thước hiển thị chính xác của icon, giới hạn cả chiều rộng và chiều cao."""
     icon_path = get_icon_path(icon_name)
     if not icon_path or not os.path.exists(icon_path):
         return max_w, max_h
@@ -61,7 +65,6 @@ def get_icon_dimensions(icon_name, max_w=1.60, max_h=1.35):
 
 
 def draw_clean_icon(ax, x, y, icon_name, title, subtitle='', max_w=1.60, max_h=1.35, y_title=None, y_sub=None):
-    """Vẽ icon công nghệ trong suốt, kích thước chuẩn hóa không bao giờ tràn sang mũi tên."""
     icon_path = get_icon_path(icon_name)
     disp_w, disp_h = get_icon_dimensions(icon_name, max_w, max_h)
     
@@ -81,11 +84,6 @@ def draw_clean_icon(ax, x, y, icon_name, title, subtitle='', max_w=1.60, max_h=1
 
 
 def draw_clean_arrow(ax, x1, y1, x2, y2, label='', offset_y=0.45, offset_x=0.0, shrinkA=8, shrinkB=8, rad=0.0, is_dashed=False):
-    """
-    Vẽ mũi tên học thuật chuẩn:
-    - Nét liền / Nét đứt rõ ràng.
-    - Nhãn chữ nằm cao bên trên đường kẻ (offset_y=0.45), hộp nền trắng bo góc che sạch vạch.
-    """
     conn = f'arc3,rad={rad}' if rad != 0.0 else 'arc3'
     line_style = '--' if is_dashed else '-'
     
@@ -122,6 +120,72 @@ def save_fig(fig, filenames):
         fig.savefig(p2, bbox_inches='tight', dpi=300)
     plt.close(fig)
     print(f"-> Saved: {filenames}")
+
+
+# ==============================================================================
+# HÌNH 1.1: SƠ ĐỒ TỔNG QUAN KIẾN TRÚC & PHÂN HỆ HỆ THỐNG (ĐẦY ĐỦ NODE & PYTHON)
+# ==============================================================================
+def render_hinh_1_1():
+    fig, ax = plt.subplots(figsize=(18.5, 11.2), dpi=300)
+    ax.set_xlim(0, 18.5); ax.set_ylim(0, 11.2); ax.axis('off')
+
+    ax.text(9.25, 10.7, 'SƠ ĐỒ TỔNG QUAN KIẾN TRÚC VÀ CÁC PHÂN HỆ HỆ THỐNG BẢO TÀNG 360°',
+            ha='center', va='center', fontsize=13.0, fontweight='bold', color=C_TEXT)
+
+    # 1. CỘT 1 (x=1.8): KHÁCH & QUẢN TRỊ VIÊN
+    draw_clean_icon(ax, 1.8, 8.2, 'icon_client.png', 'Khách tham quan', 'Thiết bị Desktop / Mobile 360', max_w=1.4, max_h=1.35)
+    draw_clean_icon(ax, 1.8, 3.2, 'icon_client.png', 'Quản trị viên (Admin)', 'Cổng quản trị CMS & Báo cáo', max_w=1.4, max_h=1.35)
+
+    # 2. CỘT 2 (x=5.2): GIAO DIỆN CLIENT & CỔNG NGINX
+    draw_clean_icon(ax, 5.2, 8.2, 'icon_browser.png', 'Trình duyệt Web', 'React 18 & Three.js (WebGL)', max_w=1.5, max_h=1.35)
+    draw_clean_icon(ax, 5.2, 3.2, 'icon_nginx.png', 'Nginx Reverse Proxy', 'Điều phối SSL/TLS & Cân bằng tải', max_w=1.5, max_h=1.35)
+
+    # 3. CỘT 3 (x=9.5): HAI MÁY CHỦ BACKEND (NODE.JS & PYTHON AI WORKER)
+    draw_clean_icon(ax, 9.5, 8.2, 'icon_server.png', 'Máy chủ Node.js API', 'Express Gateway, REST, SSE & Auth', max_w=1.5, max_h=1.4)
+    draw_clean_icon(ax, 9.5, 3.2, 'icon_python.png', 'Máy chủ Python AI Worker', 'FastAPI, OpenCV 360 & Trellis 3D', max_w=1.45, max_h=1.35)
+
+    # 4. VÙNG PHỤ TRỢ (x=14.0 & 17.0): CSDL, HÀNG ĐỢI, THANH TOÁN & AI
+    draw_clean_icon(ax, 14.0, 9.2, 'icon_redis.png', 'Bộ đệm Redis', 'In-Memory Cache (0ms)', max_w=1.35, max_h=1.25)
+    draw_clean_icon(ax, 17.0, 9.2, 'icon_payos.png', 'Thanh toán PayOS', 'VietQR Napas 247', max_w=1.45, max_h=1.25)
+
+    draw_clean_icon(ax, 14.0, 6.2, 'icon_postgres.png', 'CSDL PostgreSQL 16', 'Bảng Vé & Tài Khoản (ACID)', max_w=1.45, max_h=1.35)
+    draw_clean_icon(ax, 17.0, 6.2, 'icon_mongodb.png', 'CSDL MongoDB 7.0', '18 Phòng 360° & Cổ vật', max_w=1.35, max_h=1.25)
+
+    draw_clean_icon(ax, 14.0, 3.2, 'icon_rabbitmq.png', 'Hàng đợi RabbitMQ', 'Xử lý tác vụ 3D & Stitching', max_w=1.35, max_h=1.25)
+    draw_clean_icon(ax, 17.0, 3.2, 'icon_huggingface.png', 'Hugging Face (TRELLIS)', 'ZeroGPU A100 AI (MSR)', max_w=1.45, max_h=1.35)
+
+    # Giám sát Grafana ở góc dưới
+    draw_clean_icon(ax, 9.5, 0.9, 'icon_grafana.png', 'Giám sát Grafana', 'Prometheus & Đo lường APM', max_w=1.35, max_h=1.2)
+
+    # --- MŨI TÊN KẾT NỐI KHÔNG BAO GIỜ CHÉO NHAU ---
+    # Cột 1 -> Cột 2
+    draw_clean_arrow(ax, 2.7, 8.2, 4.3, 8.2, label='Tương tác Tour 360°', offset_y=0.45)
+    draw_clean_arrow(ax, 2.7, 3.2, 4.3, 3.2, label='HTTPS Quản trị CMS', offset_y=0.45)
+
+    # Cột 2 -> Cột 3
+    draw_clean_arrow(ax, 6.1, 8.2, 8.6, 8.2, label='REST API / WSS SSE', offset_y=0.45)
+    draw_clean_arrow(ax, 5.2, 4.2, 5.2, 7.2, label='Phân luồng SSL Port 443', offset_x=1.6, offset_y=0.0)
+    draw_clean_arrow(ax, 6.1, 3.2, 8.6, 3.2, label='Proxy Ghép Ảnh / 3D', offset_y=0.45)
+
+    # Giao tiếp giữa Node.js và Python Worker qua RabbitMQ
+    draw_clean_arrow(ax, 9.5, 7.2, 9.5, 4.2, label='Giao việc qua RabbitMQ', offset_x=1.6, offset_y=0.0)
+
+    # Node.js -> Cột 4 (Redis & PayOS)
+    draw_clean_arrow(ax, 10.4, 8.8, 13.2, 9.2, label='Ghi / Đọc Cache', offset_y=0.40)
+    draw_clean_arrow(ax, 14.8, 9.2, 16.1, 9.2, label='Tạo Link VietQR', offset_y=0.40)
+
+    # Node.js -> CSDL (Postgres & Mongo)
+    draw_clean_arrow(ax, 10.4, 7.6, 13.1, 6.5, label='SQL Query (pgPool)', offset_y=0.40)
+    draw_clean_arrow(ax, 10.4, 6.8, 16.1, 6.3, label='Mongoose NoSQL', offset_y=0.40)
+
+    # Python Worker -> RabbitMQ & Hugging Face
+    draw_clean_arrow(ax, 10.4, 3.2, 13.2, 3.2, label='Lấy Job hàng đợi', offset_y=0.40)
+    draw_clean_arrow(ax, 14.8, 3.2, 16.1, 3.2, label='ZeroGPU A100 API', offset_y=0.40)
+
+    # Giám sát Grafana scrape Node.js & Python
+    draw_clean_arrow(ax, 9.5, 2.2, 9.5, 1.7, label='Scrape /metrics', offset_x=1.3, offset_y=0.0)
+
+    save_fig(fig, ['hinh_1_1_mindmap.png', 'hinh_1_1_so_do_tu_duy_tong_quan.png'])
 
 
 # ==============================================================================
@@ -175,7 +239,6 @@ def render_hinh_2_1():
     ax.text(cx, cy - R - 0.35, 'Mặt cầu 3D không gian thực\nTọa độ góc ' + r'$(\theta, \phi)$',
             ha='center', va='top', fontsize=8.2, fontweight='bold', color=C_TEXT)
 
-    # Chuyển đổi giữa 3D và 2D: hoàn toàn không có ô vuông màu mè
     ax.annotate('', xy=(6.5, 2.7), xytext=(4.6, 2.7),
                 arrowprops=dict(arrowstyle='-|>', color=C_LINE, lw=1.4, mutation_scale=12), zorder=5)
     ax.text(5.55, 2.95, r'Chiếu thuận: $\theta = \arctan2(X, -Z), \phi = \arcsin(Y)$',
@@ -221,36 +284,44 @@ def render_hinh_2_1():
 # HÌNH 2.2: HÌNH HỌC PHÉP CHIẾU MẶT TRỤ (KHÔNG ĐÈ CHỮ, KHÔNG HỘP MÀU MÈ)
 # ==============================================================================
 def render_hinh_2_2():
-    fig, ax = plt.subplots(figsize=(11.5, 5.2), dpi=300)
-    ax.set_xlim(0, 11.5); ax.set_ylim(0, 5.2); ax.axis('off')
+    fig, ax = plt.subplots(figsize=(12.0, 5.8), dpi=300)
+    ax.set_xlim(0, 12.0); ax.set_ylim(0, 5.8); ax.axis('off')
 
-    ax.text(2.8, 4.85, 'HÌNH HỌC PHÉP CHIẾU MẶT TRỤ (CYLINDRICAL PROJECTION)',
-            fontsize=8.5, fontweight='bold', ha='center', color=C_TEXT)
+    # Hai tiêu đề hai bên, cao ráo, thoáng đãng
+    ax.text(3.0, 5.4, 'HÌNH HỌC PHÉP CHIẾU MẶT TRỤ (CYLINDRICAL PROJECTION)',
+            fontsize=9.0, fontweight='bold', ha='center', color=C_TEXT)
+    ax.text(8.8, 5.4, 'CÔNG THỨC TOÁN HỌC & HIỆU QUẢ TRIỆT TIÊU BIẾN DẠNG',
+            fontsize=9.0, fontweight='bold', ha='center', color=C_TEXT)
 
-    cam_x, cam_y = 0.9, 2.2
-    f = 2.6
+    # 1. BÊN TRÁI: HÌNH HỌC PHÉP CHIẾU
+    cam_x, cam_y = 0.9, 2.3
+    f = 2.5
 
     ax.plot(cam_x, cam_y, 'o', color=C_LINE, markersize=6, zorder=6)
-    ax.text(cam_x - 0.12, cam_y, 'C (Tâm quang học)', fontsize=7.8, fontweight='bold', ha='right', va='center', color=C_TEXT)
+    ax.text(cam_x - 0.12, cam_y, 'C (Tâm quang học)', fontsize=8.0, fontweight='bold', ha='right', va='center', color=C_TEXT)
 
+    # Trục quang học
     ax.plot([cam_x, cam_x + f + 1.2], [cam_y, cam_y], color='#64748B', ls='--', lw=1.0, zorder=2)
-    ax.text(cam_x + 1.3, cam_y - 0.20, f'Trục quang học (Tiêu cự f = {f})', fontsize=7.2, color=C_SUB, ha='center',
+    ax.text(cam_x + 1.2, cam_y - 0.22, f'Trục quang học (Tiêu cự f = {f})', fontsize=7.2, color=C_SUB, ha='center',
             bbox=dict(boxstyle='round,pad=0.15', facecolor='#FFFFFF', edgecolor='none'))
 
+    # Mặt phẳng cảm biến (Ảnh phẳng gốc)
     sensor_x = cam_x + f
-    ax.plot([sensor_x, sensor_x], [cam_y - 1.5, cam_y + 1.5], color=C_LINE, lw=1.8, zorder=3)
-    ax.text(sensor_x, cam_y + 1.70, 'Mặt phẳng cảm biến (Ảnh phẳng)\n' + r'$x_p \in [-W/2, W/2]$',
-            fontsize=7.5, fontweight='bold', ha='center', va='bottom', color=C_TEXT)
+    ax.plot([sensor_x, sensor_x], [cam_y - 1.4, cam_y + 1.4], color=C_LINE, lw=1.8, zorder=3)
+    ax.text(sensor_x, 4.0, 'Mặt phẳng cảm biến (Ảnh phẳng)\n' + r'$x_p \in [-W/2, W/2]$',
+            fontsize=7.8, fontweight='bold', ha='center', va='bottom', color=C_TEXT)
 
-    theta_arc = np.linspace(-np.pi/3.8, np.pi/3.8, 100)
+    # Mặt trụ bán kính f
+    theta_arc = np.linspace(-np.pi/4.0, np.pi/4.0, 100)
     arc_x = cam_x + f * np.cos(theta_arc)
     arc_y = cam_y + f * np.sin(theta_arc)
     ax.plot(arc_x, arc_y, color='#1E40AF', lw=2.2, zorder=4)
-    ax.text(arc_x[0] + 0.15, arc_y[0] - 0.20, r'Mặt trụ bán kính $f$' + '\n' + r'$x_{cyl} = f \cdot \theta$',
-            fontsize=7.5, fontweight='bold', ha='left', va='top', color='#1E40AF')
+    ax.text(3.4, 0.45, r'Mặt trụ bán kính $f$' + '\n' + r'$x_{cyl} = f \cdot \theta$',
+            fontsize=7.8, fontweight='bold', ha='left', va='top', color='#1E40AF')
 
-    theta1 = 0.42
-    ray1_len = f / np.cos(theta1) + 0.5
+    # Tia nhìn 1 (trên)
+    theta1 = 0.40
+    ray1_len = f / np.cos(theta1) + 0.4
     r1_end_x = cam_x + ray1_len * np.cos(theta1)
     r1_end_y = cam_y + ray1_len * np.sin(theta1)
     ax.plot([cam_x, r1_end_x], [cam_y, r1_end_y], color='#1E3A8A', lw=1.2, zorder=3)
@@ -258,17 +329,18 @@ def render_hinh_2_2():
     p1_x = sensor_x
     p1_y = cam_y + f * np.tan(theta1)
     ax.plot(p1_x, p1_y, 'o', color=C_LINE, markersize=5, zorder=6)
-    ax.text(p1_x - 0.15, p1_y + 0.16, r'$p(x_p, y_p)$', fontsize=8.0, fontweight='bold', ha='right', color=C_TEXT,
-            bbox=dict(boxstyle='round,pad=0.1', facecolor='#FFFFFF', edgecolor='#CBD5E1', lw=0.6))
+    ax.text(p1_x - 0.15, p1_y + 0.18, r'$p(x_p, y_p)$', fontsize=8.0, fontweight='bold', ha='right', color=C_TEXT,
+            bbox=dict(boxstyle='round,pad=0.12', facecolor='#FFFFFF', edgecolor='#CBD5E1', lw=0.6))
 
     cyl1_x = cam_x + f * np.cos(theta1)
     cyl1_y = cam_y + f * np.sin(theta1)
     ax.plot(cyl1_x, cyl1_y, 'o', color='#1E40AF', markersize=6, zorder=6)
-    ax.text(cyl1_x + 0.15, cyl1_y + 0.16, r'$p_{cyl}(x_{cyl}, y_{cyl})$', fontsize=8.0, fontweight='bold', ha='left', color='#1E40AF',
-            bbox=dict(boxstyle='round,pad=0.1', facecolor='#FFFFFF', edgecolor='#CBD5E1', lw=0.6))
+    ax.text(cyl1_x + 0.18, cyl1_y + 0.18, r'$p_{cyl}(x_{cyl}, y_{cyl})$', fontsize=8.0, fontweight='bold', ha='left', color='#1E40AF',
+            bbox=dict(boxstyle='round,pad=0.12', facecolor='#FFFFFF', edgecolor='#CBD5E1', lw=0.6))
 
-    theta2 = -0.38
-    ray2_len = f / np.cos(theta2) + 0.5
+    # Tia nhìn 2 (dưới)
+    theta2 = -0.36
+    ray2_len = f / np.cos(theta2) + 0.4
     r2_end_x = cam_x + ray2_len * np.cos(theta2)
     r2_end_y = cam_y + ray2_len * np.sin(theta2)
     ax.plot([cam_x, r2_end_x], [cam_y, r2_end_y], color='#1E3A8A', lw=1.2, zorder=3)
@@ -285,84 +357,38 @@ def render_hinh_2_2():
     ax.add_patch(arc_ang)
     ax.text(cam_x + 0.85, cam_y + 0.16, r'$\theta$', fontsize=8.5, fontweight='bold', color=C_TEXT)
 
-    ax.plot([5.5, 5.5], [0.4, 4.8], color='#CBD5E1', ls=':', lw=1.0)
+    # Đường phân cách đứng mờ
+    ax.plot([5.8, 5.8], [0.4, 5.4], color='#CBD5E1', ls=':', lw=1.0)
 
-    ax.text(8.4, 4.85, 'CÔNG THỨC TOÁN HỌC & HIỆU QUẢ TRIỆT TIÊU BIẾN DẠNG',
-            fontsize=8.5, fontweight='bold', ha='center', color=C_TEXT)
+    # 2. BÊN PHẢI: CÔNG THỨC TOÁN HỌC & SO SÁNH TRỰC QUAN (KHÔNG DÙNG Ô VUÔNG MÀU MÈ)
+    ax.text(8.8, 4.8, 'Hệ phép chiếu toán học (Công thức 2.5 - 2.8):',
+            fontsize=8.2, fontweight='bold', ha='center', color=C_TEXT)
+    ax.text(8.8, 4.25, r'$x_{cyl} = f \cdot \arctan(x_p / f) + W/2$', fontsize=9.0, ha='center', color='#0F172A')
+    ax.text(8.8, 3.65, r'$y_{cyl} = f \cdot y_p / \sqrt{x_p^2 + f^2} + H/2$', fontsize=9.0, ha='center', color='#0F172A')
+    ax.text(8.8, 3.15, '(Nội suy mức xám Bilinear 4 điểm lân cận để bảo toàn độ sắc nét)',
+            fontsize=7.2, fontstyle='italic', ha='center', color=C_SUB)
 
-    ax.text(8.4, 4.35, 'Hệ phép chiếu toán học (Công thức 2.5 - 2.8):',
-            fontsize=7.8, fontweight='bold', ha='center', color=C_TEXT)
-    ax.text(8.4, 3.85, r'$x_{cyl} = f \cdot \arctan(x_p / f) + W/2$', fontsize=8.5, ha='center', color=C_TEXT)
-    ax.text(8.4, 3.35, r'$y_{cyl} = f \cdot y_p / \sqrt{x_p^2 + f^2} + H/2$', fontsize=8.5, ha='center', color=C_TEXT)
-    ax.text(8.4, 2.95, '(Nội suy mức xám Bilinear 4 điểm lân cận để bảo toàn độ sắc nét)',
-            fontsize=7.0, fontstyle='italic', ha='center', color=C_SUB)
-
-    f1 = patches.Polygon([[6.1, 0.7], [7.7, 0.7], [7.9, 2.1], [5.9, 2.1]], facecolor='#FFFFFF', edgecolor='#475569', lw=1.2, zorder=4)
+    # 1. Ảnh phẳng gốc
+    f1 = patches.Polygon([[6.4, 0.7], [8.0, 0.7], [8.2, 2.1], [6.2, 2.1]], facecolor='#FFFFFF', edgecolor='#475569', lw=1.2, zorder=4)
     ax.add_patch(f1)
-    ax.text(6.9, 2.3, '1. Ảnh phẳng gốc (Chưa nắn)', fontsize=7.2, fontweight='bold', ha='center', color=C_TEXT)
-    ax.plot([6.35, 6.15], [0.7, 2.1], color='#94A3B8', ls='--', lw=1.0)
-    ax.plot([7.45, 7.65], [0.7, 2.1], color='#94A3B8', ls='--', lw=1.0)
-    ax.text(6.9, 1.4, 'Biến dạng phối cảnh\n(Mép cột bị choãi)', ha='center', va='center', fontsize=6.8, color=C_SUB)
+    ax.text(7.2, 2.3, '1. Ảnh phẳng gốc (Chưa nắn)', fontsize=7.5, fontweight='bold', ha='center', color=C_TEXT)
+    ax.plot([6.65, 6.45], [0.7, 2.1], color='#94A3B8', ls='--', lw=1.0)
+    ax.plot([7.75, 7.95], [0.7, 2.1], color='#94A3B8', ls='--', lw=1.0)
+    ax.text(7.2, 1.4, 'Biến dạng phối cảnh\n(Mép cột bị choãi)', ha='center', va='center', fontsize=7.0, color=C_SUB)
 
-    curve_x = np.linspace(8.8, 10.6, 40)
-    top_y = 2.1 - 0.10 * (1 - ((curve_x - 9.7)/0.9)**2)
-    bot_y = 0.7 + 0.10 * (1 - ((curve_x - 9.7)/0.9)**2)
+    # 2. Ảnh đã nắn mặt trụ
+    curve_x = np.linspace(9.4, 11.2, 40)
+    top_y = 2.1 - 0.10 * (1 - ((curve_x - 10.3)/0.9)**2)
+    bot_y = 0.7 + 0.10 * (1 - ((curve_x - 10.3)/0.9)**2)
     verts = list(zip(curve_x, top_y)) + list(zip(curve_x[::-1], bot_y[::-1]))
     f2 = patches.Polygon(verts, facecolor='#FFFFFF', edgecolor='#0F172A', lw=1.4, zorder=4)
     ax.add_patch(f2)
-    ax.text(9.7, 2.3, '2. Ảnh đã nắn mặt trụ', fontsize=7.2, fontweight='bold', ha='center', color=C_TEXT)
-    ax.plot([9.1, 9.1], [0.8, 2.0], color='#166534', ls='-', lw=1.2)
-    ax.plot([10.3, 10.3], [0.8, 2.0], color='#166534', ls='-', lw=1.2)
-    ax.text(9.7, 1.4, 'Cột bảo toàn 90° đứng\nSẵn sàng ghép mí', ha='center', va='center', fontsize=6.8, fontweight='bold', color=C_TEXT)
+    ax.text(10.3, 2.3, '2. Ảnh đã nắn mặt trụ', fontsize=7.5, fontweight='bold', ha='center', color=C_TEXT)
+    ax.plot([9.7, 9.7], [0.8, 2.0], color='#166534', ls='-', lw=1.2)
+    ax.plot([10.9, 10.9], [0.8, 2.0], color='#166534', ls='-', lw=1.2)
+    ax.text(10.3, 1.4, 'Cột bảo toàn 90° đứng\nSẵn sàng ghép mí', ha='center', va='center', fontsize=7.0, fontweight='bold', color=C_TEXT)
 
     save_fig(fig, ['hinh_2_2_cylindrical_warping.png'])
-
-
-# ==============================================================================
-# HÌNH 1.1: SƠ ĐỒ TỔNG QUAN KIẾN TRÚC VÀ CÁC PHÂN HỆ HỆ THỐNG
-# ==============================================================================
-def render_hinh_1_1():
-    fig, ax = plt.subplots(figsize=(16.8, 9.5), dpi=300)
-    ax.set_xlim(0, 16.8); ax.set_ylim(0, 9.5); ax.axis('off')
-
-    ax.text(8.4, 9.1, 'SƠ ĐỒ TỔNG QUAN KIẾN TRÚC VÀ CÁC PHÂN HỆ HỆ THỐNG BẢO TÀNG 360°',
-            ha='center', va='center', fontsize=12.5, fontweight='bold', color=C_TEXT)
-
-    draw_clean_icon(ax, 1.8, 7.3, 'icon_client.png', 'Khách tham quan 1', 'Thiết bị Desktop / Mobile', max_w=1.4, max_h=1.3)
-    draw_clean_icon(ax, 1.8, 5.3, 'icon_client.png', 'Khách tham quan 2', 'Tải đồng thời cao', max_w=1.4, max_h=1.3)
-    draw_clean_icon(ax, 1.8, 3.3, 'icon_client.png', 'Khách tham quan N...', 'Hỗ trợ đa nền tảng', max_w=1.4, max_h=1.3)
-    draw_clean_icon(ax, 1.8, 1.3, 'icon_client.png', 'Quản trị viên (Admin)', 'Cổng quản trị CMS', max_w=1.4, max_h=1.3)
-
-    draw_clean_icon(ax, 4.6, 5.3, 'icon_browser.png', 'Trình duyệt Web', 'WebGL Three.js (Token & Cookies)', max_w=1.5, max_h=1.4)
-    draw_clean_icon(ax, 8.4, 5.3, 'icon_server.png', 'Máy chủ Ứng dụng', 'Node.js Express & TypeScript', max_w=1.5, max_h=1.5)
-
-    draw_clean_icon(ax, 6.2, 8.0, 'icon_redis.png', 'Bộ đệm Redis', 'Cache & Quản lý phiên', max_w=1.4, max_h=1.3)
-    draw_clean_icon(ax, 10.6, 8.0, 'icon_payos.png', 'Thanh toán PayOS', 'Cổng VietQR Napas 247', max_w=1.5, max_h=1.3)
-
-    draw_clean_icon(ax, 14.8, 7.2, 'icon_postgres.png', 'CSDL PostgreSQL 16', 'Bảng vé & Người dùng (ACID)', max_w=1.5, max_h=1.4)
-    draw_clean_icon(ax, 14.8, 5.3, 'icon_mongodb.png', 'CSDL MongoDB', '18 Gian phòng 360° & Cổ vật', max_w=1.4, max_h=1.3)
-    draw_clean_icon(ax, 10.6, 2.0, 'icon_rabbitmq.png', 'Hàng đợi RabbitMQ', 'Xử lý tác vụ nền bất đồng bộ', max_w=1.4, max_h=1.3)
-    draw_clean_icon(ax, 14.8, 2.0, 'icon_huggingface.png', 'Hugging Face (TRELLIS)', 'Mô hình 3D (Microsoft Research)', max_w=1.5, max_h=1.4)
-    draw_clean_icon(ax, 6.2, 2.0, 'icon_grafana.png', 'Giám sát Grafana', 'Prometheus & Đo lường APM', max_w=1.4, max_h=1.3)
-
-    draw_clean_arrow(ax, 2.6, 7.1, 3.8, 5.7, label='HTTPS Request', offset_y=0.42)
-    draw_clean_arrow(ax, 2.6, 5.3, 3.7, 5.3, label='WSS Kết nối', offset_y=0.38)
-    draw_clean_arrow(ax, 2.6, 3.5, 3.8, 4.9, label='Web Tour 360°', offset_y=-0.42)
-    draw_clean_arrow(ax, 2.6, 1.5, 4.2, 4.5, label='JWT Auth Request', offset_y=-0.42)
-
-    draw_clean_arrow(ax, 5.5, 5.3, 7.5, 5.3, label='RESTful API (JSON)', offset_y=0.38)
-
-    draw_clean_arrow(ax, 7.8, 5.9, 6.7, 7.3, label='Ghi / Đọc Cache', offset_y=0.35, offset_x=-0.2)
-    draw_clean_arrow(ax, 9.0, 5.9, 10.0, 7.3, label='Tạo Link VietQR', offset_y=0.35, offset_x=0.2)
-
-    draw_clean_arrow(ax, 9.3, 5.7, 13.8, 7.0, label='SQL Query (pgPool)', offset_y=0.42)
-    draw_clean_arrow(ax, 9.3, 5.3, 13.8, 5.3, label='Mongoose Query', offset_y=0.38)
-
-    draw_clean_arrow(ax, 9.0, 4.7, 10.1, 2.8, label='Đẩy tác vụ 3D Queue', offset_y=-0.38)
-    draw_clean_arrow(ax, 11.4, 2.0, 13.9, 2.0, label='Gọi ZeroGPU A100', offset_y=0.38)
-    draw_clean_arrow(ax, 7.8, 4.7, 6.7, 2.8, label='PromQL Metrics', offset_y=-0.38)
-
-    save_fig(fig, ['hinh_1_1_mindmap.png', 'hinh_1_1_so_do_tu_duy_tong_quan.png'])
 
 
 # ==============================================================================
@@ -399,13 +425,11 @@ def render_hinh_2_8():
             ha='center', va='center', fontsize=12.0, fontweight='bold', color=C_TEXT)
 
     xs = [2.0, 6.2, 10.4, 14.6]
-    # Giới hạn chặt chẽ max_w=1.55 cho icon_feature_match.png để không bao giờ chạm mũi tên
     draw_clean_icon(ax, xs[0], 3.8, 'icon_client.png', '1. Nạp Ảnh Tư Liệu', 'Đơn diện / Đối lập / Đa góc', max_w=1.4, max_h=1.35, y_title=2.3, y_sub=1.9)
-    draw_clean_icon(ax, xs[1], 3.8, 'icon_feature_match.png', '2. Bóc Tách Nền Tự Động', 'Rembg / U2-Net (Chuẩn hóa Alpha)', max_w=1.55, max_h=1.1, y_title=2.3, y_sub=1.9)
+    draw_clean_icon(ax, xs[1], 3.8, 'icon_rembg.png', '2. Bóc Tách Nền Tự Động', 'Rembg / U2-Net (Chuẩn hóa Alpha)', max_w=1.4, max_h=1.35, y_title=2.3, y_sub=1.9)
     draw_clean_icon(ax, xs[2], 3.8, 'icon_huggingface.png', '3. Sinh Khối Lưới 3D', 'Hugging Face TRELLIS (SLAT & DMC)', max_w=1.4, max_h=1.35, y_title=2.3, y_sub=1.9)
     draw_clean_icon(ax, xs[3], 3.8, 'icon_wireframe_3d.png', '4. Xuất Mô Hình .GLB', 'PBR Texture & Nén Draco WebGL', max_w=1.4, max_h=1.35, y_title=2.3, y_sub=1.9)
 
-    # Khoảng cách giữa các khối là 4.2 đơn vị, mũi tên cách tâm mỗi khối 1.25 đơn vị -> Khoảng hở 1.7 đơn vị cực kỳ rộng rãi!
     draw_clean_arrow(ax, xs[0] + 1.15, 3.8, xs[1] - 1.15, 3.8, label='1. Tải ảnh tư liệu gốc', offset_y=0.45)
     draw_clean_arrow(ax, xs[1] + 1.15, 3.8, xs[2] - 1.15, 3.8, label='2. Gửi ảnh Alpha Mask', offset_y=0.45)
     draw_clean_arrow(ax, xs[2] + 1.15, 3.8, xs[3] - 1.15, 3.8, label='3. Trích xuất lưới .GLB', offset_y=0.45)
@@ -414,38 +438,41 @@ def render_hinh_2_8():
 
 
 # ==============================================================================
-# HÌNH 2.9: KIẾN TRÚC PHÂN TẦNG HỆ THỐNG 3 TẦNG LAI GHÉP
+# HÌNH 2.9: KIẾN TRÚC PHÂN TẦNG HỆ THỐNG 3 TẦNG (BỔ SUNG PYTHON WORKER SERVICE)
 # ==============================================================================
 def render_hinh_2_9():
-    fig, ax = plt.subplots(figsize=(17.0, 9.5), dpi=300)
-    ax.set_xlim(0, 17.0); ax.set_ylim(0, 9.5); ax.axis('off')
+    fig, ax = plt.subplots(figsize=(17.5, 9.8), dpi=300)
+    ax.set_xlim(0, 17.5); ax.set_ylim(0, 9.8); ax.axis('off')
 
-    ax.text(8.5, 9.0, 'SƠ ĐỒ KIẾN TRÚC HỆ THỐNG 3 TẦNG LAI GHÉP (3-TIER HYBRID ARCHITECTURE)',
+    ax.text(8.75, 9.3, 'SƠ ĐỒ KIẾN TRÚC HỆ THỐNG 3 TẦNG LAI GHÉP (3-TIER HYBRID ARCHITECTURE)',
             ha='center', va='center', fontsize=12.5, fontweight='bold', color=C_TEXT)
 
-    ax.text(2.6, 8.2, 'TẦNG 1: CLIENT', ha='center', va='center', fontsize=11.0, fontweight='bold', color='#0284C7')
-    ax.text(8.5, 8.2, 'TẦNG 2: SERVICES & QUEUE', ha='center', va='center', fontsize=11.0, fontweight='bold', color='#059669')
-    ax.text(14.4, 8.2, 'TẦNG 3: DATA & CLOUD', ha='center', va='center', fontsize=11.0, fontweight='bold', color='#DC2626')
+    ax.text(2.6, 8.5, 'TẦNG 1: CLIENT', ha='center', va='center', fontsize=11.0, fontweight='bold', color='#0284C7')
+    ax.text(8.75, 8.5, 'TẦNG 2: SERVICES & WORKERS', ha='center', va='center', fontsize=11.0, fontweight='bold', color='#059669')
+    ax.text(14.8, 8.5, 'TẦNG 3: DATA & CLOUD', ha='center', va='center', fontsize=11.0, fontweight='bold', color='#DC2626')
 
-    ax.plot([5.5, 5.5], [0.6, 8.3], color='#CBD5E1', linestyle='--', lw=1.5)
-    ax.plot([11.5, 11.5], [0.6, 8.3], color='#CBD5E1', linestyle='--', lw=1.5)
+    ax.plot([5.5, 5.5], [0.6, 8.6], color='#CBD5E1', linestyle='--', lw=1.5)
+    ax.plot([12.0, 12.0], [0.6, 8.6], color='#CBD5E1', linestyle='--', lw=1.5)
 
+    # Tầng 1
     draw_clean_icon(ax, 2.6, 6.4, 'icon_browser.png', 'Trình duyệt Web (Client)', 'React 18 & WebGL Three.js', max_w=1.5, max_h=1.4, y_title=4.9, y_sub=4.5)
     draw_clean_icon(ax, 2.6, 2.2, 'icon_client.png', 'Quản trị viên (Admin CMS)', 'Quản trị vé, phòng & cổ vật', max_w=1.4, max_h=1.35, y_title=0.9, y_sub=0.5)
 
-    draw_clean_icon(ax, 8.5, 6.4, 'icon_nginx.png', 'Nginx & Node.js API', 'Reverse Proxy SSL & REST Gateway', max_w=1.5, max_h=1.4, y_title=4.9, y_sub=4.5)
-    draw_clean_icon(ax, 8.5, 2.2, 'icon_rabbitmq.png', 'Hàng đợi RabbitMQ & Redis', 'Điều phối tác vụ & Bộ đệm phiên', max_w=1.4, max_h=1.35, y_title=0.9, y_sub=0.5)
+    # Tầng 2: Cụm Node.js API Gateway & Cụm Python AI Worker Service
+    draw_clean_icon(ax, 8.75, 6.4, 'icon_server.png', 'Nginx & Node.js API Gateway', 'Reverse Proxy SSL & REST/SSE', max_w=1.5, max_h=1.4, y_title=4.9, y_sub=4.5)
+    draw_clean_icon(ax, 8.75, 2.2, 'icon_python.png', 'Python AI & CV Worker', 'FastAPI, Stitching 360 & Trellis', max_w=1.45, max_h=1.35, y_title=0.9, y_sub=0.5)
 
-    draw_clean_icon(ax, 14.4, 6.4, 'icon_postgres.png', 'CSDL PostgreSQL 16 & Mongo', 'Vé tham quan, Phòng 360° & Cổ vật', max_w=1.5, max_h=1.4, y_title=4.9, y_sub=4.5)
-    draw_clean_icon(ax, 14.4, 2.2, 'icon_payos.png', 'Cổng PayOS & Hugging Face', 'VietQR Napas 247 & TRELLIS 3D', max_w=1.5, max_h=1.35, y_title=0.9, y_sub=0.5)
+    # Tầng 3
+    draw_clean_icon(ax, 14.8, 6.4, 'icon_postgres.png', 'PostgreSQL 16 & Mongo', 'Vé tham quan, Phòng 360° & Cổ vật', max_w=1.5, max_h=1.4, y_title=4.9, y_sub=4.5)
+    draw_clean_icon(ax, 14.8, 2.2, 'icon_payos.png', 'PayOS & Hugging Face', 'VietQR Napas 247 & ZeroGPU', max_w=1.5, max_h=1.35, y_title=0.9, y_sub=0.5)
 
-    draw_clean_arrow(ax, 3.8, 6.4, 7.2, 6.4, label='HTTPS / WSS (Port 443)', offset_y=0.42)
-    draw_clean_arrow(ax, 3.8, 2.2, 7.2, 2.2, label='RESTful API (JSON)', offset_y=0.42)
+    draw_clean_arrow(ax, 3.8, 6.4, 7.4, 6.4, label='HTTPS / WSS (Port 443)', offset_y=0.42)
+    draw_clean_arrow(ax, 3.8, 2.2, 7.4, 2.2, label='RESTful API (JSON)', offset_y=0.42)
 
-    draw_clean_arrow(ax, 8.5, 5.2, 8.5, 3.4, label='Đẩy tác vụ & Đọc Cache', offset_x=1.7, offset_y=0.0)
+    draw_clean_arrow(ax, 8.75, 5.2, 8.75, 3.4, label='Giao việc qua RabbitMQ', offset_x=1.7, offset_y=0.0)
 
-    draw_clean_arrow(ax, 9.8, 6.4, 13.0, 6.4, label='SQL (pgPool) & Mongoose', offset_y=0.42)
-    draw_clean_arrow(ax, 9.8, 2.2, 13.0, 2.2, label='Webhook VietQR & API ZeroGPU', offset_y=0.42)
+    draw_clean_arrow(ax, 10.1, 6.4, 13.4, 6.4, label='SQL (pgPool) & Mongoose', offset_y=0.42)
+    draw_clean_arrow(ax, 10.1, 2.2, 13.4, 2.2, label='Webhook & ZeroGPU API', offset_y=0.42)
 
     save_fig(fig, ['hinh_2_9_architecture_3tier.png'])
 
@@ -480,32 +507,43 @@ def render_hinh_2_10():
 
 
 # ==============================================================================
-# HÌNH 2.11: QUY TRÌNH THANH TOÁN VIETQR PAYOS
+# HÌNH 2.11: QUY TRÌNH THANH TOÁN VIETQR PAYOS (DÙNG ICON ĐIỆN THOẠI & POSTGRESQL CHUẨN)
 # ==============================================================================
 def render_hinh_payos_flow():
-    fig, ax = plt.subplots(figsize=(16.8, 7.5), dpi=300)
-    ax.set_xlim(0, 16.8); ax.set_ylim(0, 7.5); ax.axis('off')
+    fig, ax = plt.subplots(figsize=(17.5, 9.0), dpi=300)
+    ax.set_xlim(0, 17.5); ax.set_ylim(0, 9.0); ax.axis('off')
 
-    ax.text(8.4, 6.9, 'QUY TRÌNH SINH MÃ VÀ XÁC THỰC THANH TOÁN VIETQR QUA CỔNG PAYOS',
-            ha='center', va='center', fontsize=12.2, fontweight='bold', color=C_TEXT)
+    ax.text(8.75, 8.4, 'QUY TRÌNH SINH MÃ VÀ XÁC THỰC THANH TOÁN VIETQR QUA CỔNG PAYOS',
+            ha='center', va='center', fontsize=12.5, fontweight='bold', color=C_TEXT)
 
-    xs = [2.0, 6.2, 10.4, 14.6]
-    draw_clean_icon(ax, xs[0], 4.4, 'icon_client.png', '1. Khách Mua Vé', 'Giao diện Booking Web', max_w=1.4, max_h=1.35, y_title=2.9, y_sub=2.5)
-    draw_clean_icon(ax, xs[1], 4.4, 'icon_server.png', '2. Máy Chủ Backend', 'Node.js Express & Tạo Đơn', max_w=1.4, max_h=1.4, y_title=2.9, y_sub=2.5)
-    draw_clean_icon(ax, xs[2], 4.4, 'icon_payos.png', '3. Cổng PayOS', 'VietQR Napas 247 Động', max_w=1.5, max_h=1.35, y_title=2.9, y_sub=2.5)
-    draw_clean_icon(ax, xs[3], 4.4, 'icon_browser.png', '4. App Ngân Hàng', 'Quét QR & Chuyển khoản', max_w=1.4, max_h=1.35, y_title=2.9, y_sub=2.5)
+    xs = [2.2, 6.5, 11.0, 15.2]
+    y_main = 5.5
 
-    draw_clean_icon(ax, xs[1], 1.2, 'icon_postgres.png', 'CSDL PostgreSQL 16', 'Bảng Tickets & Transactions (PAID)', max_w=1.3, max_h=1.2, y_title=0.2, y_sub=None)
+    # 4 Nút chính: 1. Khách -> 2. Node.js -> 3. PayOS -> 4. App Ngân hàng (DÙNG ICON ĐIỆN THOẠI THỰC TẾ)
+    draw_clean_icon(ax, xs[0], y_main, 'icon_client.png', '1. Khách Mua Vé', 'Giao diện Booking Web', max_w=1.4, max_h=1.35, y_title=4.3, y_sub=3.9)
+    draw_clean_icon(ax, xs[1], y_main, 'icon_server.png', '2. Máy Chủ Backend', 'Node.js Express & Tạo Đơn', max_w=1.4, max_h=1.4, y_title=4.3, y_sub=3.9)
+    draw_clean_icon(ax, xs[2], y_main, 'icon_payos.png', '3. Cổng PayOS', 'VietQR Napas 247 Động', max_w=1.5, max_h=1.35, y_title=4.3, y_sub=3.9)
+    draw_clean_icon(ax, xs[3], y_main, 'icon_phone.png', '4. App Ngân Hàng', 'Quét QR & Chuyển khoản', max_w=1.2, max_h=1.4, y_title=4.3, y_sub=3.9)
 
-    draw_clean_arrow(ax, xs[0] + 1.15, 4.8, xs[1] - 1.15, 4.8, label='1. Chọn vé & Đặt mua', offset_y=0.40)
-    draw_clean_arrow(ax, xs[1] + 1.15, 4.8, xs[2] - 1.15, 4.8, label='2. Gọi API tạo VietQR', offset_y=0.40)
-    draw_clean_arrow(ax, xs[2] + 1.15, 4.8, xs[3] - 1.15, 4.8, label='3. Hiển thị mã VietQR động', offset_y=0.40)
+    # Nút CSDL PostgreSQL 16 ở dưới Node.js
+    draw_clean_icon(ax, xs[1], 1.5, 'icon_postgres.png', 'CSDL PostgreSQL 16', 'Bảng Tickets & Transactions (PAID)', max_w=1.45, max_h=1.35, y_title=0.4, y_sub=None)
 
-    draw_clean_arrow(ax, xs[3] - 1.15, 4.0, xs[2] + 1.15, 4.0, label='4. Chuyển khoản thành công', offset_y=-0.40)
-    draw_clean_arrow(ax, xs[2] - 1.15, 4.0, xs[1] + 1.15, 4.0, label='5. Webhook báo PAID', offset_y=-0.40, is_dashed=True)
-    draw_clean_arrow(ax, xs[1] - 1.15, 4.0, xs[0] + 1.15, 4.0, label='7. SSE đẩy vé về client', offset_y=-0.40, is_dashed=True)
+    # --- LUỒNG ĐI PHÍA TRÊN (y=6.3) ---
+    draw_clean_arrow(ax, xs[0] + 1.15, 6.3, xs[1] - 1.15, 6.3, label='1. Chọn vé & Đặt mua', offset_y=0.45)
+    draw_clean_arrow(ax, xs[1] + 1.15, 6.3, xs[2] - 1.15, 6.3, label='2. Gọi API tạo VietQR', offset_y=0.45)
+    draw_clean_arrow(ax, xs[2] + 1.15, 6.3, xs[3] - 1.15, 6.3, label='3. Hiển thị mã VietQR', offset_y=0.45)
 
-    draw_clean_arrow(ax, xs[1], 3.5, xs[1], 2.1, label='6. Cập nhật vé PAID & ký số', offset_x=1.9, offset_y=0.0)
+    # --- LUỒNG VỀ PHÍA DƯỚI (y=4.7) ---
+    draw_clean_arrow(ax, xs[3] - 1.15, 4.7, xs[2] + 1.15, 4.7, label='4. Chuyển khoản thành công', offset_y=-0.45)
+    draw_clean_arrow(ax, xs[2] - 1.15, 4.7, xs[1] + 1.15, 4.7, label='5. Webhook báo PAID', offset_y=-0.45, is_dashed=True)
+    draw_clean_arrow(ax, xs[1] - 1.15, 4.7, xs[0] + 1.15, 4.7, label='7. SSE đẩy vé về Client', offset_y=-0.45, is_dashed=True)
+
+    # --- MŨI TÊN XUỐNG CSDL: NHÃN ĐẶT Ở VÙNG TRỐNG BÊN PHẢI (x=8.9), KHÔNG BAO GIỜ ĐÈ VẠCH ---
+    draw_clean_arrow(ax, xs[1], 3.5, xs[1], 2.2, label='', shrinkA=4, shrinkB=4)
+    ax.text(xs[1] + 2.2, 2.85, '6. Cập nhật vé PAID & ký số', ha='center', va='center',
+            fontsize=8.5, fontweight='bold', color=C_TEXT,
+            bbox=dict(boxstyle='round,pad=0.25', facecolor='white', edgecolor='#CBD5E1', lw=0.8, alpha=0.98),
+            zorder=25)
 
     save_fig(fig, ['hinh_2_11_payos_flow.png', 'hinh_3_6_activity_booking_ticket_lifecycle.png', 'hinh_3_6_sequence_payment_payos.png', 'hinh_4_8_payment_ticket_flow.png', 'flow_05_ticketing_vietqr_qr.png'])
 
@@ -521,10 +559,10 @@ def render_hinh_qr_validation():
             ha='center', va='center', fontsize=12.2, fontweight='bold', color=C_TEXT)
 
     xs = [2.0, 6.2, 10.4, 14.6]
-    draw_clean_icon(ax, xs[0], 4.0, 'icon_browser.png', '1. Vé trên Mobile', 'Mã QR mã hóa AES-256', max_w=1.4, max_h=1.35, y_title=2.4, y_sub=2.0)
+    draw_clean_icon(ax, xs[0], 4.0, 'icon_phone.png', '1. Vé trên Mobile', 'Mã QR mã hóa AES-256', max_w=1.2, max_h=1.4, y_title=2.4, y_sub=2.0)
     draw_clean_icon(ax, xs[1], 4.0, 'icon_client.png', '2. Camera Soát Vé', 'Html5Qrcode Scanner (Staff)', max_w=1.4, max_h=1.35, y_title=2.4, y_sub=2.0)
     draw_clean_icon(ax, xs[2], 4.0, 'icon_server.png', '3. Máy Chủ Backend', 'Node.js Giải mã AES & Hash', max_w=1.4, max_h=1.4, y_title=2.4, y_sub=2.0)
-    draw_clean_icon(ax, xs[3], 4.0, 'icon_postgres.png', '4. CSDL PostgreSQL', 'Cập nhật trạng thái USED', max_w=1.4, max_h=1.35, y_title=2.4, y_sub=2.0)
+    draw_clean_icon(ax, xs[3], 4.0, 'icon_postgres.png', '4. CSDL PostgreSQL', 'Cập nhật trạng thái USED', max_w=1.45, max_h=1.35, y_title=2.4, y_sub=2.0)
 
     draw_clean_arrow(ax, xs[0] + 1.15, 4.0, xs[1] - 1.15, 4.0, label='1. Quét mã QR (< 150ms)', offset_y=0.45)
     draw_clean_arrow(ax, xs[1] + 1.15, 4.0, xs[2] - 1.15, 4.0, label='2. POST /tickets/validate', offset_y=0.45)
@@ -534,31 +572,41 @@ def render_hinh_qr_validation():
 
 
 # ==============================================================================
-# HÌNH 2.13: KIẾN TRÚC DOCKER COMPOSE & NGINX
+# HÌNH 2.13: KIẾN TRÚC DOCKER COMPOSE & NGINX (BỔ SUNG PYTHON WORKER CONTAINER)
 # ==============================================================================
 def render_hinh_2_13():
-    fig, ax = plt.subplots(figsize=(17.0, 8.8), dpi=300)
-    ax.set_xlim(0, 17.0); ax.set_ylim(0, 8.8); ax.axis('off')
+    fig, ax = plt.subplots(figsize=(17.5, 9.2), dpi=300)
+    ax.set_xlim(0, 17.5); ax.set_ylim(0, 9.2); ax.axis('off')
 
-    ax.text(8.5, 8.2, 'SƠ ĐỒ ĐIỀU PHỐI VÀ ĐÓNG GÓI HỆ THỐNG VỚI DOCKER COMPOSE TRÊN VPS UBUNTU',
+    ax.text(8.75, 8.6, 'SƠ ĐỒ ĐIỀU PHỐI VÀ ĐÓNG GÓI HỆ THỐNG VỚI DOCKER COMPOSE TRÊN VPS UBUNTU',
             ha='center', va='center', fontsize=12.5, fontweight='bold', color=C_TEXT)
 
+    # Cột 1: Nginx
     draw_clean_icon(ax, 2.2, 4.5, 'icon_nginx.png', 'Nginx Reverse Proxy', 'Port 80/443 (SSL/TLS Termination)', max_w=1.5, max_h=1.4, y_title=2.8, y_sub=2.4)
-    draw_clean_icon(ax, 6.5, 4.5, 'icon_server.png', 'Node.js API Container', 'Port 5000 (Express & TypeScript)', max_w=1.5, max_h=1.5, y_title=2.8, y_sub=2.4)
 
-    draw_clean_arrow(ax, 3.4, 4.5, 5.4, 4.5, label='Proxy Pass (Docker Bridge)', offset_y=0.42)
+    # Cột 2: Node.js Container & Python Worker Container
+    draw_clean_icon(ax, 6.8, 6.4, 'icon_server.png', 'Node.js API Container', 'Port 5000 (Express & TypeScript)', max_w=1.45, max_h=1.35, y_title=5.1, y_sub=4.7)
+    draw_clean_icon(ax, 6.8, 2.6, 'icon_python.png', 'Python Worker Container', 'Port 8000 (OpenCV & Marching Cubes)', max_w=1.45, max_h=1.35, y_title=1.3, y_sub=0.9)
 
-    draw_clean_icon(ax, 11.2, 6.4, 'icon_redis.png', 'Redis Container', 'Port 6379 (In-Memory Cache)', max_w=1.4, max_h=1.3, y_title=5.1, y_sub=4.7)
-    draw_clean_icon(ax, 11.2, 2.6, 'icon_rabbitmq.png', 'RabbitMQ Container', 'Port 5672 (Message Broker)', max_w=1.4, max_h=1.3, y_title=1.3, y_sub=0.9)
+    # Cột 3: In-Memory & Message Queue
+    draw_clean_icon(ax, 11.5, 6.4, 'icon_redis.png', 'Redis Container', 'Port 6379 (In-Memory Cache)', max_w=1.4, max_h=1.3, y_title=5.1, y_sub=4.7)
+    draw_clean_icon(ax, 11.5, 2.6, 'icon_rabbitmq.png', 'RabbitMQ Container', 'Port 5672 (Message Broker)', max_w=1.4, max_h=1.3, y_title=1.3, y_sub=0.9)
 
-    draw_clean_icon(ax, 15.2, 6.4, 'icon_postgres.png', 'PostgreSQL 16', 'Port 5432 (Relational Data)', max_w=1.45, max_h=1.35, y_title=5.1, y_sub=4.7)
-    draw_clean_icon(ax, 15.2, 2.6, 'icon_mongodb.png', 'MongoDB NoSQL', 'Port 27017 (360 Rooms & Items)', max_w=1.4, max_h=1.3, y_title=1.3, y_sub=0.9)
+    # Cột 4: Relational & NoSQL
+    draw_clean_icon(ax, 15.6, 6.4, 'icon_postgres.png', 'PostgreSQL 16', 'Port 5432 (Relational Data)', max_w=1.45, max_h=1.35, y_title=5.1, y_sub=4.7)
+    draw_clean_icon(ax, 15.6, 2.6, 'icon_mongodb.png', 'MongoDB NoSQL', 'Port 27017 (360 Rooms & Items)', max_w=1.4, max_h=1.3, y_title=1.3, y_sub=0.9)
 
-    draw_clean_arrow(ax, 7.6, 5.0, 10.0, 6.2, label='TCP Ghi/Đọc Cache', offset_y=0.40)
-    draw_clean_arrow(ax, 7.6, 4.0, 10.0, 2.8, label='AMQP Đẩy Hàng Đợi', offset_y=-0.40)
+    # Nginx -> Node.js & Python
+    draw_clean_arrow(ax, 3.4, 5.0, 5.6, 6.2, label='Proxy Pass :5000', offset_y=0.40)
+    draw_clean_arrow(ax, 3.4, 4.0, 5.6, 2.8, label='Proxy Pass :8000', offset_y=-0.40)
 
-    draw_clean_arrow(ax, 12.4, 6.4, 14.0, 6.4, label='pgPool Query', offset_y=0.40)
-    draw_clean_arrow(ax, 12.4, 2.6, 14.0, 2.6, label='Mongoose Query', offset_y=-0.40)
+    # Node.js & Python -> Cột 3 (Redis & RabbitMQ)
+    draw_clean_arrow(ax, 8.0, 6.4, 10.3, 6.4, label='TCP Ghi/Đọc Cache', offset_y=0.40)
+    draw_clean_arrow(ax, 8.0, 2.6, 10.3, 2.6, label='AMQP Nhận Tác Vụ', offset_y=-0.40)
+
+    # Node.js -> Cột 4 (Postgres & Mongo)
+    draw_clean_arrow(ax, 12.6, 6.4, 14.3, 6.4, label='pgPool Query', offset_y=0.40)
+    draw_clean_arrow(ax, 12.6, 2.6, 14.3, 2.6, label='Mongoose Query', offset_y=-0.40)
 
     save_fig(fig, ['hinh_2_13_docker_compose.png'])
 
@@ -610,7 +658,7 @@ def render_hinh_3_8():
 
 
 # ==============================================================================
-# HÌNH 3.10: DỊCH THUẬT VÀ BẢN ĐỊA HÓA ĐA NGÔN NGỮ (BÁM SÁT BẢN CHẤT THUẬT TOÁN)
+# HÌNH 3.10: DỊCH THUẬT VÀ BẢN ĐỊA HÓA ĐA NGÔN NGỮ
 # ==============================================================================
 def render_hinh_3_10():
     fig, ax = plt.subplots(figsize=(16.8, 6.8), dpi=300)
@@ -621,13 +669,13 @@ def render_hinh_3_10():
 
     xs = [2.0, 6.2, 10.4, 14.6]
     draw_clean_icon(ax, xs[0], 4.0, 'icon_client.png', '1. Chọn Ngôn Ngữ', '7 Ngôn ngữ (Vi, En, Fr, Zh, Ja...)', max_w=1.4, max_h=1.35, y_title=2.4, y_sub=2.0)
-    draw_clean_icon(ax, xs[1], 4.0, 'icon_database.png', '2. Từ Điển Bản Địa Hóa', 'Tệp JSON cục bộ nạp sẵn (0ms)', max_w=1.4, max_h=1.35, y_title=2.4, y_sub=2.0)
+    draw_clean_icon(ax, xs[1], 4.0, 'icon_server.png', '2. Backend Localization', 'Kiểm tra tệp JSON cục bộ (0ms)', max_w=1.4, max_h=1.4, y_title=2.4, y_sub=2.0)
     draw_clean_icon(ax, xs[2], 4.0, 'icon_ai_brain.png', '3. Động Cơ Google NMT', 'Dịch thuật tự động khi thiếu từ điển', max_w=1.4, max_h=1.35, y_title=2.4, y_sub=2.0)
     draw_clean_icon(ax, xs[3], 4.0, 'icon_browser.png', '4. Trình Diễn Đa Ngữ', 'Cập nhật tiêu đề & Thuyết minh', max_w=1.4, max_h=1.35, y_title=2.4, y_sub=2.0)
 
-    draw_clean_arrow(ax, xs[0] + 1.15, 4.0, xs[1] - 1.15, 4.0, label='1. Gửi mã ISO ngôn ngữ', offset_y=0.45)
-    draw_clean_arrow(ax, xs[1] + 1.15, 4.0, xs[2] - 1.15, 4.0, label='2. Fallback gọi Google NMT API', offset_y=0.45)
-    draw_clean_arrow(ax, xs[2] + 1.15, 4.0, xs[3] - 1.15, 4.0, label='3. Nạp từ điển & Cập nhật UI', offset_y=0.45)
+    draw_clean_arrow(ax, xs[0] + 1.15, 4.0, xs[1] - 1.15, 4.0, label='1. Chuyển mã ISO ngôn ngữ', offset_y=0.45)
+    draw_clean_arrow(ax, xs[1] + 1.15, 4.0, xs[2] - 1.15, 4.0, label='2. Fallback gọi NMT API', offset_y=0.45)
+    draw_clean_arrow(ax, xs[2] + 1.15, 4.0, xs[3] - 1.15, 4.0, label='3. Trả về từ điển bản địa hóa', offset_y=0.45)
 
     save_fig(fig, ['hinh_3_10_translation_flow.png'])
 
@@ -673,7 +721,7 @@ def render_hinh_3_12():
     xs = [2.0, 6.2, 10.4, 14.6]
     draw_clean_icon(ax, xs[0], 4.0, 'icon_client.png', '1. Quản Trị Viên (Admin)', 'Yêu cầu xuất báo cáo Excel', max_w=1.4, max_h=1.35, y_title=2.4, y_sub=2.0)
     draw_clean_icon(ax, xs[1], 4.0, 'icon_server.png', '2. Máy Chủ Backend', 'ExcelJS Streaming Worker', max_w=1.4, max_h=1.4, y_title=2.4, y_sub=2.0)
-    draw_clean_icon(ax, xs[2], 4.0, 'icon_postgres.png', '3. CSDL PostgreSQL 16', 'Truy vấn doanh thu & vé bán', max_w=1.4, max_h=1.35, y_title=2.4, y_sub=2.0)
+    draw_clean_icon(ax, xs[2], 4.0, 'icon_postgres.png', '3. CSDL PostgreSQL 16', 'Truy vấn doanh thu & vé bán', max_w=1.45, max_h=1.35, y_title=2.4, y_sub=2.0)
     draw_clean_icon(ax, xs[3], 4.0, 'icon_browser.png', '4. Tải Tệp .XLSX', 'Bảng tính định dạng chuẩn', max_w=1.4, max_h=1.35, y_title=2.4, y_sub=2.0)
 
     draw_clean_arrow(ax, xs[0] + 1.15, 4.0, xs[1] - 1.15, 4.0, label='1. GET /api/reports/export', offset_y=0.45)
@@ -730,7 +778,7 @@ def render_hinh_4_1():
 
 
 # ==============================================================================
-# HÌNH 4.3: XỬ LÝ TOÀN CẢNH 360° (THUẬT TOÁN THỊ GIÁC MÁY TÍNH - KHÔNG ÉP SERVER)
+# HÌNH 4.3: XỬ LÝ TOÀN CẢNH 360° (THUẬT TOÁN THỊ GIÁC MÁY TÍNH THUẦN TÚY)
 # ==============================================================================
 def render_hinh_4_3():
     fig, ax = plt.subplots(figsize=(16.8, 6.8), dpi=300)
@@ -756,44 +804,40 @@ def render_hinh_4_3():
 # HÌNH 4.5: TÁI TẠO CỔ VẬT 3D LAI GHÉP (GỌN GÀNG, THOÁNG ĐÃNG, KHÔNG ĐÈ CHỮ)
 # ==============================================================================
 def render_hinh_4_5():
-    fig, ax = plt.subplots(figsize=(16.8, 8.5), dpi=300)
-    ax.set_xlim(0, 16.8); ax.set_ylim(0, 8.5); ax.axis('off')
+    fig, ax = plt.subplots(figsize=(17.5, 9.2), dpi=300)
+    ax.set_xlim(0, 17.5); ax.set_ylim(0, 9.2); ax.axis('off')
 
-    ax.text(8.4, 7.9, 'SƠ ĐỒ HOẠT ĐỘNG: QUY TRÌNH TÁI TẠO CỔ VẬT 3D LAI GHÉP VỚI ĐỘNG CƠ AI',
+    ax.text(8.75, 8.6, 'SƠ ĐỒ HOẠT ĐỘNG: QUY TRÌNH TÁI TẠO CỔ VẬT 3D LAI GHÉP VỚI ĐỘNG CƠ AI',
             ha='center', va='center', fontsize=12.5, fontweight='bold', color=C_TEXT)
-    ax.text(8.4, 7.4, 'Bóc tách nền Rembg / Alpha Mask — Hàng đợi Queue phân luồng — Ưu tiên Hugging Face (TRELLIS) và Dự phòng Local CPU',
+    ax.text(8.75, 8.1, 'Bóc tách nền Rembg / Alpha Mask — Hàng đợi Queue phân luồng — Ưu tiên Hugging Face (TRELLIS) và Dự phòng Local CPU',
             ha='center', va='center', fontsize=9.0, fontstyle='italic', color=C_SUB)
 
-    # 4 Cột ngang rộng rãi: 2.0 -> 6.2 -> 10.4 -> 14.8
-    # Cột 1: Quản trị viên (x=2.0)
-    draw_clean_icon(ax, 2.0, 4.2, 'icon_client.png', '1. Quản Trị Viên', 'Nạp ảnh tư liệu cổ vật', max_w=1.4, max_h=1.35, y_title=2.6, y_sub=2.2)
+    # 4 Cột: 2.2 -> 6.5 -> 11.2 -> 15.5
+    draw_clean_icon(ax, 2.2, 4.6, 'icon_client.png', '1. Quản Trị Viên', 'Nạp ảnh tư liệu cổ vật', max_w=1.4, max_h=1.35, y_title=3.0, y_sub=2.6)
+    draw_clean_icon(ax, 6.5, 4.6, 'icon_rabbitmq.png', '2. Hàng Đợi 3D Queue', 'RabbitMQ & Redis phân luồng', max_w=1.4, max_h=1.35, y_title=3.0, y_sub=2.6)
 
-    # Cột 2: Hàng đợi điều phối RabbitMQ & Redis (x=6.2)
-    draw_clean_icon(ax, 6.2, 4.2, 'icon_rabbitmq.png', '2. Hàng Đợi 3D Queue', 'RabbitMQ & Redis phân luồng', max_w=1.4, max_h=1.35, y_title=2.6, y_sub=2.2)
+    draw_clean_icon(ax, 11.2, 6.6, 'icon_huggingface.png', '3a. Hugging Face (TRELLIS)', 'ZeroGPU A100 (Microsoft Research)', max_w=1.4, max_h=1.35, y_title=5.2, y_sub=4.8)
+    draw_clean_icon(ax, 11.2, 2.2, 'icon_server.png', '3b. Máy Chủ Local CPU (Dự phòng)', 'Marching Cubes v15.0 (VPS Offline)', max_w=1.4, max_h=1.35, y_title=0.8, y_sub=0.4)
 
-    # Cột 3: Hai động cơ đối xứng trên - dưới (x=10.4)
-    # Nhánh trên: Hugging Face Spaces (y=6.2, x=10.4)
-    draw_clean_icon(ax, 10.4, 6.2, 'icon_huggingface.png', '3a. Hugging Face (TRELLIS)', 'ZeroGPU A100 (Microsoft Research)', max_w=1.4, max_h=1.35, y_title=4.8, y_sub=4.4)
+    draw_clean_icon(ax, 15.5, 4.6, 'icon_wireframe_3d.png', '4. Mô Hình 3D (.GLB)', 'Three.js WebGL xoay 360°', max_w=1.4, max_h=1.35, y_title=3.0, y_sub=2.6)
 
-    # Nhánh dưới: Máy chủ Local CPU (y=2.2, x=10.4)
-    draw_clean_icon(ax, 10.4, 2.2, 'icon_server.png', '3b. Máy Chủ Local CPU (Dự phòng)', 'Marching Cubes v15.0 (VPS Offline)', max_w=1.4, max_h=1.35, y_title=0.8, y_sub=0.4)
+    # 1 -> 2
+    draw_clean_arrow(ax, 3.35, 4.6, 5.35, 4.6, label='1. Nạp ảnh & Bóc tách nền', offset_y=0.45)
 
-    # Cột 4: Mô hình 3D .GLB WebGL (x=14.8)
-    draw_clean_icon(ax, 14.8, 4.2, 'icon_wireframe_3d.png', '4. Mô Hình 3D (.GLB)', 'Three.js WebGL xoay 360°', max_w=1.4, max_h=1.35, y_title=2.6, y_sub=2.2)
+    # 2 -> 3a & 3b
+    draw_clean_arrow(ax, 7.65, 5.2, 9.95, 6.4, label='2a. [Ưu tiên] ZeroGPU A100', offset_y=0.45)
+    draw_clean_arrow(ax, 7.65, 4.0, 9.95, 2.5, label='2b. [Tùy chọn] Local CPU', offset_y=-0.45)
 
-    # Mũi tên 1 -> 2
-    draw_clean_arrow(ax, 3.15, 4.2, 5.05, 4.2, label='1. Nạp ảnh & Bóc tách nền', offset_y=0.45)
+    # 3a & 3b -> 4
+    draw_clean_arrow(ax, 12.35, 6.4, 14.35, 5.2, label='3a. Xuất .GLB chuẩn PBR', offset_y=0.45)
+    draw_clean_arrow(ax, 12.35, 2.5, 14.35, 4.0, label='3b. Xuất .GLB xoay trục', offset_y=-0.45)
 
-    # Mũi tên phân nhánh đối xứng: 2 -> 3a và 2 -> 3b
-    draw_clean_arrow(ax, 7.35, 4.8, 9.25, 5.9, label='2a. [Ưu tiên] ZeroGPU A100', offset_y=0.45)
-    draw_clean_arrow(ax, 7.35, 3.6, 9.25, 2.5, label='2b. [Tùy chọn] Local CPU', offset_y=-0.45)
-
-    # Mũi tên xuất kết quả: 3a -> 4 và 3b -> 4
-    draw_clean_arrow(ax, 11.55, 5.9, 13.65, 4.8, label='3a. Xuất .GLB chuẩn PBR', offset_y=0.45)
-    draw_clean_arrow(ax, 11.55, 2.5, 13.65, 3.6, label='3b. Xuất .GLB xoay trục', offset_y=-0.45)
-
-    # Mũi tên Fallback thẳng đứng từ 3a xuống 3b khi lỗi Quota 429 (Offset sang phải 2.2 đơn vị rộng rãi)
-    draw_clean_arrow(ax, 10.4, 5.2, 10.4, 3.2, label='Fallback khi Quota 429', offset_x=2.2, offset_y=0.0, is_dashed=True)
+    # Fallback từ 3a xuống 3b (nhãn đặt bên trái vạch đứng để không bao giờ đè lên 3a -> 4)
+    draw_clean_arrow(ax, 11.2, 5.6, 11.2, 3.2, label='', shrinkA=4, shrinkB=4, is_dashed=True)
+    ax.text(11.2, 4.4, 'Fallback khi Quota 429', ha='center', va='center',
+            fontsize=8.0, fontweight='bold', color=C_TEXT,
+            bbox=dict(boxstyle='round,pad=0.22', facecolor='white', edgecolor='#CBD5E1', lw=0.8, alpha=0.98),
+            zorder=25)
 
     save_fig(fig, ['hinh_4_5_artifact_2engines.png', 'flow_04_dual_engine_3d.png'])
 

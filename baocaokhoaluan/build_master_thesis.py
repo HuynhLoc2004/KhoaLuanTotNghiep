@@ -277,6 +277,8 @@ def add_figure_placeholder(doc, fig_id, fig_title, description, width_cm=15.0, h
     
     priority_map = {
         "1.1": "hinh_1_1_mindmap.png",
+        "2.1": "hinh_2_1_he_toa_do_cau.png",
+        "2.2": "hinh_2_2_cylindrical_warping.png",
         "2.6": "hinh_2_6_texture_mapping.png",
         "2.8": "hinh_2_8_photogrammetry.png",
         "2.9": "hinh_2_9_architecture_3tier.png",
@@ -296,40 +298,37 @@ def add_figure_placeholder(doc, fig_id, fig_title, description, width_cm=15.0, h
         "3.12": "hinh_3_12_excel_export_flow.png",
         "3.13": "hinh_3_13_qr_exhibition_activity.png",
         "4.1": "hinh_4_1_cicd_pipeline.png",
-        "4.2": "real_admin_stitching_tool.png",
         "4.3": "hinh_4_3_panorama_4inputs.png",
-        "4.4": "flow_02_floorplan_dijkstra.png",
         "4.5": "hinh_4_5_artifact_2engines.png",
-        "4.6": "real_client_artifacts_section.png",
         "4.7": "hinh_4_7_dijkstra_flow.png",
         "4.8": "hinh_4_8_payment_ticket_flow.png",
-        "4.9": "real_admin_languages_voice.png",
-        "4.10": "real_admin_languages_voice.png",
-        "4.11": "flow_05_ticketing_vietqr_qr.png",
-        "4.12": "real_client_booking_vietqr.png",
-        "4.13": "real_admin_tickets_management.png",
-        "4.14": "real_admin_page.png",
-        "4.15": "real_client_interactive_tour360.png",
-        "4.16": "real_admin_guide_floorplan.png",
-        "4.23": "real_admin_guide_floorplan.png",
-        "4.31": "real_admin_page.png"
+        "4.37": "hinh_4_37_response_time.png",
+        "4.38": "hinh_4_38_throughput.png",
+        "4.39": "hinh_4_39_error_rate.png",
+        "4.40": "hinh_4_40_lighthouse.png"
     }
 
-    img_path = None
-    if str(fig_id) in priority_map:
-        fname = priority_map[str(fig_id)]
-        for d in [assets_dir, diagrams_dir]:
-            candidate = os.path.join(d, fname)
-            if os.path.exists(candidate):
-                img_path = candidate
-                break
+    # Neu la anh chup man hinh giao dien thuc te (bat dau bang 'Giao diện' hoac 'Ảnh chụp'),
+    # bat buoc giu khung cho de tac gia chu dong chup va cap nhat sau theo yeu cau.
+    is_ui_screenshot = str(fig_title).strip().lower().startswith("giao diện") or str(fig_title).strip().lower().startswith("ảnh chụp")
+    if is_ui_screenshot:
+        img_path = None
+    else:
+        img_path = None
+        if str(fig_id) in priority_map:
+            fname = priority_map[str(fig_id)]
+            for d in [assets_dir, diagrams_dir]:
+                candidate = os.path.join(d, fname)
+                if os.path.exists(candidate):
+                    img_path = candidate
+                    break
 
-    if not img_path:
-        for d in [assets_dir, diagrams_dir]:
-            matching = glob.glob(os.path.join(d, f"hinh_{normalized_id}_*.png"))
-            if matching and os.path.exists(matching[0]):
-                img_path = matching[0]
-                break
+        if not img_path:
+            for d in [assets_dir, diagrams_dir]:
+                matching = glob.glob(os.path.join(d, f"hinh_{normalized_id}_*.png"))
+                if matching and os.path.exists(matching[0]):
+                    img_path = matching[0]
+                    break
 
     if img_path:
         p_img = doc.add_paragraph()
