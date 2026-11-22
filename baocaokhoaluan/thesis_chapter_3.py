@@ -446,7 +446,7 @@ def add_chapter_3(doc, helper):
         "Vé hợp lệ được chuyển trạng thái sang 'USED' trong CSDL PostgreSQL, ghi nhận log checked_in_at, phát sự kiện Realtime SSE sang thiết bị du khách và mở cổng đón khách.",
         [
             ("1. Nhân viên mở giao diện Soát vé, cấp quyền camera thiết bị. Khung ngắm quét mã hiển thị sẵn sàng.", "2. Nhân viên hướng camera vào mã QR trên vé điện tử (màn hình điện thoại hoặc vé in) của du khách."),
-            ("3. Thư viện HTML5-QRCode tự động nhận diện khung hình, giải mã Payload và trích xuất mã vé TKT-xxxxxx.", "4. Trình duyệt gửi yêu cầu POST /api/tickets/validate-qr về máy chủ kiểm tra."),
+            ("3. Thư viện HTML5-QRCode tự động nhận diện khung hình, giải mã Payload và trích xuất mã vé TKT-xxxxxx.", "4. Trình duyệt gửi yêu cầu POST /api/admin/tickets/verify-qr về máy chủ kiểm tra."),
             ("5. Máy chủ giải mã AES-256, kiểm tra chữ ký số SHA-256 và đối soát với CSDL PostgreSQL: kiểm tra trạng thái PAID, đúng ngày tham quan và đúng khung giờ.", "6. Cập nhật trạng thái vé từ PAID sang USED, ghi nhận thời gian checked_in_at và danh tính nhân viên soát vé."),
             ("7. Máy chủ gửi phản hồi thành công <150ms: Màn hình điện thoại nhân viên hiện tích xanh to bản, phát chuông Bíp và rung máy; đồng thời bắn sự kiện SSE cập nhật tức thì màn hình du khách. Barie mở đón khách vào bảo tàng.", "8. Log kiểm soát được lưu vào bảng TicketValidationLogs phục vụ đối soát và thống kê Grafana.")
         ],

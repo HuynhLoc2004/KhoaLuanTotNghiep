@@ -450,7 +450,7 @@ def add_chapter_4(doc, helper):
     helper.add_bullet_item(doc,
         "Tại cửa kiểm soát ra vào, nhân viên bảo tàng sử dụng camera điện thoại hoặc thiết bị quét cầm tay chạy module HTML5-QRCode [22] (AdminTicketScannerModal.tsx). "
         "Khung hình camera được phân tích liên tục để bắt mã QR vé điện tử của khách. "
-        "Yêu cầu đối soát gửi đến API POST /api/tickets/validate-qr được máy chủ giải mã chuỗi AES-256 và so khớp chữ ký SHA-256 trong vòng dưới 150ms. "
+        "Yêu cầu đối soát gửi đến API POST /api/admin/tickets/verify-qr được máy chủ giải mã chuỗi AES-256 và so khớp chữ ký SHA-256 trong vòng dưới 150ms. "
         "Nếu vé hợp lệ, trạng thái vé trong CSDL PostgreSQL lập tức chuyển từ PAID sang USED kèm mốc thời gian checked_in_at, phát âm thanh Bíp thành công, hiển thị dấu tích xanh to bản và mở barie đón khách. "
         "Nếu vé giả mạo, sai ngày hoặc đã qua cổng trước đó, màn hình lập tức chuyển đỏ cảnh báo từ chối vào cổng, ngăn chặn triệt để mọi hành vi gian lận quay vòng vé.",
         bold_prefix="4. Quy trình Soát vé điện tử bằng Camera tại cổng bảo tàng: "

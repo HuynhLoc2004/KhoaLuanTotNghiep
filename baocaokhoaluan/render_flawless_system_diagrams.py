@@ -569,7 +569,7 @@ def render_hinh_2_7():
     draw_clean_icon(ax, xs[2], 4.0, 'icon_ai_chip.png', '3. Nới Lỏng Cạnh (Relaxation)', 'Cập nhật d[v] = d[u] + w(u,v)', max_w=1.4, max_h=1.35, y_title=2.4, y_sub=2.0)
     draw_clean_icon(ax, xs[3], 4.0, 'icon_browser.png', '4. Lộ Trình Tối Ưu Mini-map', 'Vẽ đường line liên phòng trên Tour', max_w=1.4, max_h=1.35, y_title=2.4, y_sub=2.0)
 
-    draw_clean_arrow(ax, xs[0] + 1.15, 4.0, xs[1] - 1.15, 4.0, label='1. Khởi tạo d[s] = 0', offset_y=0.45)
+    draw_clean_arrow(ax, xs[0] + 1.15, 4.0, xs[1] - 1.15, 4.0, label='1. POST /api/floor-plan/navigate', offset_y=0.45)
     draw_clean_arrow(ax, xs[1] + 1.15, 4.0, xs[2] - 1.15, 4.0, label='2. Extract-Min (O(log V))', offset_y=0.45)
     draw_clean_arrow(ax, xs[2] + 1.15, 4.0, xs[3] - 1.15, 4.0, label='3. Đến đích & Xuất lộ trình', offset_y=0.45)
 
@@ -683,11 +683,11 @@ def render_hinh_2_10():
 
     y_steps = [4.8, 4.0, 3.2, 2.4, 1.6, 0.9]
 
-    draw_clean_arrow(ax, 2.5, y_steps[0], 8.4, y_steps[0], label='1. POST /api/auth/login (email, password)', offset_y=0.32, shrinkA=8, shrinkB=8)
+    draw_clean_arrow(ax, 2.5, y_steps[0], 8.4, y_steps[0], label='1. POST /api/auth/login-credentials (email, password)', offset_y=0.32, shrinkA=8, shrinkB=8)
     draw_clean_arrow(ax, 8.4, y_steps[1], 14.2, y_steps[1], label='2. SELECT * FROM users WHERE email = ?', offset_y=0.32, shrinkA=8, shrinkB=8)
     draw_clean_arrow(ax, 14.2, y_steps[2], 8.4, y_steps[2], label='3. Trả về bản ghi user & mật khẩu băm Bcrypt', offset_y=0.32, shrinkA=8, shrinkB=8, is_dashed=True)
     draw_clean_arrow(ax, 8.4, y_steps[3], 2.5, y_steps[3], label='4. Trả về JWT Access Token (24h) kèm HttpOnly Cookie', offset_y=0.32, shrinkA=8, shrinkB=8, is_dashed=True)
-    draw_clean_arrow(ax, 2.5, y_steps[4], 8.4, y_steps[4], label='5. GET /api/rooms (Header: Authorization Bearer <token>)', offset_y=0.32, shrinkA=8, shrinkB=8)
+    draw_clean_arrow(ax, 2.5, y_steps[4], 8.4, y_steps[4], label='5. GET /api/rooms (Header: Authorization Bearer & Cookie)', offset_y=0.32, shrinkA=8, shrinkB=8)
     draw_clean_arrow(ax, 8.4, y_steps[5], 2.5, y_steps[5], label='6. Phản hồi cấu trúc 18 phòng 360° & cổ vật (HTTP 200 OK)', offset_y=0.32, shrinkA=8, shrinkB=8, is_dashed=True)
 
     save_fig(fig, ['hinh_2_10_jwt_auth.png'])
@@ -716,14 +716,14 @@ def render_hinh_payos_flow():
     draw_clean_icon(ax, xs[1], 1.5, 'icon_postgres.png', 'CSDL PostgreSQL 16', 'Bảng Tickets & Transactions (PAID)', max_w=1.45, max_h=1.35, y_title=0.4, y_sub=None)
 
     # --- LUỒNG ĐI PHÍA TRÊN (y=6.3) ---
-    draw_clean_arrow(ax, xs[0] + 1.15, 6.3, xs[1] - 1.15, 6.3, label='1. Chọn vé & Đặt mua', offset_y=0.45)
-    draw_clean_arrow(ax, xs[1] + 1.15, 6.3, xs[2] - 1.15, 6.3, label='2. Gọi API tạo VietQR', offset_y=0.45)
-    draw_clean_arrow(ax, xs[2] + 1.15, 6.3, xs[3] - 1.15, 6.3, label='3. Hiển thị mã VietQR', offset_y=0.45)
+    draw_clean_arrow(ax, xs[0] + 1.15, 6.3, xs[1] - 1.15, 6.3, label='1. Đặt mua: POST /api/tickets/checkout', offset_y=0.45)
+    draw_clean_arrow(ax, xs[1] + 1.15, 6.3, xs[2] - 1.15, 6.3, label='2. PayOS API createPaymentLink', offset_y=0.45)
+    draw_clean_arrow(ax, xs[2] + 1.15, 6.3, xs[3] - 1.15, 6.3, label='3. Hiển thị mã VietQR động', offset_y=0.45)
 
     # --- LUỒNG VỀ PHÍA DƯỚI (y=4.7) ---
     draw_clean_arrow(ax, xs[3] - 1.15, 4.7, xs[2] + 1.15, 4.7, label='4. Chuyển khoản thành công', offset_y=-0.45)
-    draw_clean_arrow(ax, xs[2] - 1.15, 4.7, xs[1] + 1.15, 4.7, label='5. Webhook báo PAID', offset_y=-0.45, is_dashed=True)
-    draw_clean_arrow(ax, xs[1] - 1.15, 4.7, xs[0] + 1.15, 4.7, label='7. SSE đẩy vé về Client', offset_y=-0.45, is_dashed=True)
+    draw_clean_arrow(ax, xs[2] - 1.15, 4.7, xs[1] + 1.15, 4.7, label='5. Webhook: POST /webhook/payos', offset_y=-0.45, is_dashed=True)
+    draw_clean_arrow(ax, xs[1] - 1.15, 4.7, xs[0] + 1.15, 4.7, label='7. SSE đẩy vé: broadcastRealtimeEvent', offset_y=-0.45, is_dashed=True)
 
     # --- MŨI TÊN XUỐNG CSDL: NHÃN ĐẶT Ở VÙNG TRỐNG BÊN PHẢI (x=8.9), KHÔNG BAO GIỜ ĐÈ VẠCH ---
     draw_clean_arrow(ax, xs[1], 3.5, xs[1], 2.2, label='', shrinkA=4, shrinkB=4)
@@ -748,12 +748,12 @@ def render_hinh_qr_validation():
     xs = [2.0, 6.2, 10.4, 14.6]
     draw_clean_icon(ax, xs[0], 4.0, 'icon_phone.png', '1. Vé trên Mobile', 'Mã QR mã hóa AES-256', max_w=1.2, max_h=1.4, y_title=2.4, y_sub=2.0)
     draw_clean_icon(ax, xs[1], 4.0, 'icon_client.png', '2. Camera Soát Vé', 'Html5Qrcode Scanner (Staff)', max_w=1.4, max_h=1.35, y_title=2.4, y_sub=2.0)
-    draw_clean_icon(ax, xs[2], 4.0, 'icon_server.png', '3. Máy Chủ Backend', 'Node.js Giải mã AES & Hash', max_w=1.4, max_h=1.4, y_title=2.4, y_sub=2.0)
-    draw_clean_icon(ax, xs[3], 4.0, 'icon_postgres.png', '4. CSDL PostgreSQL', 'Cập nhật trạng thái USED', max_w=1.45, max_h=1.35, y_title=2.4, y_sub=2.0)
+    draw_clean_icon(ax, xs[2], 4.0, 'icon_server.png', '3. Máy Chủ Backend', 'Kiểm tra mã vé & Cập nhật used', max_w=1.4, max_h=1.4, y_title=2.4, y_sub=2.0)
+    draw_clean_icon(ax, xs[3], 4.0, 'icon_postgres.png', '4. CSDL PostgreSQL', 'Bảng museum_tickets (USED)', max_w=1.45, max_h=1.35, y_title=2.4, y_sub=2.0)
 
     draw_clean_arrow(ax, xs[0] + 1.15, 4.0, xs[1] - 1.15, 4.0, label='1. Quét mã QR (< 150ms)', offset_y=0.45)
-    draw_clean_arrow(ax, xs[1] + 1.15, 4.0, xs[2] - 1.15, 4.0, label='2. POST /tickets/validate', offset_y=0.45)
-    draw_clean_arrow(ax, xs[2] + 1.15, 4.0, xs[3] - 1.15, 4.0, label='3. Đổi trạng thái vé USED', offset_y=0.45)
+    draw_clean_arrow(ax, xs[1] + 1.15, 4.0, xs[2] - 1.15, 4.0, label='2. POST /api/admin/tickets/verify-qr', offset_y=0.45)
+    draw_clean_arrow(ax, xs[2] + 1.15, 4.0, xs[3] - 1.15, 4.0, label='3. Ghi nhận check-in (Đổi USED)', offset_y=0.45)
 
     save_fig(fig, ['hinh_2_12_qr_validation.png', 'hinh_3_7_activity_ticket_validation.png', 'hinh_3_7_sequence_qr_scan.png'])
 
@@ -856,13 +856,13 @@ def render_hinh_3_10():
 
     xs = [2.0, 6.2, 10.4, 14.6]
     draw_clean_icon(ax, xs[0], 4.0, 'icon_client.png', '1. Chọn Ngôn Ngữ', '7 Ngôn ngữ (Vi, En, Fr, Zh, Ja...)', max_w=1.4, max_h=1.35, y_title=2.4, y_sub=2.0)
-    draw_clean_icon(ax, xs[1], 4.0, 'icon_server.png', '2. Backend Localization', 'Kiểm tra tệp JSON cục bộ (0ms)', max_w=1.4, max_h=1.4, y_title=2.4, y_sub=2.0)
-    draw_clean_icon(ax, xs[2], 4.0, 'icon_ai_brain.png', '3. Động Cơ Google NMT', 'Dịch thuật tự động khi thiếu từ điển', max_w=1.4, max_h=1.35, y_title=2.4, y_sub=2.0)
-    draw_clean_icon(ax, xs[3], 4.0, 'icon_browser.png', '4. Trình Diễn Đa Ngữ', 'Cập nhật tiêu đề & Thuyết minh', max_w=1.4, max_h=1.35, y_title=2.4, y_sub=2.0)
+    draw_clean_icon(ax, xs[1], 4.0, 'icon_server.png', '2. Backend Localization', 'GET /api/languages/bundle/:code', max_w=1.4, max_h=1.4, y_title=2.4, y_sub=2.0)
+    draw_clean_icon(ax, xs[2], 4.0, 'icon_ai_brain.png', '3. Động Cơ Google NMT', 'Dịch tự động + Heritage Glossary', max_w=1.4, max_h=1.35, y_title=2.4, y_sub=2.0)
+    draw_clean_icon(ax, xs[3], 4.0, 'icon_browser.png', '4. Trình Diễn Đa Ngữ', 'Nạp React Context & Cập nhật UI', max_w=1.4, max_h=1.35, y_title=2.4, y_sub=2.0)
 
     draw_clean_arrow(ax, xs[0] + 1.15, 4.0, xs[1] - 1.15, 4.0, label='1. Chuyển mã ISO ngôn ngữ', offset_y=0.45)
-    draw_clean_arrow(ax, xs[1] + 1.15, 4.0, xs[2] - 1.15, 4.0, label='2. Fallback gọi NMT API', offset_y=0.45)
-    draw_clean_arrow(ax, xs[2] + 1.15, 4.0, xs[3] - 1.15, 4.0, label='3. Trả về từ điển bản địa hóa', offset_y=0.45)
+    draw_clean_arrow(ax, xs[1] + 1.15, 4.0, xs[2] - 1.15, 4.0, label='2. Dịch bù: POST /translate-draft', offset_y=0.45)
+    draw_clean_arrow(ax, xs[2] + 1.15, 4.0, xs[3] - 1.15, 4.0, label='3. Trả về từ điển JSON bản địa hóa', offset_y=0.45)
 
     save_fig(fig, ['hinh_3_10_translation_flow.png'])
 
@@ -878,19 +878,19 @@ def render_hinh_voice_tts():
             ha='center', va='center', fontsize=12.2, fontweight='bold', color=C_TEXT)
 
     draw_clean_icon(ax, 1.8, 4.0, 'icon_client.png', '1. Khách Tham Quan', 'Bật biểu tượng loa trên Tour', max_w=1.4, max_h=1.35, y_title=2.5, y_sub=2.1)
-    draw_clean_icon(ax, 4.8, 4.0, 'icon_server.png', '2. Voice Service', 'Băm MD5 nội dung văn bản', max_w=1.4, max_h=1.4, y_title=2.5, y_sub=2.1)
+    draw_clean_icon(ax, 4.8, 4.0, 'icon_server.png', '2. Voice Service', 'POST /generate-tts (Chunk <= 140 ký tự)', max_w=1.4, max_h=1.4, y_title=2.5, y_sub=2.1)
 
-    draw_clean_icon(ax, 10.2, 5.7, 'icon_redis.png', '3a. Bộ Đệm Redis', 'Trả về tệp .MP3 có sẵn (0ms)', max_w=1.4, max_h=1.3, y_title=4.4, y_sub=4.0)
+    draw_clean_icon(ax, 10.2, 5.7, 'icon_redis.png', '3a. Bộ Đệm Redis & Disk', 'Tệp .MP3 tĩnh trong /public/uploads/ (0ms)', max_w=1.4, max_h=1.3, y_title=4.4, y_sub=4.0)
     draw_clean_icon(ax, 10.2, 2.3, 'icon_ai_brain.png', '3b. Google Cloud TTS', 'Sinh giọng đọc Neural2 tự nhiên', max_w=1.4, max_h=1.3, y_title=1.0, y_sub=0.6)
 
     draw_clean_icon(ax, 15.0, 4.0, 'icon_browser.png', '4. Trình Duyệt Web', 'Stream Audio Partial Content 206', max_w=1.4, max_h=1.35, y_title=2.5, y_sub=2.1)
 
-    draw_clean_arrow(ax, 2.7, 4.0, 3.8, 4.0, label='1. Yêu cầu giọng đọc', offset_y=0.40)
-    draw_clean_arrow(ax, 5.8, 4.6, 9.0, 5.5, label='2a. Cache Hit (Có sẵn)', offset_y=0.40)
-    draw_clean_arrow(ax, 5.8, 3.4, 9.0, 2.5, label='2b. Cache Miss -> Gọi TTS', offset_y=-0.40)
+    draw_clean_arrow(ax, 2.7, 4.0, 3.8, 4.0, label='1. Yêu cầu kịch bản thuyết minh', offset_y=0.40)
+    draw_clean_arrow(ax, 5.8, 4.6, 9.0, 5.5, label='2a. Cache Hit (Băm MD5 có sẵn)', offset_y=0.40)
+    draw_clean_arrow(ax, 5.8, 3.4, 9.0, 2.5, label='2b. Cache Miss -> Gọi Speech TTS', offset_y=-0.40)
 
-    draw_clean_arrow(ax, 11.4, 5.5, 14.0, 4.3, label='3a. Stream tệp có sẵn', offset_y=0.40)
-    draw_clean_arrow(ax, 11.4, 2.5, 14.0, 3.7, label='3b. Lưu đệm băm & Phát', offset_y=-0.40)
+    draw_clean_arrow(ax, 11.4, 5.5, 14.0, 4.3, label='3a. Stream tệp tĩnh .mp3', offset_y=0.40)
+    draw_clean_arrow(ax, 11.4, 2.5, 14.0, 3.7, label='3b. Lưu file đệm & Stream phát', offset_y=-0.40)
 
     save_fig(fig, ['hinh_3_11_voice_tts_storage_pipeline.png', 'flow_03_languages_voice_ai.png'])
 
@@ -906,14 +906,14 @@ def render_hinh_3_12():
             ha='center', va='center', fontsize=12.2, fontweight='bold', color=C_TEXT)
 
     xs = [2.0, 6.2, 10.4, 14.6]
-    draw_clean_icon(ax, xs[0], 4.0, 'icon_client.png', '1. Quản Trị Viên (Admin)', 'Yêu cầu xuất báo cáo Excel', max_w=1.4, max_h=1.35, y_title=2.4, y_sub=2.0)
-    draw_clean_icon(ax, xs[1], 4.0, 'icon_server.png', '2. Máy Chủ Backend', 'ExcelJS Streaming Worker', max_w=1.4, max_h=1.4, y_title=2.4, y_sub=2.0)
-    draw_clean_icon(ax, xs[2], 4.0, 'icon_postgres.png', '3. CSDL PostgreSQL 16', 'Truy vấn doanh thu & vé bán', max_w=1.45, max_h=1.35, y_title=2.4, y_sub=2.0)
-    draw_clean_icon(ax, xs[3], 4.0, 'icon_browser.png', '4. Tải Tệp .XLSX', 'Bảng tính định dạng chuẩn', max_w=1.4, max_h=1.35, y_title=2.4, y_sub=2.0)
+    draw_clean_icon(ax, xs[0], 4.0, 'icon_client.png', '1. Quản Trị Viên (Admin)', 'Nhấn nút "Xuất báo cáo Excel"', max_w=1.4, max_h=1.35, y_title=2.4, y_sub=2.0)
+    draw_clean_icon(ax, xs[1], 4.0, 'icon_server.png', '2. Máy Chủ Backend', 'Truy vấn GET /api/analytics', max_w=1.4, max_h=1.4, y_title=2.4, y_sub=2.0)
+    draw_clean_icon(ax, xs[2], 4.0, 'icon_browser.png', '3. Động Cơ xlsx-js-style', 'Tạo 4 Sheet (KPI, Vé, Phòng, Cổ vật)', max_w=1.4, max_h=1.35, y_title=2.4, y_sub=2.0)
+    draw_clean_icon(ax, xs[3], 4.0, 'icon_client.png', '4. Tải Tệp .XLSX', 'Lưu file báo cáo đa ngữ trực tiếp', max_w=1.4, max_h=1.35, y_title=2.4, y_sub=2.0)
 
-    draw_clean_arrow(ax, xs[0] + 1.15, 4.0, xs[1] - 1.15, 4.0, label='1. GET /api/reports/export', offset_y=0.45)
-    draw_clean_arrow(ax, xs[1] + 1.15, 4.0, xs[2] - 1.15, 4.0, label='2. Query dữ liệu tài chính & vé', offset_y=0.45)
-    draw_clean_arrow(ax, xs[2] + 1.15, 4.0, xs[3] - 1.15, 4.0, label='3. Stream tải tệp .xlsx về client', offset_y=0.45)
+    draw_clean_arrow(ax, xs[0] + 1.15, 4.0, xs[1] - 1.15, 4.0, label='1. Yêu cầu số liệu thống kê', offset_y=0.45)
+    draw_clean_arrow(ax, xs[1] + 1.15, 4.0, xs[2] - 1.15, 4.0, label='2. Trả JSON dữ liệu vận hành', offset_y=0.45)
+    draw_clean_arrow(ax, xs[2] + 1.15, 4.0, xs[3] - 1.15, 4.0, label='3. Xuất file Excel định dạng chuẩn', offset_y=0.45)
 
     save_fig(fig, ['hinh_3_12_excel_export_flow.png', 'hinh_3_12_excel_export_activity.png'])
 
@@ -930,9 +930,9 @@ def render_hinh_3_13():
 
     xs = [2.0, 6.2, 10.4, 14.6]
     draw_clean_icon(ax, xs[0], 4.0, 'icon_client.png', '1. Khách Tham Quan', 'Quét mã QR dán tại tủ kính', max_w=1.4, max_h=1.35, y_title=2.4, y_sub=2.0)
-    draw_clean_icon(ax, xs[1], 4.0, 'icon_browser.png', '2. Camera QR Scanner', 'Điều hướng URL định danh hiện vật', max_w=1.4, max_h=1.35, y_title=2.4, y_sub=2.0)
-    draw_clean_icon(ax, xs[2], 4.0, 'icon_database.png', '3. Cơ Sở Dữ Liệu Hiện Vật', 'Truy vấn mô hình 3D & Audio', max_w=1.4, max_h=1.35, y_title=2.4, y_sub=2.0)
-    draw_clean_icon(ax, xs[3], 4.0, 'icon_wireframe_3d.png', '4. Hiển Thị 3D WebGL', 'Xoay 360° & Nghe Audio Guide', max_w=1.4, max_h=1.35, y_title=2.4, y_sub=2.0)
+    draw_clean_icon(ax, xs[1], 4.0, 'icon_phone.png', '2. Camera Scanner (jsQR)', 'Điều hướng URL định danh hiện vật', max_w=1.2, max_h=1.4, y_title=2.4, y_sub=2.0)
+    draw_clean_icon(ax, xs[2], 4.0, 'icon_server.png', '3. Máy Chủ & CSDL', 'GET /api/artifacts/:id (Data, Audio, 3D)', max_w=1.4, max_h=1.4, y_title=2.4, y_sub=2.0)
+    draw_clean_icon(ax, xs[3], 4.0, 'icon_wireframe_3d.png', '4. Hiển Thị 3D WebGL', 'Three.js xoay 360° & Audio Guide', max_w=1.4, max_h=1.35, y_title=2.4, y_sub=2.0)
 
     draw_clean_arrow(ax, xs[0] + 1.15, 4.0, xs[1] - 1.15, 4.0, label='1. Quét QR hiện vật thực địa', offset_y=0.45)
     draw_clean_arrow(ax, xs[1] + 1.15, 4.0, xs[2] - 1.15, 4.0, label='2. Mở /artifacts/:id trên Web', offset_y=0.45)
@@ -1000,16 +1000,16 @@ def render_hinh_4_5():
             ha='center', va='center', fontsize=9.0, fontstyle='italic', color=C_SUB)
 
     # 4 Cột: 2.2 -> 6.5 -> 11.2 -> 15.5
-    draw_clean_icon(ax, 2.2, 4.6, 'icon_client.png', '1. Quản Trị Viên', 'Nạp ảnh tư liệu cổ vật', max_w=1.4, max_h=1.35, y_title=3.0, y_sub=2.6)
+    draw_clean_icon(ax, 2.2, 4.6, 'icon_client.png', '1. Quản Trị Viên', 'POST /api/artifacts/:id/generate-3d', max_w=1.4, max_h=1.35, y_title=3.0, y_sub=2.6)
     draw_clean_icon(ax, 6.5, 4.6, 'icon_rabbitmq.png', '2. Hàng Đợi 3D Queue', 'RabbitMQ & Redis phân luồng', max_w=1.4, max_h=1.35, y_title=3.0, y_sub=2.6)
 
-    draw_clean_icon(ax, 11.2, 6.6, 'icon_huggingface.png', '3a. Hugging Face (TRELLIS)', 'ZeroGPU A100 (Microsoft Research)', max_w=1.4, max_h=1.35, y_title=5.2, y_sub=4.8)
-    draw_clean_icon(ax, 11.2, 2.2, 'icon_server.png', '3b. Máy Chủ Local CPU (Dự phòng)', 'Marching Cubes v15.0 (VPS Offline)', max_w=1.4, max_h=1.35, y_title=0.8, y_sub=0.4)
+    draw_clean_icon(ax, 11.2, 6.6, 'icon_huggingface.png', '3a. Hugging Face (TRELLIS)', 'ZeroGPU A100 (SLAT & DMC)', max_w=1.4, max_h=1.35, y_title=5.2, y_sub=4.8)
+    draw_clean_icon(ax, 11.2, 2.2, 'icon_server.png', '3b. Máy Chủ Local CPU (Dự phòng)', 'Marching Cubes v15.0 (Offline)', max_w=1.4, max_h=1.35, y_title=0.8, y_sub=0.4)
 
     draw_clean_icon(ax, 15.5, 4.6, 'icon_wireframe_3d.png', '4. Mô Hình 3D (.GLB)', 'Three.js WebGL xoay 360°', max_w=1.4, max_h=1.35, y_title=3.0, y_sub=2.6)
 
     # 1 -> 2
-    draw_clean_arrow(ax, 3.35, 4.6, 5.35, 4.6, label='1. Nạp ảnh & Bóc tách nền', offset_y=0.45)
+    draw_clean_arrow(ax, 3.35, 4.6, 5.35, 4.6, label='1. Nạp ảnh & Bóc nền Rembg', offset_y=0.45)
 
     # 2 -> 3a & 3b
     draw_clean_arrow(ax, 7.65, 5.2, 9.95, 6.4, label='2a. [Ưu tiên] ZeroGPU A100', offset_y=0.45)
@@ -1021,7 +1021,7 @@ def render_hinh_4_5():
 
     # Fallback từ 3a xuống 3b (nhãn đặt bên trái vạch đứng để không bao giờ đè lên 3a -> 4)
     draw_clean_arrow(ax, 11.2, 5.6, 11.2, 3.2, label='', shrinkA=4, shrinkB=4, is_dashed=True)
-    ax.text(11.2, 4.4, 'Fallback khi Quota 429', ha='center', va='center',
+    ax.text(11.2, 4.4, 'Tự động fallback khi Quota 429', ha='center', va='center',
             fontsize=8.0, fontweight='bold', color=C_TEXT,
             bbox=dict(boxstyle='round,pad=0.22', facecolor='white', edgecolor='#CBD5E1', lw=0.8, alpha=0.98),
             zorder=25)
@@ -1045,9 +1045,9 @@ def render_hinh_4_7():
     draw_clean_icon(ax, xs[2], 4.0, 'icon_ai_chip.png', '3. Giải Thuật Dijkstra', 'Tìm đường Min-Heap (< 5ms)', max_w=1.4, max_h=1.35, y_title=2.4, y_sub=2.0)
     draw_clean_icon(ax, xs[3], 4.0, 'icon_browser.png', '4. Mini-map Định Tuyến', 'Vẽ đường line dẫn đường trực quan', max_w=1.4, max_h=1.35, y_title=2.4, y_sub=2.0)
 
-    draw_clean_arrow(ax, xs[0] + 1.15, 4.0, xs[1] - 1.15, 4.0, label='1. Chọn điểm đầu & đích', offset_y=0.45)
-    draw_clean_arrow(ax, xs[1] + 1.15, 4.0, xs[2] - 1.15, 4.0, label='2. Nạp ma trận trọng số', offset_y=0.45)
-    draw_clean_arrow(ax, xs[2] + 1.15, 4.0, xs[3] - 1.15, 4.0, label='3. Xuất chuỗi phòng tối ưu', offset_y=0.45)
+    draw_clean_arrow(ax, xs[0] + 1.15, 4.0, xs[1] - 1.15, 4.0, label='1. POST /api/floor-plan/navigate', offset_y=0.45)
+    draw_clean_arrow(ax, xs[1] + 1.15, 4.0, xs[2] - 1.15, 4.0, label='2. Nạp ma trận & Min-Heap', offset_y=0.45)
+    draw_clean_arrow(ax, xs[2] + 1.15, 4.0, xs[3] - 1.15, 4.0, label='3. Xuất mảng pathNodeIds & Bước rẽ', offset_y=0.45)
 
     save_fig(fig, ['hinh_4_7_dijkstra_flow.png', 'flow_02_floorplan_dijkstra.png'])
 
