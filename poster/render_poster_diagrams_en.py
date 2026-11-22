@@ -1,221 +1,159 @@
 # -*- coding: utf-8 -*-
 """
-Generate English 2D Flat Vector Diagrams (Algomaster Style) specifically for the Academic Poster.
-Matches 100% English requirement, crisp dark outlines, and minimal clear labels.
+render_poster_diagrams_en.py
+Generate 100% English Academic Diagrams for the Graduation Poster using Clean Transparent Tech Icons.
+Guaranteed Rules:
+1. NO colored square boxes with dense text (strictly followed per user directive).
+2. Clean transparent tech icons (Nginx, Node.js, PostgreSQL, MongoDB, PayOS, RabbitMQ, etc.).
+3. Generously spaced arrows with clean white pill labels, ZERO arrow overlap.
 """
 
 import os
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-import matplotlib.patches as patches
+import matplotlib.image as mpimg
 
-POSTER_ASSETS = r"d:\KhoaluanTotNghiep\poster\assets"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+POSTER_ASSETS = os.path.join(BASE_DIR, "assets")
+ICONS_DIR = os.path.join(os.path.dirname(BASE_DIR), "baocaokhoaluan", "assets", "icons")
+DOCS_ICONS_DIR = os.path.join(os.path.dirname(BASE_DIR), "docs", "diagram_assets")
+
 os.makedirs(POSTER_ASSETS, exist_ok=True)
 
 plt.rcParams['font.sans-serif'] = ['Segoe UI', 'Arial', 'DejaVu Sans']
 plt.rcParams['font.family'] = 'sans-serif'
 
-# Bảng màu sậm hơn, tương phản mạnh, chuẩn in ấn A0
-C_INK = '#0F172A'       # Viền đen than chì đậm, sắc nét
-C_TEXT = '#0F172A'      # Chữ chính đậm
-C_MUTED = '#334155'     # Chữ phụ sậm màu dễ đọc
-C_CYAN = '#0284C7'      # Xanh biển đậm (Visitor)
-C_PURPLE = '#7C3AED'    # Tím đậm (Admin)
-C_GREEN = '#059669'     # Xanh lá đậm (Nginx / API)
-C_RED = '#DC2626'       # Đỏ sậm (PostgreSQL DB)
-C_ORANGE = '#EA580C'    # Cam sậm (MongoDB)
-C_AMBER = '#D97706'     # Vàng hổ phách sậm (Engine)
-C_INDIGO = '#4F46E5'    # Chàm đậm (Cloud AI)
+C_TEXT = '#0F172A'       # Slate 900
+C_SUB = '#475569'        # Slate 600
+C_LINE = '#1E293B'       # Slate 800 for arrows
 
 
-def draw_vector_user(ax, x, y, name, color=C_CYAN, sub=''):
-    """Vẽ người dùng Avatar 2D bo tròn sắc nét"""
-    ax.add_patch(patches.Circle((x, y + 0.44), 0.34, facecolor=color, edgecolor=C_INK, lw=2.2, zorder=10))
-    ax.add_patch(patches.FancyBboxPatch((x - 0.48, y - 0.16), 0.96, 0.46,
-                                        boxstyle='round,pad=0.08,rounding_size=0.25',
-                                        facecolor=color, edgecolor=C_INK, lw=2.2, zorder=9))
-    ax.text(x, y - 0.45, name, ha='center', va='top', fontsize=11.0, fontweight='bold', color=C_TEXT, zorder=12)
-    if sub:
-        ax.text(x, y - 0.72, sub, ha='center', va='top', fontsize=8.8, fontweight='bold', color=C_MUTED, zorder=12)
+def get_icon_path(name):
+    p1 = os.path.join(ICONS_DIR, name)
+    if os.path.exists(p1): return p1
+    p2 = os.path.join(DOCS_ICONS_DIR, name)
+    if os.path.exists(p2): return p2
+    return None
 
 
-def draw_vector_server(ax, x, y, name, color=C_GREEN, sub='', racks=2):
-    """Vẽ cụm máy chủ Server rack màu đậm sắc sảo"""
-    w = 2.2
-    h = 0.60 * racks + 0.35
-    ax.add_patch(patches.FancyBboxPatch((x - w/2, y - h/2), w, h,
-                                        boxstyle='round,pad=0.05,rounding_size=0.14',
-                                        facecolor='#FFFFFF', edgecolor=C_INK, lw=2.2, zorder=8))
-    for i in range(racks):
-        ry = (y - h/2) + 0.20 + i * 0.58
-        ax.add_patch(patches.FancyBboxPatch((x - w/2 + 0.16, ry), w - 0.32, 0.42,
-                                            boxstyle='round,pad=0.04,rounding_size=0.08',
-                                            facecolor=color, edgecolor=C_INK, lw=1.8, zorder=9))
-        ax.add_patch(patches.Circle((x + w/2 - 0.36, ry + 0.21), 0.06, facecolor='#FFFFFF', edgecolor=C_INK, lw=1.2, zorder=11))
-        ax.plot([x - w/2 + 0.35, x + 0.3], [ry + 0.21, ry + 0.21], color='#FFFFFF', lw=1.8, zorder=10)
-
-    ax.text(x, y - h/2 - 0.25, name, ha='center', va='top', fontsize=11.0, fontweight='bold', color=C_TEXT, zorder=12)
-    if sub:
-        ax.text(x, y - h/2 - 0.52, sub, ha='center', va='top', fontsize=8.8, fontweight='bold', color=C_MUTED, zorder=12)
-
-
-def draw_vector_db(ax, x, y, name, color=C_RED, sub='', disks=3):
-    """Vẽ cơ sở dữ liệu đĩa xếp tầng màu sậm"""
-    w = 1.8
-    dh = 0.34
-    total_h = dh * disks
-    base_y = y - total_h / 2
-    for i in range(disks):
-        cur_y = base_y + i * dh
-        ax.add_patch(patches.FancyBboxPatch((x - w/2, cur_y), w, dh,
-                                            boxstyle='round,pad=0.04,rounding_size=0.15',
-                                            facecolor=color, edgecolor=C_INK, lw=2.0, zorder=8 + i))
-        if i == disks - 1:
-            ax.add_patch(patches.Circle((x - 0.40, cur_y + dh/2), 0.08, facecolor='#FFFFFF', edgecolor=C_INK, lw=1.2, zorder=15))
-            ax.add_patch(patches.RegularPolygon((x + 0.40, cur_y + dh/2), 3, radius=0.09, facecolor='#FFFFFF', edgecolor=C_INK, lw=1.2, zorder=15))
-
-    ax.text(x, y - total_h/2 - 0.25, name, ha='center', va='top', fontsize=11.0, fontweight='bold', color=C_TEXT, zorder=12)
-    if sub:
-        ax.text(x, y - total_h/2 - 0.52, sub, ha='center', va='top', fontsize=8.8, fontweight='bold', color=C_MUTED, zorder=12)
+def draw_clean_icon(ax, x, y, icon_name, title, subtitle='', fixed_h=1.45, y_title=None, y_sub=None):
+    icon_path = get_icon_path(icon_name)
+    display_h = fixed_h
+    if icon_path and os.path.exists(icon_path):
+        img = mpimg.imread(icon_path)
+        ih, iw = img.shape[:2]
+        aspect = iw / ih
+        display_w = display_h * aspect
+        ax.imshow(img, extent=[x - display_w/2, x + display_w/2, y - display_h/2, y + display_h/2],
+                  zorder=15, aspect='auto')
+    else:
+        ax.plot(x, y, 'o', color=C_TEXT, markersize=14, zorder=15)
+        
+    t_y = y_title if y_title is not None else (y - fixed_h / 2.0 - 0.28)
+    s_y = y_sub if y_sub is not None else (t_y - 0.36)
+    
+    ax.text(x, t_y, title, ha='center', va='top', fontsize=10.0, fontweight='bold', color=C_TEXT, zorder=20)
+    if subtitle:
+        ax.text(x, s_y, subtitle, ha='center', va='top', fontsize=8.4, color=C_SUB, zorder=20)
 
 
-def draw_vector_card(ax, x, y, name, color=C_AMBER, sub='', stacked=True):
-    """Vẽ khối dịch vụ bo góc sắc sảo"""
-    w = 2.1
-    h = 1.2
-    if stacked:
-        ax.add_patch(patches.FancyBboxPatch((x - w/2 + 0.12, y - h/2 - 0.10), w, h,
-                                            boxstyle='round,pad=0.06,rounding_size=0.25',
-                                            facecolor=color, edgecolor=C_INK, lw=2.0, zorder=7))
-    ax.add_patch(patches.FancyBboxPatch((x - w/2, y - h/2), w, h,
-                                        boxstyle='round,pad=0.06,rounding_size=0.25',
-                                        facecolor=color, edgecolor=C_INK, lw=2.2, zorder=8))
-    ax.text(x, y, name, ha='center', va='center', fontsize=10.5, fontweight='bold', color='#FFFFFF', zorder=12)
-    if sub:
-        ax.text(x, y - h/2 - 0.25, sub, ha='center', va='top', fontsize=8.8, fontweight='bold', color=C_MUTED, zorder=12)
-
-
-def draw_vector_360_sphere(ax, x, y, name, color=C_CYAN, sub=''):
-    """Vẽ quả cầu 360° màu sậm sắc nét"""
-    r = 0.70
-    ax.add_patch(patches.Circle((x, y), r, facecolor=color, edgecolor=C_INK, lw=2.2, zorder=8))
-    ax.add_patch(patches.Arc((x, y), r*2, r*0.8, angle=0, theta1=0, theta2=360, color=C_INK, lw=1.8, zorder=9))
-    ax.plot([x, x], [y - r, y + r], color=C_INK, lw=1.8, zorder=9)
-    ax.text(x, y, '360°', ha='center', va='center', fontsize=11.5, fontweight='bold', color='#FFFFFF', zorder=11,
-            bbox=dict(boxstyle='round,pad=0.18', facecolor=C_INK, edgecolor='none'))
-    ax.text(x, y - r - 0.25, name, ha='center', va='top', fontsize=11.0, fontweight='bold', color=C_TEXT, zorder=12)
-    if sub:
-        ax.text(x, y - r - 0.52, sub, ha='center', va='top', fontsize=8.8, fontweight='bold', color=C_MUTED, zorder=12)
-
-
-def draw_clean_labeled_arrow(ax, x1, y1, x2, y2, label='', lx=None, ly=None, shrinkA=22, shrinkB=22, rad=0.0):
-    """
-    Vẽ mũi tên tuyệt đối KHÔNG đè chữ:
-    - Đường kẻ dừng cách các khối node (shrinkA, shrinkB an toàn).
-    - Nhãn chữ có hộp đệm nền trắng bo viền đậm (opaque white pill, zorder=30) che sạch đường ngầm.
-    - Cho phép chỉ định chính xác tọa độ nhãn (lx, ly) để không bao giờ va chạm.
-    """
-    conn = f'arc3,rad={rad}' if rad != 0 else 'arc3'
-    ax.annotate('', xy=(x2, y2), xytext=(x1, y1),
-                arrowprops=dict(arrowstyle='->,head_width=0.45,head_length=0.65', color=C_INK, lw=2.0,
-                                shrinkA=shrinkA, shrinkB=shrinkB, connectionstyle=conn), zorder=6)
+def draw_clean_arrow(ax, x1, y1, x2, y2, label='', offset_y=0.40, offset_x=0.0, shrinkA=22, shrinkB=22, rad=0.0, is_dashed=False):
+    conn = f'arc3,rad={rad}' if rad != 0.0 else 'arc3'
+    line_style = '--' if is_dashed else '-'
+    
+    ax.annotate(
+        '', xy=(x2, y2), xytext=(x1, y1),
+        arrowprops=dict(
+            arrowstyle='-|>',
+            color=C_LINE,
+            lw=1.5,
+            linestyle=line_style,
+            shrinkA=shrinkA,
+            shrinkB=shrinkB,
+            mutation_scale=14,
+            connectionstyle=conn
+        ),
+        zorder=10
+    )
     if label:
-        if lx is None or ly is None:
-            lx = (x1 + x2) / 2
-            ly = (y1 + y2) / 2 + 0.30
-        ax.text(lx, ly, label, ha='center', va='center', fontsize=9.2, fontweight='bold', color=C_TEXT,
-                bbox=dict(boxstyle='round,pad=0.25', facecolor='#FFFFFF', edgecolor=C_INK, lw=1.2, alpha=1.0),
-                zorder=30)
+        mx = (x1 + x2) / 2.0 + offset_x
+        my = (y1 + y2) / 2.0 + offset_y
+        ax.text(
+            mx, my, label, ha='center', va='center',
+            fontsize=8.5, fontweight='bold', color=C_TEXT,
+            bbox=dict(boxstyle='round,pad=0.25', facecolor='white', edgecolor='#CBD5E1', lw=0.8, alpha=0.98),
+            zorder=25
+        )
 
 
 # ==============================================================================
-# 1. ENGLISH 3-TIER ARCHITECTURE DIAGRAM (KHÔNG ĐÈ MŨI TÊN, MÀU SẬM ĐẬM ĐÀ)
+# 1. ENGLISH 3-TIER ARCHITECTURE DIAGRAM WITH REAL TECH ICONS
 # ==============================================================================
 def gen_architecture_en():
-    fig, ax = plt.subplots(figsize=(16.0, 9.2), dpi=300)
-    ax.set_xlim(0, 16.0); ax.set_ylim(0, 9.2); ax.axis('off')
+    fig, ax = plt.subplots(figsize=(16.5, 9.2), dpi=300)
+    ax.set_xlim(0, 16.5); ax.set_ylim(0, 9.2); ax.axis('off')
 
-    # Tiêu đề chính đậm đà
-    ax.text(8.0, 8.7, '3-TIER HYBRID ARCHITECTURE & COMPONENT TOPOLOGY',
+    ax.text(8.25, 8.8, '3-TIER HYBRID SYSTEM ARCHITECTURE',
             ha='center', va='center', fontsize=13.0, fontweight='bold', color=C_TEXT)
 
-    # Tiêu đề 3 Tầng rõ ràng
-    ax.text(2.5, 7.9, 'TIER 1: CLIENTS', ha='center', va='center', fontsize=11.0, fontweight='bold', color=C_CYAN)
-    ax.text(8.0, 7.9, 'TIER 2: SERVICES', ha='center', va='center', fontsize=11.0, fontweight='bold', color=C_GREEN)
-    ax.text(13.5, 7.9, 'TIER 3: DATA & CLOUD', ha='center', va='center', fontsize=11.0, fontweight='bold', color=C_RED)
+    ax.text(2.6, 8.0, 'TIER 1: CLIENTS', ha='center', va='center', fontsize=11.0, fontweight='bold', color='#0284C7')
+    ax.text(8.25, 8.0, 'TIER 2: SERVICES & QUEUE', ha='center', va='center', fontsize=11.0, fontweight='bold', color='#059669')
+    ax.text(13.9, 8.0, 'TIER 3: DATA & CLOUD', ha='center', va='center', fontsize=11.0, fontweight='bold', color='#DC2626')
 
-    # Đường phân cách mờ ngăn nắp giữa các tầng
-    ax.axvline(x=5.2, ymin=0.06, ymax=0.82, color='#94A3B8', linestyle='--', lw=1.5, alpha=0.8)
-    ax.axvline(x=10.8, ymin=0.06, ymax=0.82, color='#94A3B8', linestyle='--', lw=1.5, alpha=0.8)
+    ax.plot([5.4, 5.4], [0.6, 8.1], color='#CBD5E1', linestyle='--', lw=1.5)
+    ax.plot([11.1, 11.1], [0.6, 8.1], color='#CBD5E1', linestyle='--', lw=1.5)
 
-    # --- TẦNG 1: CLIENTS ---
-    draw_vector_user(ax, 2.5, 6.2, 'Virtual Visitor', color=C_CYAN, sub='Desktop & Mobile WebGL')
-    draw_vector_user(ax, 2.5, 2.3, 'Administrator', color=C_PURPLE, sub='Admin CMS Dashboard')
+    # Tier 1
+    draw_clean_icon(ax, 2.6, 6.2, 'icon_browser.png', 'Web Client (Visitors)', 'React 18 & WebGL Three.js', fixed_h=1.5, y_title=4.8, y_sub=4.4)
+    draw_clean_icon(ax, 2.6, 2.2, 'icon_client.png', 'Museum Administrator', 'Admin CMS Dashboard', fixed_h=1.4, y_title=0.9, y_sub=0.5)
 
-    # --- TẦNG 2: SERVICES ---
-    draw_vector_server(ax, 8.0, 6.6, 'Web Server (Nginx)', color=C_GREEN, sub='Reverse Proxy & Cache', racks=2)
-    draw_vector_server(ax, 8.0, 4.3, 'Backend API (Node.js)', color=C_GREEN, sub='RESTful & Realtime SSE', racks=2)
-    draw_vector_card(ax, 8.0, 1.8, '3D & Vision Engine', color=C_AMBER, sub='Python OpenCV & Local CPU')
+    # Tier 2: Nginx Reverse Proxy & Node.js API
+    draw_clean_icon(ax, 8.25, 6.2, 'icon_nginx.png', 'Nginx & Node.js API', 'Reverse Proxy & REST Gateway', fixed_h=1.5, y_title=4.8, y_sub=4.4)
+    draw_clean_icon(ax, 8.25, 2.2, 'icon_rabbitmq.png', 'RabbitMQ & Redis', 'Async Tasks & Session Cache', fixed_h=1.4, y_title=0.9, y_sub=0.5)
 
-    # --- TẦNG 3: DATA & CLOUD ---
-    draw_vector_db(ax, 13.5, 6.6, 'PostgreSQL 16 DB', color=C_RED, sub='ACID Tickets & Accounts')
-    draw_vector_db(ax, 13.5, 4.3, 'MongoDB NoSQL', color=C_ORANGE, sub='18 Galleries & Artifacts')
-    draw_vector_card(ax, 13.5, 1.8, 'Hugging Face & PayOS', color=C_INDIGO, sub='TRELLIS 3D (MSR), VietQR')
+    # Tier 3: PostgreSQL 16 & PayOS
+    draw_clean_icon(ax, 13.9, 6.2, 'icon_postgres.png', 'PostgreSQL 16 & Mongo', 'ACID Tickets, 18 Halls & Items', fixed_h=1.5, y_title=4.8, y_sub=4.4)
+    draw_clean_icon(ax, 13.9, 2.2, 'icon_payos.png', 'PayOS & Hugging Face', 'VietQR Napas & TRELLIS 3D', fixed_h=1.4, y_title=0.9, y_sub=0.5)
 
-    # --- MŨI TÊN KẾT NỐI (ĐƯỢC BỐ TRÍ TỌA ĐỘ CHÍNH XÁC, KHÔNG ĐÈ LÊN NHAU) ---
-    # Visitor -> Nginx (ngang nhẹ)
-    draw_clean_labeled_arrow(ax, 3.6, 6.3, 6.7, 6.6, label='HTTPS / WSS', lx=5.2, ly=6.9, shrinkA=18, shrinkB=18)
+    draw_clean_arrow(ax, 3.8, 6.2, 7.0, 6.2, label='HTTPS / WSS (Port 443)', offset_y=0.42)
+    draw_clean_arrow(ax, 3.8, 2.2, 7.0, 2.2, label='RESTful API (JSON)', offset_y=0.42)
 
-    # Admin -> Backend API (chéo lên)
-    draw_clean_labeled_arrow(ax, 3.6, 2.6, 6.7, 4.1, label='RESTful API', lx=5.2, ly=3.7, shrinkA=18, shrinkB=18)
+    draw_clean_arrow(ax, 8.25, 5.1, 8.25, 3.4, label='Task Dispatch & Cache', offset_x=1.7, offset_y=0.0)
 
-    # Nginx -> Backend API (thẳng đứng, nhãn đặt bên phải)
-    draw_clean_labeled_arrow(ax, 8.0, 5.7, 8.0, 4.9, label='Proxy Pass', lx=8.95, ly=5.3, shrinkA=10, shrinkB=10)
-
-    # Backend API -> Python Studio (thẳng đứng, nhãn đặt bên phải)
-    draw_clean_labeled_arrow(ax, 8.0, 3.4, 8.0, 2.5, label='Worker Queue', lx=9.1, ly=2.95, shrinkA=10, shrinkB=10)
-
-    # Backend API -> PostgreSQL (chéo lên)
-    draw_clean_labeled_arrow(ax, 9.3, 4.7, 12.3, 6.4, label='SQL (pgPool)', lx=10.8, ly=5.9, shrinkA=18, shrinkB=18)
-
-    # Backend API -> MongoDB (thẳng ngang)
-    draw_clean_labeled_arrow(ax, 9.3, 4.3, 12.3, 4.3, label='Mongoose NoSQL', lx=10.8, ly=4.75, shrinkA=18, shrinkB=18)
-
-    # Python Studio -> Cloud AI (thẳng ngang)
-    draw_clean_labeled_arrow(ax, 9.3, 1.8, 12.2, 1.8, label='Cloud API Call', lx=10.8, ly=2.25, shrinkA=18, shrinkB=18)
+    draw_clean_arrow(ax, 9.5, 6.2, 12.6, 6.2, label='SQL (pgPool) & Mongoose', offset_y=0.42)
+    draw_clean_arrow(ax, 9.5, 2.2, 12.6, 2.2, label='Webhook & ZeroGPU API', offset_y=0.42)
 
     out = os.path.join(POSTER_ASSETS, "diagram_architecture_3tier_en.png")
-    fig.savefig(out, bbox_inches='tight')
+    fig.savefig(out, bbox_inches='tight', dpi=300)
     plt.close(fig)
-    print("-> Da tao diagram_architecture_3tier_en.png (Hoan hao khong de chu)")
+    print("-> Da tao diagram_architecture_3tier_en.png voi Real Tech Icons")
 
 
 # ==============================================================================
-# 2. ENGLISH PANORAMA PROCESS DIAGRAM (THOÁNG ĐÃNG, RÕ RÀNG)
+# 2. ENGLISH PANORAMA PROCESS DIAGRAM WITH REAL TECH ICONS
 # ==============================================================================
 def gen_process_en():
-    fig, ax = plt.subplots(figsize=(16.0, 5.2), dpi=300)
-    ax.set_xlim(0, 16.0); ax.set_ylim(0, 5.2); ax.axis('off')
+    fig, ax = plt.subplots(figsize=(16.5, 5.5), dpi=300)
+    ax.set_xlim(0, 16.5); ax.set_ylim(0, 5.5); ax.axis('off')
 
-    ax.text(8.0, 4.7, 'AUTOMATED 360° PANORAMA STITCHING PIPELINE',
-            ha='center', va='center', fontsize=13.0, fontweight='bold', color=C_TEXT)
+    ax.text(8.25, 5.0, 'AUTOMATED 360° PANORAMA STITCHING PIPELINE',
+            ha='center', va='center', fontsize=12.5, fontweight='bold', color=C_TEXT)
 
-    # 4 khối cách nhau 3.8 đơn vị -> Cực kỳ rộng rãi
-    draw_vector_card(ax, 2.0, 2.3, 'Source Imagery', color=C_AMBER, sub='Smartphone Video Sweeps')
-    draw_vector_card(ax, 6.0, 2.3, 'SIFT Matching', color=C_GREEN, sub='128D Invariant Descriptors')
-    draw_vector_card(ax, 10.0, 2.3, 'Cylindrical Warp', color=C_INDIGO, sub='Multiband Seam Blending')
-    draw_vector_360_sphere(ax, 14.2, 2.3, '8K Panorama', color=C_CYAN, sub='Equirectangular 360°')
+    xs = [2.2, 6.2, 10.3, 14.3]
+    draw_clean_icon(ax, xs[0], 3.2, 'icon_client.png', '1. Source Imagery', 'Video Sweep & Multi-frame', fixed_h=1.45, y_title=1.8, y_sub=1.4)
+    draw_clean_icon(ax, xs[1], 3.2, 'icon_server.png', '2. Backend Processing', 'Nginx & Python Studio', fixed_h=1.45, y_title=1.8, y_sub=1.4)
+    draw_clean_icon(ax, xs[2], 3.2, 'icon_feature_match.png', '3. SIFT & Warping', 'Cylindrical Warp & RANSAC', fixed_h=1.45, y_title=1.8, y_sub=1.4)
+    draw_clean_icon(ax, xs[3], 3.2, 'icon_360_grid.png', '4. 8K Panorama', 'Equirectangular WebP 60 FPS', fixed_h=1.45, y_title=1.8, y_sub=1.4)
 
-    # Mũi tên và nhãn đặt cao bên trên, không bao giờ chạm khối
-    draw_clean_labeled_arrow(ax, 3.3, 2.3, 4.7, 2.3, label='Frame Extraction', lx=4.0, ly=3.15, shrinkA=12, shrinkB=12)
-    draw_clean_labeled_arrow(ax, 7.3, 2.3, 8.7, 2.3, label='Homography (RANSAC)', lx=8.0, ly=3.15, shrinkA=12, shrinkB=12)
-    draw_clean_labeled_arrow(ax, 11.3, 2.3, 13.2, 2.3, label='Render 360° Sphere', lx=12.2, ly=3.15, shrinkA=12, shrinkB=12)
+    draw_clean_arrow(ax, xs[0] + 1.1, 3.2, xs[1] - 1.1, 3.2, label='1. Frame Extraction', offset_y=0.45)
+    draw_clean_arrow(ax, xs[1] + 1.1, 3.2, xs[2] - 1.1, 3.2, label='2. Homography Alignment', offset_y=0.45)
+    draw_clean_arrow(ax, xs[2] + 1.1, 3.2, xs[3] - 1.1, 3.2, label='3. Multiband Blending', offset_y=0.45)
 
     out = os.path.join(POSTER_ASSETS, "diagram_stitching_process_en.png")
-    fig.savefig(out, bbox_inches='tight')
+    fig.savefig(out, bbox_inches='tight', dpi=300)
     plt.close(fig)
-    print("-> Da tao diagram_stitching_process_en.png (Hoan hao khong de chu)")
+    print("-> Da tao diagram_stitching_process_en.png voi Real Tech Icons")
 
 
 if __name__ == '__main__':
