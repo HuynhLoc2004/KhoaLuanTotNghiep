@@ -295,20 +295,21 @@ def render_hinh_2_2():
 
     # 1. BÊN TRÁI: HÌNH HỌC PHÉP CHIẾU
     cam_x, cam_y = 0.9, 2.3
-    f = 2.5
+    f = 2.4
 
     ax.plot(cam_x, cam_y, 'o', color=C_LINE, markersize=6, zorder=6)
     ax.text(cam_x - 0.12, cam_y, 'C (Tâm quang học)', fontsize=8.0, fontweight='bold', ha='right', va='center', color=C_TEXT)
 
-    # Trục quang học
-    ax.plot([cam_x, cam_x + f + 1.2], [cam_y, cam_y], color='#64748B', ls='--', lw=1.0, zorder=2)
-    ax.text(cam_x + 1.2, cam_y - 0.22, f'Trục quang học (Tiêu cự f = {f})', fontsize=7.2, color=C_SUB, ha='center',
-            bbox=dict(boxstyle='round,pad=0.15', facecolor='#FFFFFF', edgecolor='none'))
+    # Trục quang học: vẽ 2 đoạn ngắt quãng để nhãn nằm lọt vào giữa, không bị vạch đè chữ
+    ax.plot([cam_x, 1.4], [cam_y, cam_y], color='#64748B', ls='--', lw=1.0, zorder=2)
+    ax.text(2.0, cam_y, f'Trục quang học (f = {f})', fontsize=7.2, color=C_SUB, ha='center', va='center',
+            bbox=dict(boxstyle='round,pad=0.15', facecolor='#FFFFFF', edgecolor='none'), zorder=20)
+    ax.plot([2.6, cam_x + f + 1.0], [cam_y, cam_y], color='#64748B', ls='--', lw=1.0, zorder=2)
 
     # Mặt phẳng cảm biến (Ảnh phẳng gốc)
-    sensor_x = cam_x + f
+    sensor_x = cam_x + f # 3.3
     ax.plot([sensor_x, sensor_x], [cam_y - 1.4, cam_y + 1.4], color=C_LINE, lw=1.8, zorder=3)
-    ax.text(sensor_x, 4.0, 'Mặt phẳng cảm biến (Ảnh phẳng)\n' + r'$x_p \in [-W/2, W/2]$',
+    ax.text(sensor_x, 3.9, 'Mặt phẳng cảm biến (Ảnh phẳng)\n' + r'$x_p \in [-W/2, W/2]$',
             fontsize=7.8, fontweight='bold', ha='center', va='bottom', color=C_TEXT)
 
     # Mặt trụ bán kính f
@@ -316,41 +317,36 @@ def render_hinh_2_2():
     arc_x = cam_x + f * np.cos(theta_arc)
     arc_y = cam_y + f * np.sin(theta_arc)
     ax.plot(arc_x, arc_y, color='#1E40AF', lw=2.2, zorder=4)
-    ax.text(3.4, 0.45, r'Mặt trụ bán kính $f$' + '\n' + r'$x_{cyl} = f \cdot \theta$',
+    ax.text(3.5, 0.45, r'Mặt trụ bán kính $f$' + '\n' + r'$x_{cyl} = f \cdot \theta$',
             fontsize=7.8, fontweight='bold', ha='left', va='top', color='#1E40AF')
 
-    # Tia nhìn 1 (trên)
+    # Điểm và tia nhìn 1 (trên)
     theta1 = 0.40
-    ray1_len = f / np.cos(theta1) + 0.4
-    r1_end_x = cam_x + ray1_len * np.cos(theta1)
-    r1_end_y = cam_y + ray1_len * np.sin(theta1)
-    ax.plot([cam_x, r1_end_x], [cam_y, r1_end_y], color='#1E3A8A', lw=1.2, zorder=3)
-
     p1_x = sensor_x
     p1_y = cam_y + f * np.tan(theta1)
-    ax.plot(p1_x, p1_y, 'o', color=C_LINE, markersize=5, zorder=6)
-    ax.text(p1_x - 0.15, p1_y + 0.18, r'$p(x_p, y_p)$', fontsize=8.0, fontweight='bold', ha='right', color=C_TEXT,
-            bbox=dict(boxstyle='round,pad=0.12', facecolor='#FFFFFF', edgecolor='#CBD5E1', lw=0.6))
-
     cyl1_x = cam_x + f * np.cos(theta1)
     cyl1_y = cam_y + f * np.sin(theta1)
+
+    # Tia nhìn dừng chính xác tại p1_x, p1_y (KHÔNG KÉO DÀI ĐÈ LÊN CHỮ)
+    ax.plot([cam_x, p1_x], [cam_y, p1_y], color='#1E3A8A', lw=1.2, zorder=3)
+
+    ax.plot(p1_x, p1_y, 'o', color=C_LINE, markersize=5, zorder=6)
+    ax.text(p1_x + 0.18, p1_y + 0.15, r'$p(x_p, y_p)$', fontsize=8.0, fontweight='bold', ha='left', va='bottom', color=C_TEXT,
+            bbox=dict(boxstyle='round,pad=0.15', facecolor='#FFFFFF', edgecolor='#CBD5E1', lw=0.6), zorder=25)
+
     ax.plot(cyl1_x, cyl1_y, 'o', color='#1E40AF', markersize=6, zorder=6)
-    ax.text(cyl1_x + 0.18, cyl1_y + 0.18, r'$p_{cyl}(x_{cyl}, y_{cyl})$', fontsize=8.0, fontweight='bold', ha='left', color='#1E40AF',
-            bbox=dict(boxstyle='round,pad=0.12', facecolor='#FFFFFF', edgecolor='#CBD5E1', lw=0.6))
+    ax.text(cyl1_x - 0.18, cyl1_y + 0.15, r'$p_{cyl}(x_{cyl}, y_{cyl})$', fontsize=8.0, fontweight='bold', ha='right', va='bottom', color='#1E40AF',
+            bbox=dict(boxstyle='round,pad=0.15', facecolor='#FFFFFF', edgecolor='#CBD5E1', lw=0.6), zorder=25)
 
-    # Tia nhìn 2 (dưới)
+    # Tia nhìn 2 (dưới) dừng chính xác tại p2_x, p2_y (KHÔNG CẮT QUA CHỮ TRỤC QUANG HỌC)
     theta2 = -0.36
-    ray2_len = f / np.cos(theta2) + 0.4
-    r2_end_x = cam_x + ray2_len * np.cos(theta2)
-    r2_end_y = cam_y + ray2_len * np.sin(theta2)
-    ax.plot([cam_x, r2_end_x], [cam_y, r2_end_y], color='#1E3A8A', lw=1.2, zorder=3)
-
     p2_x = sensor_x
     p2_y = cam_y + f * np.tan(theta2)
-    ax.plot(p2_x, p2_y, 'o', color=C_LINE, markersize=5, zorder=6)
-
     cyl2_x = cam_x + f * np.cos(theta2)
     cyl2_y = cam_y + f * np.sin(theta2)
+    ax.plot([cam_x, p2_x], [cam_y, p2_y], color='#1E3A8A', lw=1.2, zorder=3)
+
+    ax.plot(p2_x, p2_y, 'o', color=C_LINE, markersize=5, zorder=6)
     ax.plot(cyl2_x, cyl2_y, 'o', color='#1E40AF', markersize=6, zorder=6)
 
     arc_ang = patches.Arc((cam_x, cam_y), 1.4, 1.4, angle=0, theta1=0, theta2=np.degrees(theta1), color=C_LINE, lw=1.1)
@@ -389,6 +385,197 @@ def render_hinh_2_2():
     ax.text(10.3, 1.4, 'Cột bảo toàn 90° đứng\nSẵn sàng ghép mí', ha='center', va='center', fontsize=7.0, fontweight='bold', color=C_TEXT)
 
     save_fig(fig, ['hinh_2_2_cylindrical_warping.png'])
+
+
+# ==============================================================================
+# HÌNH 2.3: THÁP KHÔNG GIAN TỶ LỆ GAUSS VÀ SAI PHÂN DoG (CHUẨN HỌC THUẬT)
+# ==============================================================================
+def render_hinh_2_3():
+    fig, ax = plt.subplots(figsize=(12.0, 5.2), dpi=300)
+    ax.set_xlim(0, 12.0); ax.set_ylim(0, 5.2); ax.axis('off')
+
+    ax.text(6.0, 4.85, 'THÁP KHÔNG GIAN TỶ LỆ GAUSS VÀ PHÁT HIỆN ĐIỂM ĐẶC TRƯNG DoG (SIFT)',
+            ha='center', va='center', fontsize=11.5, fontweight='bold', color=C_TEXT)
+
+    def draw_slant_rect(x, y, w, h, slant, label, color='#F8FAFC'):
+        pts = [[x, y], [x + w, y], [x + w + slant, y + h], [x + slant, y + h]]
+        poly = patches.Polygon(pts, facecolor=color, edgecolor='#334155', lw=1.2, zorder=3)
+        ax.add_patch(poly)
+        if label:
+            ax.text(x + w/2 + slant/2, y + h/2, label, ha='center', va='center', fontsize=7.2, fontweight='bold', color=C_TEXT, zorder=5)
+
+    sigmas = ['σ', 'kσ', 'k²σ', 'k³σ']
+    for i in range(4):
+        draw_slant_rect(0.9, 0.8 + i*0.55, 2.2, 0.40, 0.5, f'L(x, y, {sigmas[i]})')
+    ax.text(0.7, 1.8, 'Octave 1\n(W × H)', ha='right', va='center', fontsize=8.0, fontweight='bold', color=C_TEXT)
+
+    for i in range(3):
+        ax.annotate('', xy=(4.3, 1.25 + i*0.55), xytext=(3.7, 1.25 + i*0.55),
+                    arrowprops=dict(arrowstyle='->', color=C_LINE, lw=1.2), zorder=4)
+        draw_slant_rect(4.4, 1.0 + i*0.55, 1.9, 0.38, 0.4, f'DoG {i+1}', color='#FEF3C7')
+    ax.text(5.5, 0.5, r'Sai phân DoG: $D(x, y, \sigma) = L(x, y, k\sigma) - L(x, y, \sigma)$',
+            ha='center', va='center', fontsize=7.8, fontstyle='italic', color=C_TEXT)
+
+    ax.text(9.5, 4.3, 'Xét Cực Trị 26 Điểm Lân Cận (3×3×3)', ha='center', va='center', fontsize=8.5, fontweight='bold', color=C_TEXT)
+    scales = [
+        (r'Mức trên $\sigma_{i+1}$ (9 điểm)', 3.2),
+        (r'Mức xét $\sigma_i$ (8 lân cận + X)', 2.0),
+        (r'Mức dưới $\sigma_{i-1}$ (9 điểm)', 0.8)
+    ]
+    for lbl, sy in scales:
+        draw_slant_rect(7.5, sy, 2.4, 0.65, 0.5, '', color='#F1F5F9')
+        ax.text(10.7, sy + 0.32, lbl, ha='left', va='center', fontsize=7.5, color=C_TEXT)
+        for r in range(3):
+            for c in range(3):
+                px = 7.8 + c * 0.7 + r * 0.22
+                py = sy + 0.12 + r * 0.2
+                if sy == 2.0 and r == 1 and c == 1:
+                    ax.plot(px, py, 'x', color='#DC2626', markersize=8, mew=2.2, zorder=8)
+                    ax.text(px + 0.15, py + 0.15, 'X (Cực trị)', fontsize=7.5, fontweight='bold', color='#DC2626', zorder=9)
+                else:
+                    ax.plot(px, py, 'o', color='#0284C7', markersize=4, zorder=6)
+
+    save_fig(fig, ['hinh_2_3_dog_sift.png'])
+
+
+# ==============================================================================
+# HÌNH 2.4: KHỚP ĐẶC TRƯNG SIFT VÀ LOẠI BỎ ĐIỂM NGOẠI LAI BẰNG RANSAC (CHUẨN HỌC THUẬT)
+# ==============================================================================
+def render_hinh_2_4():
+    fig, ax = plt.subplots(figsize=(13.0, 5.8), dpi=300)
+    ax.set_xlim(0, 13.0); ax.set_ylim(0, 5.8); ax.axis('off')
+
+    ax.text(6.5, 5.4, 'KHỚP ĐẶC TRƯNG SIFT VÀ LOẠI BỎ ĐIỂM NGOẠI LAI BẰNG THUẬT TOÁN RANSAC',
+            ha='center', va='center', fontsize=11.5, fontweight='bold', color=C_TEXT)
+
+    w_img, h_img = 4.5, 3.2
+    f1_x, f1_y = 0.8, 1.3
+    f2_x, f2_y = 7.7, 1.3
+
+    rect1 = patches.Rectangle((f1_x, f1_y), w_img, h_img, facecolor='#FAFAFA', edgecolor='#334155', lw=1.4, zorder=2)
+    rect2 = patches.Rectangle((f2_x, f2_y), w_img, h_img, facecolor='#FAFAFA', edgecolor='#334155', lw=1.4, zorder=2)
+    ax.add_patch(rect1)
+    ax.add_patch(rect2)
+
+    # Tiêu đề ảnh đặt trên cao, tách biệt khỏi các vạch nối
+    ax.text(f1_x + w_img/2, 4.75, 'Ảnh góc nhìn trái $I_1(x, y)$', ha='center', va='center',
+            fontsize=9.0, fontweight='bold', color=C_TEXT)
+    ax.text(f2_x + w_img/2, 4.75, 'Ảnh góc nhìn phải $I_2(x\', y\')$', ha='center', va='center',
+            fontsize=9.0, fontweight='bold', color=C_TEXT)
+
+    # Ước lượng Homography ở trung tâm
+    ax.text(6.5, 4.75, r'Ước lượng ma trận $\mathbf{H}$' + '\n' + r'$p_2 \sim \mathbf{H} \cdot p_1$',
+            ha='center', va='center', fontsize=8.5, fontweight='bold', color='#1E40AF')
+
+    # Điểm đặc trưng Inlier
+    inliers = [
+        ((f1_x + 1.2, 3.9), (f2_x + 1.6, 3.9)),
+        ((f1_x + 2.8, 3.5), (f2_x + 3.2, 3.5)),
+        ((f1_x + 1.6, 2.9), (f2_x + 2.0, 2.9)),
+        ((f1_x + 3.4, 2.4), (f2_x + 3.8, 2.4)),
+        ((f1_x + 2.0, 1.8), (f2_x + 2.4, 1.8)),
+    ]
+
+    for pt1, pt2 in inliers:
+        ax.plot(pt1[0], pt1[1], 'o', color='#0F172A', markersize=5, zorder=6)
+        ax.plot(pt2[0], pt2[1], 'o', color='#0F172A', markersize=5, zorder=6)
+        ax.plot([pt1[0], pt2[0]], [pt1[1], pt2[1]], color='#166534', lw=1.6, zorder=4)
+
+    # Điểm Outlier (gạch chéo đỏ, nằm hoàn toàn trong thân ảnh)
+    out_pt1 = (f1_x + 3.8, 3.8)
+    out_pt2 = (f2_x + 0.8, 1.9)
+    ax.plot(out_pt1[0], out_pt1[1], 's', color='#DC2626', markersize=5, zorder=6)
+    ax.plot(out_pt2[0], out_pt2[1], 's', color='#DC2626', markersize=5, zorder=6)
+    ax.plot([out_pt1[0], out_pt2[0]], [out_pt1[1], out_pt2[1]], color='#DC2626', lw=1.4, ls='--', zorder=4)
+    mx = (out_pt1[0] + out_pt2[0]) / 2.0
+    my = (out_pt1[1] + out_pt2[1]) / 2.0
+    ax.plot(mx, my, 'x', color='#DC2626', markersize=9, mew=2.5, zorder=7)
+
+    # Chú thích ở dưới đáy
+    ax.plot([1.5, 2.2], [0.75, 0.75], color='#166534', lw=2.0)
+    ax.plot(1.85, 0.75, 'o', color='#0F172A', markersize=5)
+    ax.text(2.4, 0.75, r'Cặp điểm Inlier chuẩn xác (Đạt ngưỡng RANSAC: $\|p_2 - \mathbf{H} p_1\| < 3.0$ pixel)',
+            fontsize=8.0, fontweight='bold', color=C_TEXT, va='center')
+
+    ax.plot([1.5, 2.2], [0.35, 0.35], color='#DC2626', lw=1.5, ls='--')
+    ax.plot(1.85, 0.35, 'x', color='#DC2626', markersize=8, mew=2.0)
+    ax.text(2.4, 0.35, 'Điểm ngoại lai Outlier bị RANSAC triệt tiêu (Sai lệch do phản quang tủ kính / đổi góc)',
+            fontsize=8.0, fontweight='bold', color=C_TEXT, va='center')
+
+    save_fig(fig, ['hinh_2_4_ransac.png'])
+
+
+# ==============================================================================
+# HÌNH 2.5: TỐI ƯU ĐƯỜNG GHÉP MÍ VÀ HÒA TRỘN ĐA DẢI TẦN LAPLACIAN
+# ==============================================================================
+def render_hinh_2_5():
+    fig, ax = plt.subplots(figsize=(12.0, 5.4), dpi=300)
+    ax.set_xlim(0, 12.0); ax.set_ylim(0, 5.4); ax.axis('off')
+
+    ax.text(6.0, 5.0, 'TÌM ĐƯỜNG GHÉP MÍ TỐI ƯU VÀ HÒA TRỘN ĐA DẢI TẦN LAPLACIAN',
+            ha='center', va='center', fontsize=11.5, fontweight='bold', color=C_TEXT)
+
+    # Ghép mí né tránh hiện vật
+    r1 = patches.Rectangle((1.5, 2.6), 4.2, 1.8, facecolor='#F8FAFC', edgecolor='#334155', lw=1.2, zorder=2)
+    r2 = patches.Rectangle((4.2, 2.6), 4.2, 1.8, facecolor='#F8FAFC', edgecolor='#334155', lw=1.2, zorder=2)
+    ax.add_patch(r1); ax.add_patch(r2)
+
+    ax.text(2.8, 4.15, 'Ảnh 1 (Bên trái)', ha='center', fontsize=8.0, fontweight='bold', color=C_TEXT)
+    ax.text(7.1, 4.15, 'Ảnh 2 (Bên phải)', ha='center', fontsize=8.0, fontweight='bold', color=C_TEXT)
+    ax.text(5.0, 4.15, 'Vùng chồng lấp 30%', ha='center', fontsize=7.5, color=C_SUB)
+
+    ax.plot(4.8, 3.5, 'o', color='#0284C7', markersize=14, zorder=5)
+    ax.text(4.8, 3.5, 'Cổ vật', ha='center', va='center', fontsize=6.8, fontweight='bold', color='white', zorder=6)
+
+    ax.plot([4.8, 4.8], [2.6, 4.4], color='#DC2626', ls='--', lw=1.4, zorder=4)
+    ax.text(4.8, 2.4, 'Đường cắt thẳng (Lỗi cắt đôi hiện vật)', ha='center', va='top', fontsize=7.2, color='#DC2626')
+
+    sy = np.linspace(2.6, 4.4, 50)
+    sx = 5.6 + 0.35 * np.sin((sy - 2.6) * np.pi / 1.8)
+    ax.plot(sx, sy, color='#166534', lw=2.2, zorder=5)
+    ax.text(6.1, 3.5, 'Đường ghép mí tối ưu\n(Graph Cut né tránh hiện vật)', ha='left', va='center', fontsize=7.5, fontweight='bold', color='#166534')
+
+    ax.plot([1.0, 11.0], [2.0, 2.0], color='#CBD5E1', ls=':', lw=1.0)
+    ax.text(6.0, 1.7, 'HÒA TRỘN ĐA DẢI TẦN SỐ LAPLACIAN PYRAMID BLENDING', ha='center', va='center', fontsize=8.8, fontweight='bold', color=C_TEXT)
+
+    ax.text(1.5, 1.15, 'Dải tần số cao (Chi tiết nét):', fontsize=7.8, fontweight='bold', color=C_TEXT)
+    ax.plot([4.2, 5.2], [1.15, 1.15], color='#1E3A8A', lw=1.5)
+    ax.plot([5.2, 5.6], [1.15, 1.15], color='#166534', lw=2.4)
+    ax.plot([5.6, 6.6], [1.15, 1.15], color='#1E3A8A', lw=1.5)
+    ax.text(7.0, 1.15, 'Cửa sổ hòa trộn hẹp -> Bảo toàn chi tiết, triệt tiêu bóng ma (Ghosting)', fontsize=7.5, color=C_TEXT)
+
+    ax.text(1.5, 0.65, 'Dải tần số thấp (Ánh sáng/Màu):', fontsize=7.8, fontweight='bold', color=C_TEXT)
+    ax.plot([4.2, 4.7], [0.65, 0.65], color='#1E3A8A', lw=1.5)
+    ax.plot([4.7, 6.1], [0.65, 0.65], color='#B45309', lw=2.6)
+    ax.plot([6.1, 6.6], [0.65, 0.65], color='#1E3A8A', lw=1.5)
+    ax.text(7.0, 0.65, 'Cửa sổ hòa trộn rộng -> Đồng nhất ánh sáng & màu sắc giữa 2 ảnh', fontsize=7.5, color=C_TEXT)
+
+    save_fig(fig, ['hinh_2_5_seam_blending.png'])
+
+
+# ==============================================================================
+# HÌNH 2.7: SƠ ĐỒ NGUYÊN LÝ GIẢI THUẬT DIJKSTRA (DÙNG ICON CÔNG NGHỆ CHUẨN)
+# ==============================================================================
+def render_hinh_2_7():
+    fig, ax = plt.subplots(figsize=(16.8, 6.8), dpi=300)
+    ax.set_xlim(0, 16.8); ax.set_ylim(0, 6.8); ax.axis('off')
+
+    ax.text(8.4, 6.3, 'SƠ ĐỒ NGUYÊN LÝ GIẢI THUẬT DIJKSTRA TÌM ĐƯỜNG ĐI TỐI ƯU TRÊN ĐỒ THỊ 18 PHÒNG',
+            ha='center', va='center', fontsize=12.2, fontweight='bold', color=C_TEXT)
+
+    xs = [2.0, 6.2, 10.4, 14.6]
+    draw_clean_icon(ax, xs[0], 4.0, 'icon_database.png', '1. Đồ Thị 18 Gian Phòng', 'Ma trận kề trọng số G(V, E)', max_w=1.4, max_h=1.35, y_title=2.4, y_sub=2.0)
+    draw_clean_icon(ax, xs[1], 4.0, 'icon_server.png', '2. Hàng Đợi Ưu Tiên Min-Heap', 'Trích xuất đỉnh u có d[u] min', max_w=1.4, max_h=1.4, y_title=2.4, y_sub=2.0)
+    draw_clean_icon(ax, xs[2], 4.0, 'icon_ai_chip.png', '3. Nới Lỏng Cạnh (Relaxation)', 'Cập nhật d[v] = d[u] + w(u,v)', max_w=1.4, max_h=1.35, y_title=2.4, y_sub=2.0)
+    draw_clean_icon(ax, xs[3], 4.0, 'icon_browser.png', '4. Lộ Trình Tối Ưu Mini-map', 'Vẽ đường line liên phòng trên Tour', max_w=1.4, max_h=1.35, y_title=2.4, y_sub=2.0)
+
+    draw_clean_arrow(ax, xs[0] + 1.15, 4.0, xs[1] - 1.15, 4.0, label='1. Khởi tạo d[s] = 0', offset_y=0.45)
+    draw_clean_arrow(ax, xs[1] + 1.15, 4.0, xs[2] - 1.15, 4.0, label='2. Extract-Min (O(log V))', offset_y=0.45)
+    draw_clean_arrow(ax, xs[2] + 1.15, 4.0, xs[3] - 1.15, 4.0, label='3. Đến đích & Xuất lộ trình', offset_y=0.45)
+
+    draw_clean_arrow(ax, xs[2] - 1.15, 3.2, xs[1] + 1.15, 3.2, label='Lặp lại cho các đỉnh kề chưa xét', offset_y=-0.45, is_dashed=True)
+
+    save_fig(fig, ['hinh_2_7_dijkstra.png', 'hinh_4_7_dijkstra_flow.png', 'flow_02_floorplan_dijkstra.png'])
 
 
 # ==============================================================================
@@ -870,7 +1057,11 @@ def render_all_flawless():
     render_hinh_1_1()
     render_hinh_2_1()
     render_hinh_2_2()
+    render_hinh_2_3()
+    render_hinh_2_4()
+    render_hinh_2_5()
     render_hinh_2_6()
+    render_hinh_2_7()
     render_hinh_2_8()
     render_hinh_2_9()
     render_hinh_2_10()
