@@ -2,9 +2,9 @@
 """
 render_poster_diagrams_en.py
 Generate 100% English Academic Diagrams for the Graduation Poster using Clean Transparent Tech Icons.
-Guaranteed Rules:
-1. NO colored square boxes with dense text (strictly followed per user directive).
-2. Clean transparent tech icons (Nginx, Node.js, PostgreSQL, MongoDB, PayOS, RabbitMQ, etc.).
+Strict rules:
+1. NO colored boxes with dense text.
+2. Icon bounding boxes strictly capped (max_w <= 1.60, max_h <= 1.35) so wide icons never touch arrows or labels.
 3. Generously spaced arrows with clean white pill labels, ZERO arrow overlap.
 """
 
@@ -37,28 +37,41 @@ def get_icon_path(name):
     return None
 
 
-def draw_clean_icon(ax, x, y, icon_name, title, subtitle='', fixed_h=1.45, y_title=None, y_sub=None):
+def get_icon_dimensions(icon_name, max_w=1.60, max_h=1.35):
     icon_path = get_icon_path(icon_name)
-    display_h = fixed_h
+    if not icon_path or not os.path.exists(icon_path):
+        return max_w, max_h
+    img = mpimg.imread(icon_path)
+    ih, iw = img.shape[:2]
+    aspect = iw / ih
+    display_w = max_h * aspect
+    display_h = max_h
+    if display_w > max_w:
+        display_w = max_w
+        display_h = display_w / aspect
+    return display_w, display_h
+
+
+def draw_clean_icon(ax, x, y, icon_name, title, subtitle='', max_w=1.60, max_h=1.35, y_title=None, y_sub=None):
+    icon_path = get_icon_path(icon_name)
+    disp_w, disp_h = get_icon_dimensions(icon_name, max_w, max_h)
+    
     if icon_path and os.path.exists(icon_path):
         img = mpimg.imread(icon_path)
-        ih, iw = img.shape[:2]
-        aspect = iw / ih
-        display_w = display_h * aspect
-        ax.imshow(img, extent=[x - display_w/2, x + display_w/2, y - display_h/2, y + display_h/2],
+        ax.imshow(img, extent=[x - disp_w/2, x + disp_w/2, y - disp_h/2, y + disp_h/2],
                   zorder=15, aspect='auto')
     else:
         ax.plot(x, y, 'o', color=C_TEXT, markersize=14, zorder=15)
         
-    t_y = y_title if y_title is not None else (y - fixed_h / 2.0 - 0.28)
+    t_y = y_title if y_title is not None else (y - disp_h / 2.0 - 0.28)
     s_y = y_sub if y_sub is not None else (t_y - 0.36)
     
-    ax.text(x, t_y, title, ha='center', va='top', fontsize=10.0, fontweight='bold', color=C_TEXT, zorder=20)
+    ax.text(x, t_y, title, ha='center', va='top', fontsize=9.8, fontweight='bold', color=C_TEXT, zorder=20)
     if subtitle:
-        ax.text(x, s_y, subtitle, ha='center', va='top', fontsize=8.4, color=C_SUB, zorder=20)
+        ax.text(x, s_y, subtitle, ha='center', va='top', fontsize=8.2, color=C_SUB, zorder=20)
 
 
-def draw_clean_arrow(ax, x1, y1, x2, y2, label='', offset_y=0.40, offset_x=0.0, shrinkA=22, shrinkB=22, rad=0.0, is_dashed=False):
+def draw_clean_arrow(ax, x1, y1, x2, y2, label='', offset_y=0.45, offset_x=0.0, shrinkA=8, shrinkB=8, rad=0.0, is_dashed=False):
     conn = f'arc3,rad={rad}' if rad != 0.0 else 'arc3'
     line_style = '--' if is_dashed else '-'
     
@@ -81,8 +94,8 @@ def draw_clean_arrow(ax, x1, y1, x2, y2, label='', offset_y=0.40, offset_x=0.0, 
         my = (y1 + y2) / 2.0 + offset_y
         ax.text(
             mx, my, label, ha='center', va='center',
-            fontsize=8.5, fontweight='bold', color=C_TEXT,
-            bbox=dict(boxstyle='round,pad=0.25', facecolor='white', edgecolor='#CBD5E1', lw=0.8, alpha=0.98),
+            fontsize=8.2, fontweight='bold', color=C_TEXT,
+            bbox=dict(boxstyle='round,pad=0.22', facecolor='white', edgecolor='#CBD5E1', lw=0.8, alpha=0.98),
             zorder=25
         )
 
@@ -105,16 +118,16 @@ def gen_architecture_en():
     ax.plot([11.1, 11.1], [0.6, 8.1], color='#CBD5E1', linestyle='--', lw=1.5)
 
     # Tier 1
-    draw_clean_icon(ax, 2.6, 6.2, 'icon_browser.png', 'Web Client (Visitors)', 'React 18 & WebGL Three.js', fixed_h=1.5, y_title=4.8, y_sub=4.4)
-    draw_clean_icon(ax, 2.6, 2.2, 'icon_client.png', 'Museum Administrator', 'Admin CMS Dashboard', fixed_h=1.4, y_title=0.9, y_sub=0.5)
+    draw_clean_icon(ax, 2.6, 6.2, 'icon_browser.png', 'Web Client (Visitors)', 'React 18 & WebGL Three.js', max_w=1.5, max_h=1.4, y_title=4.8, y_sub=4.4)
+    draw_clean_icon(ax, 2.6, 2.2, 'icon_client.png', 'Museum Administrator', 'Admin CMS Dashboard', max_w=1.4, max_h=1.35, y_title=0.9, y_sub=0.5)
 
     # Tier 2: Nginx Reverse Proxy & Node.js API
-    draw_clean_icon(ax, 8.25, 6.2, 'icon_nginx.png', 'Nginx & Node.js API', 'Reverse Proxy & REST Gateway', fixed_h=1.5, y_title=4.8, y_sub=4.4)
-    draw_clean_icon(ax, 8.25, 2.2, 'icon_rabbitmq.png', 'RabbitMQ & Redis', 'Async Tasks & Session Cache', fixed_h=1.4, y_title=0.9, y_sub=0.5)
+    draw_clean_icon(ax, 8.25, 6.2, 'icon_nginx.png', 'Nginx & Node.js API', 'Reverse Proxy & REST Gateway', max_w=1.5, max_h=1.4, y_title=4.8, y_sub=4.4)
+    draw_clean_icon(ax, 8.25, 2.2, 'icon_rabbitmq.png', 'RabbitMQ & Redis', 'Async Tasks & Session Cache', max_w=1.4, max_h=1.35, y_title=0.9, y_sub=0.5)
 
     # Tier 3: PostgreSQL 16 & PayOS
-    draw_clean_icon(ax, 13.9, 6.2, 'icon_postgres.png', 'PostgreSQL 16 & Mongo', 'ACID Tickets, 18 Halls & Items', fixed_h=1.5, y_title=4.8, y_sub=4.4)
-    draw_clean_icon(ax, 13.9, 2.2, 'icon_payos.png', 'PayOS & Hugging Face', 'VietQR Napas & TRELLIS 3D', fixed_h=1.4, y_title=0.9, y_sub=0.5)
+    draw_clean_icon(ax, 13.9, 6.2, 'icon_postgres.png', 'PostgreSQL 16 & Mongo', 'ACID Tickets, 18 Halls & Items', max_w=1.5, max_h=1.4, y_title=4.8, y_sub=4.4)
+    draw_clean_icon(ax, 13.9, 2.2, 'icon_payos.png', 'PayOS & Hugging Face', 'VietQR Napas & TRELLIS 3D', max_w=1.5, max_h=1.35, y_title=0.9, y_sub=0.5)
 
     draw_clean_arrow(ax, 3.8, 6.2, 7.0, 6.2, label='HTTPS / WSS (Port 443)', offset_y=0.42)
     draw_clean_arrow(ax, 3.8, 2.2, 7.0, 2.2, label='RESTful API (JSON)', offset_y=0.42)
@@ -140,15 +153,15 @@ def gen_process_en():
     ax.text(8.25, 5.0, 'AUTOMATED 360° PANORAMA STITCHING PIPELINE',
             ha='center', va='center', fontsize=12.5, fontweight='bold', color=C_TEXT)
 
-    xs = [2.2, 6.2, 10.3, 14.3]
-    draw_clean_icon(ax, xs[0], 3.2, 'icon_client.png', '1. Source Imagery', 'Video Sweep & Multi-frame', fixed_h=1.45, y_title=1.8, y_sub=1.4)
-    draw_clean_icon(ax, xs[1], 3.2, 'icon_server.png', '2. Backend Processing', 'Nginx & Python Studio', fixed_h=1.45, y_title=1.8, y_sub=1.4)
-    draw_clean_icon(ax, xs[2], 3.2, 'icon_feature_match.png', '3. SIFT & Warping', 'Cylindrical Warp & RANSAC', fixed_h=1.45, y_title=1.8, y_sub=1.4)
-    draw_clean_icon(ax, xs[3], 3.2, 'icon_360_grid.png', '4. 8K Panorama', 'Equirectangular WebP 60 FPS', fixed_h=1.45, y_title=1.8, y_sub=1.4)
+    xs = [2.0, 6.2, 10.4, 14.6]
+    draw_clean_icon(ax, xs[0], 3.2, 'icon_client.png', '1. Source Imagery', 'Video Sweep & Multi-frame', max_w=1.4, max_h=1.35, y_title=1.8, y_sub=1.4)
+    draw_clean_icon(ax, xs[1], 3.2, 'icon_wireframe_3d.png', '2. Cylindrical Warp', 'Eliminate Perspective Distortion', max_w=1.4, max_h=1.35, y_title=1.8, y_sub=1.4)
+    draw_clean_icon(ax, xs[2], 3.2, 'icon_feature_match.png', '3. SIFT & RANSAC', '128D Descriptors & Outlier Rejection', max_w=1.55, max_h=1.1, y_title=1.8, y_sub=1.4)
+    draw_clean_icon(ax, xs[3], 3.2, 'icon_360_grid.png', '4. 8K Panorama', 'Equirectangular WebP 60 FPS', max_w=1.6, max_h=1.35, y_title=1.8, y_sub=1.4)
 
-    draw_clean_arrow(ax, xs[0] + 1.1, 3.2, xs[1] - 1.1, 3.2, label='1. Frame Extraction', offset_y=0.45)
-    draw_clean_arrow(ax, xs[1] + 1.1, 3.2, xs[2] - 1.1, 3.2, label='2. Homography Alignment', offset_y=0.45)
-    draw_clean_arrow(ax, xs[2] + 1.1, 3.2, xs[3] - 1.1, 3.2, label='3. Multiband Blending', offset_y=0.45)
+    draw_clean_arrow(ax, xs[0] + 1.15, 3.2, xs[1] - 1.15, 3.2, label='1. Frame Extraction', offset_y=0.45)
+    draw_clean_arrow(ax, xs[1] + 1.15, 3.2, xs[2] - 1.15, 3.2, label='2. Homography Alignment', offset_y=0.45)
+    draw_clean_arrow(ax, xs[2] + 1.15, 3.2, xs[3] - 1.15, 3.2, label='3. Multiband Blending', offset_y=0.45)
 
     out = os.path.join(POSTER_ASSETS, "diagram_stitching_process_en.png")
     fig.savefig(out, bbox_inches='tight', dpi=300)
