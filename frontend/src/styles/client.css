@@ -4064,8 +4064,8 @@ html {
 }
 
 .client-otp-title {
-  font-family: 'Lora', serif;
-  font-size: 1.4rem;
+  font-family: 'Be Vietnam Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 1.35rem;
   font-weight: 700;
   margin: 0 0 6px 0;
   color: var(--c-text-primary);

@@ -10,7 +10,10 @@ import {
   Loader2,
   Lock,
   ArrowLeft,
-  ShieldCheck
+  ShieldCheck,
+  ShieldAlert,
+  LogOut,
+  User
 } from 'lucide-react';
 
 interface AdminLoginPageProps {
@@ -216,52 +219,60 @@ export const AdminLoginPage: React.FC<AdminLoginPageProps> = ({
 
   // Nếu người dùng đã đăng nhập nhưng không có quyền Admin (Tài khoản Client/Visitor)
   if (user && !isUserAdmin) {
+    const userDisplayName = user.email || user.username || 'Khách tham quan';
     return (
       <div className="admin-login-wrapper">
-        <div className="admin-login-card" style={{ maxWidth: 460 }}>
-          <div className="login-card-header">
-            <div className="login-badge-secure" style={{ background: 'rgba(239, 68, 68, 0.15)', borderColor: 'rgba(239, 68, 68, 0.4)', color: '#EF4444' }}>
-              <Lock size={13} />
-              <span>Từ chối quyền truy cập</span>
+        <div className="admin-access-card">
+          {/* Huy hiệu cảnh báo */}
+          <div className="access-card-icon-wrap">
+            <div className="access-card-icon">
+              <ShieldAlert size={28} />
             </div>
-            <h2 className="login-title" style={{ marginTop: 12 }}>Khu vực Quản trị</h2>
-            <p className="login-subtitle">
-              Tài khoản <strong>{user.email || user.username}</strong> hiện có vai trò <strong>Khách tham quan</strong>.
-            </p>
           </div>
 
-          <div className="login-card-body" style={{ textAlign: 'center', padding: '10px 24px 24px' }}>
-            <p style={{ color: 'var(--c-text-muted)', fontSize: '13px', lineHeight: 1.6, marginBottom: 24 }}>
-              Trang này chỉ dành cho Ban Quản trị và Cán bộ chuyên môn Bảo tàng Lịch sử TP. Hồ Chí Minh. Khách tham quan vui lòng sử dụng Cổng thông tin tham quan để xem triển lãm 360°, nghe thuyết minh AI và tra cứu hiện vật.
-            </p>
+          <h2 className="access-card-title">Khu vực Quản trị</h2>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {backHandler && (
-                <button
-                  type="button"
-                  className="login-submit-btn"
-                  onClick={backHandler}
-                >
-                  <ArrowLeft size={16} />
-                  <span>Quay lại Cổng tham quan Bảo tàng</span>
-                </button>
-              )}
+          {/* Chip hiển thị danh tính tài khoản */}
+          <div className="access-account-chip">
+            <span className="access-user-avatar">
+              <User size={14} />
+            </span>
+            <span className="access-user-email" title={userDisplayName}>
+              {userDisplayName}
+            </span>
+            <span className="access-role-pill">Khách tham quan</span>
+          </div>
+
+          {/* Thông báo súc tích, ngắn gọn */}
+          <p className="access-card-desc">
+            Tài khoản này chưa được cấp quyền Quản trị viên để truy cập Bảng điều khiển hệ thống.
+          </p>
+
+          {/* Các nút điều hướng nhanh */}
+          <div className="access-card-actions">
+            {backHandler && (
               <button
                 type="button"
-                onClick={logout}
-                className="login-back-btn"
-                style={{ justifyContent: 'center', color: '#EF4444', padding: '10px 0' }}
+                className="access-btn-primary"
+                onClick={backHandler}
               >
-                <Lock size={14} />
-                <span>Đăng xuất tài khoản này</span>
+                <ArrowLeft size={16} />
+                <span>Về Cổng tham quan 360°</span>
               </button>
-            </div>
+            )}
+            <button
+              type="button"
+              onClick={logout}
+              className="access-btn-secondary"
+            >
+              <LogOut size={15} />
+              <span>Đăng xuất tài khoản</span>
+            </button>
           </div>
 
-          <div className="login-card-footer">
-            <span className="login-copyright">
-              {branding.museumName || 'Bảo tàng Lịch sử TP. Hồ Chí Minh'} &copy; 2026
-            </span>
+          {/* Chân trang nhã nhặn */}
+          <div className="access-card-footer">
+            <span>{branding.museumName || 'Bảo tàng Lịch sử TP. Hồ Chí Minh'} &copy; 2026</span>
           </div>
         </div>
       </div>
