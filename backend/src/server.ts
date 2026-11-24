@@ -199,8 +199,10 @@ app.use((req, res, next) => {
     const durationMs = Date.now() - start;
     const isMutation = ['POST', 'PUT', 'DELETE', 'PATCH'].includes(req.method);
     const isError = res.statusCode >= 400;
+    const isApiRoute = req.path.startsWith('/api/');
 
-    if ((isMutation || isError) && !req.path.startsWith('/api/system/logs')) {
+    // Chỉ ghi nhận nhật ký cho các route thuộc nghiệp vụ của bảo tàng (/api/...) và bỏ qua route log nội bộ
+    if (isApiRoute && (isMutation || isError) && !req.path.startsWith('/api/system/logs')) {
       let module: any = 'SYSTEM';
       if (req.path.startsWith('/api/rooms')) module = 'ROOMS';
       else if (req.path.startsWith('/api/artifacts')) module = 'ARTIFACTS';
