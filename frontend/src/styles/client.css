@@ -8598,9 +8598,42 @@ html {
     gap: 6px !important;
   }
 
-  /* Ẩn nút Cổ vật ở header trên mobile để tránh chật chội và đè nhau (đã tích hợp vào thanh điều khiển dưới đáy) */
+  /* Nút Cổ vật ở header trên mobile: chuyển thành icon tròn gọn gàng có huy hiệu số lượng */
   .client-tour-artifacts-pill-btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 34px !important;
+    height: 34px !important;
+    min-width: 34px !important;
+    padding: 0 !important;
+    border-radius: 50% !important;
+    position: relative !important;
+    background: rgba(13, 17, 23, 0.85) !important;
+    border: 1px solid rgba(212, 168, 106, 0.35) !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35) !important;
+  }
+
+  .client-tour-artifacts-pill-btn .artifacts-btn-label {
     display: none !important;
+  }
+
+  .client-tour-artifacts-pill-btn .artifacts-btn-mobile-badge {
+    display: inline-flex !important;
+    position: absolute !important;
+    top: -4px !important;
+    right: -4px !important;
+    min-width: 16px !important;
+    height: 16px !important;
+    padding: 0 4px !important;
+    border-radius: 8px !important;
+    font-size: 9.5px !important;
+    font-weight: 800 !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background: #D4A86A !important;
+    color: #000000 !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5) !important;
   }
 
   .client-tour-back-btn span {
@@ -8732,6 +8765,100 @@ html {
   touch-action: pan-y !important;
   -webkit-overflow-scrolling: touch !important;
   overscroll-behavior: contain !important;
+}
+
+/* ==========================================================================
+   FLOATING BOTTOM REOPEN DOCK (NÚT NỔI ĐÁY MÀN HÌNH MỞ LẠI DANH SÁCH CỔ VẬT)
+   ========================================================================== */
+.client-tour-bottom-reopen-dock {
+  position: fixed;
+  bottom: max(16px, calc(env(safe-area-inset-bottom, 16px) + 8px));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 115;
+  pointer-events: auto;
+  animation: clientFadeIn 0.25s ease-out;
+}
+
+.client-tour-bottom-dock-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px 8px 12px;
+  background: rgba(13, 17, 23, 0.92);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(212, 168, 106, 0.45);
+  border-radius: 30px;
+  color: #F8FAFC;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.65), 0 0 16px rgba(212, 168, 106, 0.2);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  outline: none;
+  white-space: nowrap;
+  font-family: inherit;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.client-tour-bottom-dock-btn:hover {
+  background: rgba(22, 28, 38, 0.96);
+  border-color: rgba(212, 168, 106, 0.7);
+  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.75), 0 0 22px rgba(212, 168, 106, 0.35);
+  transform: translateY(-2px);
+}
+
+.client-tour-bottom-dock-btn:active {
+  transform: translateY(0) scale(0.97);
+}
+
+.client-tour-bottom-dock-btn .dock-icon-circle {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: rgba(212, 168, 106, 0.18);
+  border: 1px solid rgba(212, 168, 106, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #D4A86A;
+  flex-shrink: 0;
+}
+
+.client-tour-bottom-dock-btn .dock-label-text {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #F1F5F9;
+  letter-spacing: 0.01em;
+}
+
+.client-tour-bottom-dock-btn .dock-count-badge {
+  font-size: 10.5px;
+  font-weight: 800;
+  padding: 1px 7px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #D4A86A 0%, #B45309 100%);
+  color: #0F172A;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+}
+
+.client-tour-bottom-dock-btn .dock-chevron-indicator {
+  color: #D4A86A;
+  transition: transform 0.2s ease;
+}
+
+.client-tour-bottom-dock-btn:hover .dock-chevron-indicator {
+  transform: translateY(-2px);
+}
+
+@media (max-width: 480px) {
+  .client-tour-bottom-dock-btn {
+    padding: 7px 14px 7px 10px;
+    gap: 6px;
+  }
+  .client-tour-bottom-dock-btn .dock-label-text {
+    font-size: 11.5px;
+  }
 }
 
 /* ==========================================================================

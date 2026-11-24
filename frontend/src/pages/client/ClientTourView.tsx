@@ -15,6 +15,7 @@ import {
   Globe,
   ChevronDown,
   ChevronRight,
+  ChevronUp,
   Info,
   X,
   Check,
@@ -1041,6 +1042,29 @@ export const ClientTourView: React.FC<ClientTourViewProps> = ({
         )}
       </div>
 
+      {/* NÚT NỔI Ở ĐÁY KHI KHUNG CỔ VẬT ĐANG THU GỌN (CHO CẢ MOBILE VÀ DESKTOP) */}
+      {!isArtifactsSidebarOpen && (
+        <div className="client-tour-bottom-reopen-dock">
+          <button
+            type="button"
+            onClick={() => setIsArtifactsSidebarOpen(true)}
+            className="client-tour-bottom-dock-btn"
+            title={t('tour.openArtifactsList', 'Mở danh sách cổ vật trưng bày')}
+          >
+            <div className="dock-icon-circle">
+              <Box size={15} />
+            </div>
+            <span className="dock-label-text">
+              {t('tour.artifactsInRoom', 'Cổ vật trong phòng')}
+            </span>
+            <span className="dock-count-badge">
+              {matchingArtifacts.length}
+            </span>
+            <ChevronUp size={15} className="dock-chevron-indicator" />
+          </button>
+        </div>
+      )}
+
       {/* LỚP PHỦ MỜ NỀN CHO MOBILE KHI MỞ DANH SÁCH CỔ VẬT (CHẠM VÀO ĐỂ ĐÓNG NGAY) */}
       {isArtifactsSidebarOpen && isMobileScreen && (
         <div
@@ -1143,15 +1167,17 @@ export const ClientTourView: React.FC<ClientTourViewProps> = ({
               onClick={() => setIsArtifactsSidebarOpen(false)}
               title="Thu gọn khung cổ vật"
               style={{
-                background: 'rgba(255, 255, 255, 0.06)',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
-                borderRadius: 6,
-                width: 28,
-                height: 28,
+                background: 'rgba(255, 255, 255, 0.08)',
+                border: '1px solid rgba(255, 255, 255, 0.15)',
+                borderRadius: 8,
+                width: 32,
+                height: 32,
+                minWidth: 32,
+                minHeight: 32,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: '#94A3B8',
+                color: '#CBD5E1',
                 cursor: 'pointer',
                 transition: 'all 0.15s ease',
                 flexShrink: 0
