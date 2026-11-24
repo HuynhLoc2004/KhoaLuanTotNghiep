@@ -40,7 +40,28 @@ export const ClientAIAssistantModal: React.FC<ClientAIAssistantModalProps> = ({
 }) => {
   const { branding } = useSystemBranding();
   const [inputText, setInputText] = useState('');
-  const [messages, setMessages] = useState<AIChatMessage[]>([]);
+
+  const createInitialMessage = (): AIChatMessage => ({
+    id: 'welcome-init',
+    role: 'model',
+    text: `Xin chào Quý khách! Tôi là Trợ lý Di sản Ảo của ${branding.museumName || branding.shortName || 'Bảo tàng Lịch sử TP. Hồ Chí Minh'}. Tôi có thể cung cấp tư liệu lịch sử hiện vật, hướng dẫn tham quan các gian phòng 360°, giải đáp thông tin bảo vật quốc gia và lịch mở cửa, giá vé. Quý khách muốn tìm hiểu điều gì hôm nay?`,
+    createdAt: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
+    suggestedQuestions: [
+      'Giá vé & giờ mở cửa tham quan?',
+      'Bảo tàng có những bảo vật quốc gia nào?',
+      'Khám phá gian phòng 360° tiêu biểu',
+      'Hướng dẫn đặt vé trực tuyến'
+    ]
+  });
+
+  const [messages, setMessages] = useState<AIChatMessage[]>(() => [createInitialMessage()]);
+
+  // Đảm bảo khi mở modal nếu chưa có tin nhắn thì luôn hiển thị lời chào đón và câu hỏi gợi ý
+  useEffect(() => {
+    if (isOpen && messages.length === 0) {
+      setMessages([createInitialMessage()]);
+    }
+  }, [isOpen, messages.length]);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [cooldownRemaining, setCooldownRemaining] = useState<number>(0);
@@ -193,12 +214,13 @@ export const ClientAIAssistantModal: React.FC<ClientAIAssistantModalProps> = ({
       {
         id: 'reset-' + Date.now(),
         role: 'model',
-        text: `Cuộc trò chuyện đã được làm mới. Tôi sẵn sàng hỗ trợ Quý khách giải đáp về ${branding.shortName || 'Bảo tàng Lịch sử'}.`,
+        text: `Cuộc trò chuyện đã được làm mới. Tôi sẵn sàng hỗ trợ Quý khách giải đáp mọi thông tin về ${branding.shortName || branding.museumName || 'Bảo tàng Lịch sử TP. Hồ Chí Minh'}. Quý khách cần tra cứu điều gì?`,
         createdAt: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
         suggestedQuestions: [
-          'Giá vé & giờ mở cửa?',
-          'Khám phá phòng 360° nổi bật',
-          'Tra cứu bảo vật quốc gia'
+          'Giá vé & giờ mở cửa tham quan?',
+          'Bảo tàng có những bảo vật quốc gia nào?',
+          'Khám phá gian phòng 360° tiêu biểu',
+          'Hướng dẫn đặt vé trực tuyến'
         ]
       }
     ]);
