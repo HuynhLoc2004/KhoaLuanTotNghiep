@@ -208,13 +208,8 @@ authRouter.post('/send-otp', async (req: Request, res: Response) => {
 
     const cleanEmail = email.trim().toLowerCase();
 
-    // KIỂM TRA BẢO MẬT: Chỉ cho phép Email Admin lấy từ biến môi trường (không fix cứng)
-    if (!isAllowedAdminEmail(cleanEmail)) {
-      return res.status(403).json({
-        success: false,
-        message: 'Từ chối truy cập: Địa chỉ email này không có quyền Quản trị viên (Admin) của hệ thống!'
-      });
-    }
+    // Xác định vai trò: Admin nếu nằm trong danh sách cấu hình, ngược lại là Khách tham quan (Client)
+    const isAdmin = isAllowedAdminEmail(cleanEmail);
 
     // KIỂM TRA CHỐNG SPAM (60s COOLDOWN TRÊN REDIS)
     const redisCooldown = await checkOtpCooldown(cleanEmail);
@@ -226,28 +221,30 @@ authRouter.post('/send-otp', async (req: Request, res: Response) => {
       });
     }
 
-    // Đảm bảo tài khoản Quản trị viên tồn tại trong CSDL PostgreSQL (Primary) & MongoDB (Mirror)
+    // Đảm bảo tài khoản tồn tại trong CSDL PostgreSQL (Primary) & MongoDB (Mirror)
     let user: any = await User.findOne({ email: cleanEmail });
     if (!user) {
-      await seedDefaultAdmin();
-      user = await User.findOne({ email: cleanEmail });
+      if (isAdmin) {
+        await seedDefaultAdmin();
+        user = await User.findOne({ email: cleanEmail });
+      }
       if (!user) {
         user = await User.create({
-          username: cleanEmail.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '') || 'admin',
+          username: cleanEmail.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '') || (isAdmin ? 'admin' : 'visitor'),
           email: cleanEmail,
           password: 'NO_PASSWORD_OTP_ONLY',
-          fullName: 'Quản trị viên Bảo tàng Lịch sử TP.HCM',
-          role: 'admin',
-          permissions: ['*'],
+          fullName: isAdmin ? 'Quản trị viên Bảo tàng Lịch sử TP.HCM' : (cleanEmail.split('@')[0] || 'Khách tham quan Bảo tàng'),
+          role: isAdmin ? 'admin' : 'client',
+          permissions: isAdmin ? ['*'] : ['rooms:read', 'artifacts:read', 'tour:view'],
           isActive: true
         });
       }
-    }
-
-    if (user.role !== 'admin') {
-      user.role = 'admin';
-      user.permissions = ['*'];
-      await user.save();
+    } else {
+      if (isAdmin && user.role !== 'admin') {
+        user.role = 'admin';
+        user.permissions = ['*'];
+        await user.save();
+      }
     }
 
     // Đồng bộ user sang PostgreSQL
@@ -276,6 +273,13 @@ authRouter.post('/send-otp', async (req: Request, res: Response) => {
       isUsed: false
     });
 
+    const emailHeaderSub = isAdmin
+      ? 'Hệ Thống Quản Trị Không Gian Trưng Bày & Tour 360°'
+      : 'Cổng Thông Tin Tham Quan & Tour 360° Bảo Tàng';
+    const emailIntro = isAdmin
+      ? 'Bạn (hoặc người quản trị hệ thống) vừa yêu cầu mã xác thực OTP để đăng nhập vào <strong>Bảng Điều Khiển Quản Trị Bảo Tàng</strong>.'
+      : 'Bạn vừa yêu cầu mã xác thực OTP để đăng nhập vào <strong>Hệ Thống Tham Quan Bảo Tàng Lịch Sử TP. Hồ Chí Minh</strong>.';
+
     // Soạn email theo phong cách Di Sản Bảo Tàng sang trọng
     const html = `
       <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 560px; margin: 0 auto; background-color: #1A1715; color: #EDE5DF; border-radius: 12px; overflow: hidden; border: 1px solid rgba(212, 168, 106, 0.4); box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
@@ -286,7 +290,7 @@ authRouter.post('/send-otp', async (req: Request, res: Response) => {
             Bảo Tàng Lịch Sử TP. Hồ Chí Minh
           </h1>
           <p style="color: #A3978E; font-size: 12px; margin: 6px 0 0 0; letter-spacing: 0.2px;">
-            Hệ Thống Quản Trị Không Gian Trưng Bày & Tour 360°
+            ${emailHeaderSub}
           </p>
         </div>
 
@@ -296,7 +300,7 @@ authRouter.post('/send-otp', async (req: Request, res: Response) => {
             Xin chào <strong>${user.fullName || user.username}</strong>,
           </p>
           <p style="font-size: 13.5px; line-height: 1.6; color: #D5CBC2;">
-            Bạn (hoặc người quản trị hệ thống) vừa yêu cầu mã xác thực OTP để đăng nhập vào <strong>Bảng Điều Khiển Quản Trị Bảo Tàng</strong>.
+            ${emailIntro}
           </p>
 
           <!-- Khối hiển thị mã OTP -->
@@ -374,13 +378,8 @@ authRouter.post('/verify-otp', async (req: Request, res: Response) => {
     const cleanEmail = email.trim().toLowerCase();
     const cleanOtp = otp.toString().trim();
 
-    // KIỂM TRA BẢO MẬT: Chỉ cho phép Email Admin lấy từ biến môi trường
-    if (!isAllowedAdminEmail(cleanEmail)) {
-      return res.status(403).json({
-        success: false,
-        message: 'Từ chối: Địa chỉ email này không có quyền Quản trị viên (Admin) để truy cập hệ thống.'
-      });
-    }
+    // Xác định vai trò: Admin nếu nằm trong danh sách cấu hình
+    const isAdmin = isAllowedAdminEmail(cleanEmail);
 
     let isOtpValid = false;
 
@@ -454,22 +453,49 @@ authRouter.post('/verify-otp', async (req: Request, res: Response) => {
     // Đồng bộ trạng thái với MongoDB User
     let user = await User.findOne({ email: cleanEmail });
     if (!user) {
-      await seedDefaultAdmin();
-      user = await User.findOne({ email: cleanEmail });
-    }
-
-    if (user) {
+      if (isAdmin) {
+        await seedDefaultAdmin();
+        user = await User.findOne({ email: cleanEmail });
+      }
+      if (!user) {
+        user = await User.create({
+          username: cleanEmail.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '') || (isAdmin ? 'admin' : 'visitor'),
+          email: cleanEmail,
+          password: 'NO_PASSWORD_OTP_ONLY',
+          fullName: isAdmin ? 'Quản trị viên Bảo tàng Lịch sử TP.HCM' : (cleanEmail.split('@')[0] || 'Khách tham quan Bảo tàng'),
+          role: isAdmin ? 'admin' : 'client',
+          permissions: isAdmin ? ['*'] : ['rooms:read', 'artifacts:read', 'tour:view'],
+          isActive: true
+        });
+        await pgUpsertUser(user);
+      }
+    } else {
+      if (isAdmin && user.role !== 'admin') {
+        user.role = 'admin';
+        user.permissions = ['*'];
+      }
       user.lastLogin = new Date();
       await user.save();
     }
 
+    // Xác định vai trò chuẩn
+    const isSuperAdmin = isAdmin ||
+      user?.role === 'admin' ||
+      pgUser?.role_id === 'role-superadmin' ||
+      pgUser?.role_name === 'Quản Trị Viên Tối Cao';
+
+    const effectiveRole = isSuperAdmin ? 'admin' : (user?.role || 'client');
+    const effectivePermissions = isSuperAdmin
+      ? ['*']
+      : (pgUser?.permissions || user?.permissions || ['rooms:read', 'artifacts:read', 'tour:view']);
+
     const payloadUser = {
-      id: pgUser?.id || user?._id || 'admin',
-      username: pgUser?.username || user?.username || 'admin',
+      id: pgUser?.id || user?._id?.toString() || 'user',
+      username: pgUser?.username || user?.username || cleanEmail.split('@')[0] || 'visitor',
       email: cleanEmail,
-      fullName: pgUser?.full_name || user?.fullName || 'Quản trị viên Bảo tàng',
-      role: 'admin',
-      permissions: ['*']
+      fullName: pgUser?.full_name || user?.fullName || (isSuperAdmin ? 'Quản trị viên Bảo tàng' : 'Khách tham quan'),
+      role: effectiveRole,
+      permissions: effectivePermissions
     };
 
     const jti = crypto.randomUUID();
@@ -482,26 +508,30 @@ authRouter.post('/verify-otp', async (req: Request, res: Response) => {
     // Ghi Refresh Token vào HttpOnly Cookie
     setRefreshTokenCookie(res, req, refreshToken);
 
-    // Đồng bộ cookie cho Nginx proxy (nhúng Grafana)
-    const isHttps = req.secure || req.headers['x-forwarded-proto'] === 'https';
-    res.cookie('museum_admin_token', accessToken, {
-      httpOnly: false,
-      secure: isHttps,
-      sameSite: 'lax',
-      maxAge: 15 * 60 * 1000,
-      path: '/'
-    });
+    // Đồng bộ cookie cho Nginx proxy (nếu là admin)
+    if (isSuperAdmin) {
+      const isHttps = req.secure || req.headers['x-forwarded-proto'] === 'https';
+      res.cookie('museum_admin_token', accessToken, {
+        httpOnly: false,
+        secure: isHttps,
+        sameSite: 'lax',
+        maxAge: 15 * 60 * 1000,
+        path: '/'
+      });
+    }
 
     // Ghi nhật ký kiểm toán vào PostgreSQL
     await logAudit('LOGIN_SUCCESS', 'auth', {
       userId: payloadUser.id,
       username: payloadUser.username,
-      details: { email: cleanEmail, ip: req.ip }
+      details: { email: cleanEmail, role: effectiveRole, ip: req.ip }
     });
 
     return res.json({
       success: true,
-      message: 'Đăng nhập thành công với quyền Quản trị viên (Cơ chế 2 Token: Access 15m + Refresh 7d)',
+      message: isSuperAdmin
+        ? 'Đăng nhập thành công với quyền Quản trị viên (Cơ chế 2 Token: Access 15m + Refresh 7d)'
+        : 'Đăng nhập thành công với quyền Khách tham quan',
       token: accessToken,
       user: payloadUser
     });
@@ -720,10 +750,11 @@ authRouter.get('/me', authenticate, async (req: AuthRequest, res: Response) => {
       `, [userId, userEmail]);
       if (pgRes.rows.length > 0) {
         const u = pgRes.rows[0];
-        const isSuperAdmin = u.role_id === 'role-superadmin' || u.role_id === 'admin' || !u.role_id ||
+        const isSuperAdmin = isAllowedAdminEmail(u.email) ||
+          u.role_id === 'role-superadmin' || u.role_id === 'admin' ||
           (Array.isArray(u.permissions) && u.permissions.includes('*')) ||
           (typeof u.permissions === 'string' && u.permissions.includes('*'));
-        const standardRole = isSuperAdmin ? 'admin' : (u.role_id || 'admin');
+        const standardRole = isSuperAdmin ? 'admin' : (u.role_id === 'role-viewer' ? 'client' : (u.role_id || 'client'));
 
         return res.json({
           success: true,
@@ -733,9 +764,9 @@ authRouter.get('/me', authenticate, async (req: AuthRequest, res: Response) => {
             email: u.email,
             fullName: u.full_name || u.username,
             role: standardRole,
-            roleName: u.role_name || 'Quản trị viên',
-            roleId: u.role_id || 'role-superadmin',
-            permissions: u.permissions || ['*'],
+            roleName: u.role_name || (isSuperAdmin ? 'Quản trị viên' : 'Khách tham quan'),
+            roleId: u.role_id || (isSuperAdmin ? 'role-superadmin' : 'role-viewer'),
+            permissions: u.permissions || (isSuperAdmin ? ['*'] : ['rooms:read', 'artifacts:read', 'tour:view']),
             isActive: u.is_active
           }
         });
@@ -751,6 +782,7 @@ authRouter.get('/me', authenticate, async (req: AuthRequest, res: Response) => {
 
     const mongoUser = await User.findOne(query).select('-password');
     if (mongoUser) {
+      const isMongoAdmin = isAllowedAdminEmail(mongoUser.email) || mongoUser.role === 'admin';
       return res.json({
         success: true,
         user: {
@@ -758,8 +790,8 @@ authRouter.get('/me', authenticate, async (req: AuthRequest, res: Response) => {
           username: mongoUser.username,
           email: mongoUser.email,
           fullName: mongoUser.fullName || mongoUser.username,
-          role: mongoUser.role || 'admin',
-          permissions: mongoUser.permissions || ['*'],
+          role: isMongoAdmin ? 'admin' : (mongoUser.role || 'client'),
+          permissions: mongoUser.permissions || (isMongoAdmin ? ['*'] : ['rooms:read', 'artifacts:read', 'tour:view']),
           isActive: mongoUser.isActive
         }
       });

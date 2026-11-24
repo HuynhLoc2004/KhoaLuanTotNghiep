@@ -15,13 +15,32 @@ import {
 
 interface AdminLoginPageProps {
   onBackToHome?: () => void;
+  onBackToClient?: () => void;
+  onLoginSuccess?: () => void;
 }
 
-export const AdminLoginPage: React.FC<AdminLoginPageProps> = ({ onBackToHome }) => {
-  const { sendOtp, loginWithOtp } = useAuth();
+export const AdminLoginPage: React.FC<AdminLoginPageProps> = ({
+  onBackToHome,
+  onBackToClient,
+  onLoginSuccess
+}) => {
+  const { user, sendOtp, loginWithOtp, logout } = useAuth();
   const { showToast } = useToast();
   const { branding } = useSystemBranding();
   const [logoError, setLogoError] = useState(false);
+
+  const backHandler = onBackToClient || onBackToHome;
+
+  const isUserAdmin = Boolean(
+    user && (
+      user.role === 'admin' ||
+      user.role === 'role-superadmin' ||
+      (user as any).roleId === 'role-superadmin' ||
+      user.role?.toLowerCase().includes('admin') ||
+      user.role?.toLowerCase().includes('quản trị') ||
+      user.permissions?.includes('*')
+    )
+  );
 
   useEffect(() => {
     setLogoError(false);
@@ -98,7 +117,25 @@ export const AdminLoginPage: React.FC<AdminLoginPageProps> = ({ onBackToHome }) 
     try {
       setIsVerifyingOtp(true);
       await loginWithOtp(email.trim(), otpCode);
-      showToast('Đăng nhập quản trị thành công', 'success');
+      const savedUserStr = localStorage.getItem('museum_admin_user');
+      const savedUser = savedUserStr ? JSON.parse(savedUserStr) : null;
+      const isRoleAdmin = Boolean(
+        savedUser && (
+          savedUser.role === 'admin' ||
+          savedUser.role === 'role-superadmin' ||
+          savedUser.roleId === 'role-superadmin' ||
+          savedUser.permissions?.includes('*') ||
+          savedUser.role?.toLowerCase().includes('admin') ||
+          savedUser.role?.toLowerCase().includes('quản trị')
+        )
+      );
+
+      if (isRoleAdmin) {
+        showToast('Đăng nhập quản trị thành công', 'success');
+        if (onLoginSuccess) onLoginSuccess();
+      } else {
+        showToast('Tài khoản này là Khách tham quan, không có quyền truy cập trang Quản trị', 'warning');
+      }
     } catch (err: any) {
       showToast(err.message || 'Mã xác thực không chính xác hoặc đã hết hạn', 'error');
     } finally {
@@ -176,6 +213,60 @@ export const AdminLoginPage: React.FC<AdminLoginPageProps> = ({ onBackToHome }) 
       inputRefs.current[nextIndex]?.focus();
     }
   };
+
+  // Nếu người dùng đã đăng nhập nhưng không có quyền Admin (Tài khoản Client/Visitor)
+  if (user && !isUserAdmin) {
+    return (
+      <div className="admin-login-wrapper">
+        <div className="admin-login-card" style={{ maxWidth: 460 }}>
+          <div className="login-card-header">
+            <div className="login-badge-secure" style={{ background: 'rgba(239, 68, 68, 0.15)', borderColor: 'rgba(239, 68, 68, 0.4)', color: '#EF4444' }}>
+              <Lock size={13} />
+              <span>Từ chối quyền truy cập</span>
+            </div>
+            <h2 className="login-title" style={{ marginTop: 12 }}>Khu vực Quản trị</h2>
+            <p className="login-subtitle">
+              Tài khoản <strong>{user.email || user.username}</strong> hiện có vai trò <strong>Khách tham quan</strong>.
+            </p>
+          </div>
+
+          <div className="login-card-body" style={{ textAlign: 'center', padding: '10px 24px 24px' }}>
+            <p style={{ color: 'var(--c-text-muted)', fontSize: '13px', lineHeight: 1.6, marginBottom: 24 }}>
+              Trang này chỉ dành cho Ban Quản trị và Cán bộ chuyên môn Bảo tàng Lịch sử TP. Hồ Chí Minh. Khách tham quan vui lòng sử dụng Cổng thông tin tham quan để xem triển lãm 360°, nghe thuyết minh AI và tra cứu hiện vật.
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {backHandler && (
+                <button
+                  type="button"
+                  className="login-submit-btn"
+                  onClick={backHandler}
+                >
+                  <ArrowLeft size={16} />
+                  <span>Quay lại Cổng tham quan Bảo tàng</span>
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={logout}
+                className="login-back-btn"
+                style={{ justifyContent: 'center', color: '#EF4444', padding: '10px 0' }}
+              >
+                <Lock size={14} />
+                <span>Đăng xuất tài khoản này</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="login-card-footer">
+            <span className="login-copyright">
+              {branding.museumName || 'Bảo tàng Lịch sử TP. Hồ Chí Minh'} &copy; 2026
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="admin-login-wrapper">
@@ -336,10 +427,10 @@ export const AdminLoginPage: React.FC<AdminLoginPageProps> = ({ onBackToHome }) 
 
         {/* Footer trang nhã */}
         <div className="login-card-footer">
-          {onBackToHome && (
+          {backHandler && (
             <button
               type="button"
-              onClick={onBackToHome}
+              onClick={backHandler}
               className="login-back-btn"
             >
               <ArrowLeft size={13} />
