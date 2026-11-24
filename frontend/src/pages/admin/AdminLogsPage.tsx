@@ -7,7 +7,10 @@ import {
   ChevronRight,
   Copy,
   Check,
-  X
+  X,
+  Trash2,
+  RotateCcw,
+  AlertTriangle
 } from 'lucide-react';
 import { api } from '../../services/api';
 import { SystemLogItem, SystemLogStats, LogLevel } from '../../types';
@@ -58,6 +61,11 @@ export const AdminLogsPage: React.FC = () => {
   const [isCopied, setIsCopied] = useState<boolean>(false);
   const [exporting, setExporting] = useState<boolean>(false);
 
+  // Modal dọn dẹp nhật ký (Clear Logs)
+  const [isClearModalOpen, setIsClearModalOpen] = useState<boolean>(false);
+  const [clearScope, setClearScope] = useState<'warn_only' | 'all' | 'non_error'>('warn_only');
+  const [clearing, setClearing] = useState<boolean>(false);
+
   // Chống đóng nhầm modal khi vuốt chuột hoặc scroll trượt ra ngoài
   const inspectorBackdropRef = React.useRef(false);
 
@@ -75,7 +83,9 @@ export const AdminLogsPage: React.FC = () => {
     if (dateRange === 'today') {
       const start = new Date();
       start.setHours(0, 0, 0, 0);
-      return { startDate: start.toISOString() };
+      const end = new Date();
+      end.setHours(23, 59, 59, 999);
+      return { startDate: start.toISOString(), endDate: end.toISOString() };
     }
     if (dateRange === '7d') {
       const start = new Date();
@@ -220,6 +230,47 @@ export const AdminLogsPage: React.FC = () => {
     } finally {
       setExporting(false);
     }
+  };
+
+  // Dọn dẹp nhật ký hệ thống
+  const handleClearLogs = async () => {
+    setClearing(true);
+    try {
+      const res = await api.clearSystemLogs(clearScope);
+      showToast(res.message || 'Đã dọn dẹp nhật ký thành công', 'success');
+      setIsClearModalOpen(false);
+      fetchLogs(true);
+      fetchStats();
+    } catch (err: any) {
+      showToast(err.message || 'Lỗi khi dọn dẹp nhật ký', 'error');
+    } finally {
+      setClearing(false);
+    }
+  };
+
+  // Xóa đơn lẻ 1 bản ghi nhật ký
+  const handleDeleteSingleLog = async (id: string) => {
+    if (!window.confirm('Bạn có chắc chắn muốn xóa vĩnh viễn bản ghi nhật ký này?')) return;
+    try {
+      await api.deleteSystemLog(id);
+      showToast('Đã xóa bản ghi nhật ký thành công', 'success');
+      setSelectedLog(null);
+      fetchLogs(true);
+      fetchStats();
+    } catch (err: any) {
+      showToast(err.message || 'Lỗi khi xóa bản ghi nhật ký', 'error');
+    }
+  };
+
+  // Đặt lại toàn bộ bộ lọc
+  const handleResetFilters = () => {
+    setSearchInput('');
+    setSearchTerm('');
+    setSelectedModule('all');
+    setSelectedLevel('all');
+    setDateRange('all');
+    setHasErrorOnly(false);
+    setPage(1);
   };
 
   // Định dạng thời gian chuẩn
@@ -368,6 +419,17 @@ export const AdminLogsPage: React.FC = () => {
             <Download size={13} />
             <span>{exporting ? 'Đang xuất...' : 'Xuất JSON'}</span>
           </button>
+
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            onClick={() => setIsClearModalOpen(true)}
+            title="Dọn dẹp các bản ghi nhật ký rác hoặc cảnh báo bot"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: '#f87171' }}
+          >
+            <Trash2 size={13} />
+            <span>Dọn dẹp</span>
+          </button>
         </div>
       </div>
 
@@ -484,9 +546,24 @@ export const AdminLogsPage: React.FC = () => {
             setPage(1);
           }}
           title="Lọc nhanh các bản ghi có lỗi hoặc sự cố"
+          style={{ whiteSpace: 'nowrap', flexShrink: 0 }}
         >
           <span>{hasErrorOnly ? 'Đang lọc: Chỉ lỗi' : 'Chỉ sự cố & lỗi'}</span>
         </button>
+
+        {/* Nút Đặt lại tiêu chí lọc */}
+        {(searchInput || selectedModule !== 'all' || selectedLevel !== 'all' || dateRange !== 'all' || hasErrorOnly) && (
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            onClick={handleResetFilters}
+            title="Đặt lại toàn bộ tiêu chí lọc về mặc định"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap', flexShrink: 0 }}
+          >
+            <RotateCcw size={13} />
+            <span>Đặt lại</span>
+          </button>
+        )}
       </div>
 
       {/* 4. BẢNG HIỂN THỊ DANH SÁCH NHẬT KÝ (MƯỢT MÀ, KHÔNG GIẬT KHUNG HÌNH) */}
@@ -756,13 +833,182 @@ export const AdminLogsPage: React.FC = () => {
             </div>
 
             {/* Modal Footer */}
-            <div style={{ padding: '12px 20px', borderTop: '1px solid var(--border-color)', display: 'flex', justifyContent: 'flex-end', background: 'rgba(0,0,0,0.08)', flexShrink: 0 }}>
+            <div style={{ padding: '12px 20px', borderTop: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(0,0,0,0.08)', flexShrink: 0 }}>
+              <button
+                type="button"
+                className="btn btn-sm"
+                onClick={() => handleDeleteSingleLog(selectedLog._id)}
+                title="Xóa vĩnh viễn bản ghi nhật ký này"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  color: '#ef4444',
+                  backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                  border: '1px solid rgba(239, 68, 68, 0.3)'
+                }}
+              >
+                <Trash2 size={13} />
+                <span>Xóa bản ghi này</span>
+              </button>
+
               <button
                 type="button"
                 className="btn btn-secondary btn-sm"
                 onClick={() => setSelectedLog(null)}
               >
                 Đóng
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL DỌN DẸP NHẬT KÝ HỆ THỐNG */}
+      {isClearModalOpen && (
+        <div
+          className="modal-backdrop"
+          onClick={() => setIsClearModalOpen(false)}
+          style={{ zIndex: 1100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+        >
+          <div
+            className="modal-card"
+            style={{ width: '100%', maxWidth: 480, background: 'var(--bg-card, #1e1e24)', borderRadius: 10, border: '1px solid var(--border-color)', overflow: 'hidden' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ width: 32, height: 32, borderRadius: 8, backgroundColor: 'rgba(239, 68, 68, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ef4444' }}>
+                  <Trash2 size={16} />
+                </div>
+                <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: 'var(--text-main)' }}>Dọn dẹp nhật ký hệ thống</h3>
+              </div>
+              <button
+                type="button"
+                className="btn-close-modal"
+                onClick={() => setIsClearModalOpen(false)}
+                disabled={clearing}
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div style={{ padding: '20px' }}>
+              <p style={{ margin: '0 0 16px 0', fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.5 }}>
+                Chọn phạm vi nhật ký bạn muốn làm sạch. Hành động này không thể hoàn tác sau khi đã thực hiện.
+              </p>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <label
+                  style={{
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: 12,
+                    padding: '12px 14px',
+                    borderRadius: 8,
+                    border: `1px solid ${clearScope === 'warn_only' ? 'var(--primary, #d97706)' : 'var(--border-color)'}`,
+                    backgroundColor: clearScope === 'warn_only' ? 'rgba(217, 119, 6, 0.08)' : 'rgba(0,0,0,0.1)',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <input
+                    type="radio"
+                    name="clearScope"
+                    value="warn_only"
+                    checked={clearScope === 'warn_only'}
+                    onChange={() => setClearScope('warn_only')}
+                    style={{ marginTop: 3 }}
+                  />
+                  <div>
+                    <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text-main)' }}>
+                      Chỉ xóa các cảnh báo & lượt quét bot (WARN)
+                    </div>
+                    <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
+                      Khuyên dùng: Dọn sạch các cảnh báo do bot internet quét link rác mà vẫn giữ nguyên lịch sử hoạt động khác.
+                    </div>
+                  </div>
+                </label>
+
+                <label
+                  style={{
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: 12,
+                    padding: '12px 14px',
+                    borderRadius: 8,
+                    border: `1px solid ${clearScope === 'non_error' ? 'var(--primary, #d97706)' : 'var(--border-color)'}`,
+                    backgroundColor: clearScope === 'non_error' ? 'rgba(217, 119, 6, 0.08)' : 'rgba(0,0,0,0.1)',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <input
+                    type="radio"
+                    name="clearScope"
+                    value="non_error"
+                    checked={clearScope === 'non_error'}
+                    onChange={() => setClearScope('non_error')}
+                    style={{ marginTop: 3 }}
+                  />
+                  <div>
+                    <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text-main)' }}>
+                      Xóa tất cả (Giữ lại nhật ký sự cố ERROR)
+                    </div>
+                    <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
+                      Làm sạch các bản ghi thông tin và cảnh báo, nhưng vẫn lưu lại các lỗi để phục vụ rà soát kỹ thuật.
+                    </div>
+                  </div>
+                </label>
+
+                <label
+                  style={{
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: 12,
+                    padding: '12px 14px',
+                    borderRadius: 8,
+                    border: `1px solid ${clearScope === 'all' ? '#ef4444' : 'var(--border-color)'}`,
+                    backgroundColor: clearScope === 'all' ? 'rgba(239, 68, 68, 0.08)' : 'rgba(0,0,0,0.1)',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <input
+                    type="radio"
+                    name="clearScope"
+                    value="all"
+                    checked={clearScope === 'all'}
+                    onChange={() => setClearScope('all')}
+                    style={{ marginTop: 3 }}
+                  />
+                  <div>
+                    <div style={{ fontSize: 13.5, fontWeight: 600, color: '#ef4444' }}>
+                      Xóa sạch toàn bộ nhật ký hệ thống
+                    </div>
+                    <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
+                      Xóa toàn bộ bản ghi nhật ký trong cơ sở dữ liệu và đặt các chỉ số thống kê về 0.
+                    </div>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            <div style={{ padding: '14px 20px', borderTop: '1px solid var(--border-color)', display: 'flex', justifyContent: 'flex-end', gap: 10, background: 'rgba(0,0,0,0.08)' }}>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => setIsClearModalOpen(false)}
+                disabled={clearing}
+              >
+                Hủy bỏ
+              </button>
+              <button
+                type="button"
+                className="btn btn-danger btn-sm"
+                onClick={handleClearLogs}
+                disabled={clearing}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, backgroundColor: '#dc2626', borderColor: '#b91c1c' }}
+              >
+                <Trash2 size={13} />
+                <span>{clearing ? 'Đang dọn dẹp...' : 'Xác nhận dọn dẹp'}</span>
               </button>
             </div>
           </div>

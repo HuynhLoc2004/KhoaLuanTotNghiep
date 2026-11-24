@@ -341,6 +341,52 @@ logsRouter.post('/cleanup/archive-and-prune', async (req: Request, res: Response
 });
 
 /**
+ * DELETE /api/system/logs/clear
+ * Xóa sạch toàn bộ nhật ký hoặc xóa theo mức độ (Yêu cầu quyền Admin)
+ */
+logsRouter.delete('/clear', async (req: Request, res: Response) => {
+  try {
+    const { scope = 'all' } = req.body;
+    let filter: any = {};
+
+    if (scope === 'warn_only') {
+      filter = { level: 'WARN' };
+    } else if (scope === 'non_error') {
+      filter = { level: { $ne: 'ERROR' } };
+    } else {
+      // Xóa tất cả
+      filter = {};
+    }
+
+    const result = await SystemLogModel.deleteMany(filter);
+
+    res.json({
+      success: true,
+      message: `Đã xóa thành công ${result.deletedCount} bản ghi nhật ký`,
+      deletedCount: result.deletedCount
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: 'Lỗi dọn dẹp nhật ký: ' + (err.message || '') });
+  }
+});
+
+/**
+ * DELETE /api/system/logs/:id
+ * Xóa một bản ghi nhật ký cụ thể theo ID
+ */
+logsRouter.delete('/:id', async (req: Request, res: Response) => {
+  try {
+    const log = await SystemLogModel.findByIdAndDelete(req.params.id);
+    if (!log) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy bản ghi nhật ký' });
+    }
+    res.json({ success: true, message: 'Đã xóa bản ghi nhật ký thành công' });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: 'Lỗi xóa bản ghi: ' + (err.message || '') });
+  }
+});
+
+/**
  * DELETE /api/system/logs/cleanup (Tương thích ngược)
  */
 logsRouter.delete('/cleanup', async (req: Request, res: Response) => {

@@ -6728,11 +6728,14 @@ select option {
 }
 
 .filter-select {
-  flex: 0 1 auto;
-  min-width: 135px;
-  max-width: 200px;
+  flex: 0 1 auto !important;
+  width: auto !important;
+  min-width: 140px;
+  max-width: 195px;
   font-size: 12.5px;
   padding: 6px 10px;
+  background-color: var(--bg-subtle, #1c1917) !important;
+  color: var(--text-main, #f8fafc);
 }
 
 .clear-search-btn {
@@ -7424,14 +7427,15 @@ select option {
 
   .filter-select {
     flex: 1 1 calc(50% - 4px) !important;
+    width: calc(50% - 4px) !important;
     max-width: none !important;
     min-width: 0 !important;
     font-size: 12px !important;
     padding: 7px 8px !important;
   }
 
-  .logs-filter-bar button {
-    flex: 1 1 100% !important;
+  .logs-filter-bar > button {
+    flex: 1 1 calc(50% - 4px) !important;
     justify-content: center;
     padding: 8px !important;
   }

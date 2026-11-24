@@ -1540,6 +1540,26 @@ export const api = {
     return json;
   },
 
+  async clearSystemLogs(scope: 'all' | 'warn_only' | 'non_error' = 'all'): Promise<{ success: boolean; message: string; deletedCount: number }> {
+    const res = await fetch(`${API_BASE}/system/logs/clear`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(true),
+      body: JSON.stringify({ scope })
+    });
+    const json = await safeJson(res, 'Không thể xóa nhật ký hệ thống');
+    if (!res.ok || !json.success) throw new Error(json.message || 'Lỗi xóa nhật ký hệ thống');
+    return json;
+  },
+
+  async deleteSystemLog(id: string): Promise<void> {
+    const res = await fetch(`${API_BASE}/system/logs/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(true)
+    });
+    const json = await safeJson(res, 'Không thể xóa bản ghi nhật ký');
+    if (!res.ok || !json.success) throw new Error(json.message || 'Lỗi xóa bản ghi nhật ký');
+  },
+
   async exportSystemLogs(params?: { level?: string; module?: string; limit?: number; lang?: string }): Promise<void> {
     const query = new URLSearchParams();
     if (params?.level && params.level !== 'all') query.append('level', params.level);
