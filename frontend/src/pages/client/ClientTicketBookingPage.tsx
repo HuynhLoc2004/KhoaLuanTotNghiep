@@ -368,7 +368,7 @@ export const ClientTicketBookingPage: React.FC<ClientTicketBookingPageProps> = (
         onOpenQRScanner={onOpenQRScanner}
       />
 
-      <main className="client-subpage" style={{ flex: 1, minHeight: 'calc(100vh - 80px)', paddingBottom: '72px' }}>
+      <main className="client-subpage" style={{ flex: 1, minHeight: 'calc(100vh - 80px)', paddingBottom: '120px' }}>
         <div className="client-container">
           {/* Header & Breadcrumb đồng bộ chuẩn các subpage */}
           <div className="client-subpage-hero" style={{ padding: '0 0 24px 0' }}>

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import './styles/theme.css';
 import './styles/admin.css';
 import './styles/artifacts.css';
@@ -41,6 +41,75 @@ import { GaussianSplatRoomViewer } from './components/GaussianSplatRoomViewer';
 import { ClientAIAssistantModal } from './components/client/ClientAIAssistantModal';
 import { UserProfilePage } from './pages/client/UserProfilePage';
 import { ClientTicketBookingPage } from './pages/client/ClientTicketBookingPage';
+
+interface DraggableFloatingAIButtonProps {
+  onClick: () => void;
+}
+
+const DraggableFloatingAIButton: React.FC<DraggableFloatingAIButtonProps> = ({ onClick }) => {
+  const [positionY, setPositionY] = useState<number | null>(null);
+  const dragStartY = useRef<number | null>(null);
+  const startPosY = useRef<number | null>(null);
+  const isDragging = useRef<boolean>(false);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    dragStartY.current = e.touches[0].clientY;
+    const btnRect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    startPosY.current = btnRect.top;
+    isDragging.current = false;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (dragStartY.current === null || startPosY.current === null) return;
+    const deltaY = e.touches[0].clientY - dragStartY.current;
+    if (Math.abs(deltaY) > 5) {
+      isDragging.current = true;
+    }
+    const maxTop = window.innerHeight - 70;
+    const minTop = 60;
+    const newY = Math.max(minTop, Math.min(maxTop, startPosY.current + deltaY));
+    setPositionY(newY);
+  };
+
+  const handleTouchEnd = () => {
+    dragStartY.current = null;
+    startPosY.current = null;
+  };
+
+  const handleClick = (e: React.MouseEvent) => {
+    if (isDragging.current) {
+      e.preventDefault();
+      e.stopPropagation();
+      isDragging.current = false;
+      return;
+    }
+    onClick();
+  };
+
+  return (
+    <button
+      type="button"
+      className="client-floating-ai-btn"
+      onClick={handleClick}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+      style={
+        positionY !== null
+          ? { top: `${positionY}px`, bottom: 'auto' }
+          : undefined
+      }
+      title="Trò chuyện và hỏi đáp cùng Trợ lý Di sản Ảo AI (Chạm để mở, vuốt kéo để di chuyển)"
+      aria-label="Trợ lý AI"
+    >
+      <div className="client-floating-ai-icon-wrap">
+        <Bot size={20} />
+        <span className="client-floating-ai-pulse" />
+      </div>
+      <span className="client-floating-ai-label">Trợ lý AI</span>
+    </button>
+  );
+};
 
 const AppContent: React.FC = () => {
   const { user, isLoading: isAuthLoading } = useAuth();
@@ -722,19 +791,7 @@ const AppContent: React.FC = () => {
 
         {/* Nút nổi Trợ lý Di sản Ảo AI ở góc dưới màn hình - ẩn khi modal trợ lý đang mở hoặc đang xem Tour 360 để tránh che khuất bản đồ và thanh điều khiển */}
         {!isAIAssistantOpen && !publicTourRoom && (
-          <button
-            type="button"
-            className="client-floating-ai-btn"
-            onClick={() => setIsAIAssistantOpen(true)}
-            title="Trò chuyện và hỏi đáp cùng Trợ lý Di sản Ảo AI"
-            aria-label="Trợ lý AI"
-          >
-            <div className="client-floating-ai-icon-wrap">
-              <Bot size={20} />
-              <span className="client-floating-ai-pulse" />
-            </div>
-            <span className="client-floating-ai-label">Trợ lý AI</span>
-          </button>
+          <DraggableFloatingAIButton onClick={() => setIsAIAssistantOpen(true)} />
         )}
 
         {/* Cửa sổ Trợ lý Di sản Ảo AI */}
