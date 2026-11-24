@@ -226,16 +226,16 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
   const availableAudioLangs = React.useMemo(() => {
     const list: { code: string; label: string; url: string }[] = [];
     if (audioNarrationUrl) {
-      list.push({ code: 'default', label: 'Mặc định', url: audioNarrationUrl });
+      list.push({ code: 'vi', label: 'Tiếng Việt', url: audioNarrationUrl });
     }
     if (translations) {
       Object.entries(translations).forEach(([langCode, trans]: [string, any]) => {
         if (trans && trans.audioNarrationUrl) {
-          const already = list.find((x) => x.url === trans.audioNarrationUrl);
+          const already = list.find((x) => x.code === langCode || x.url === trans.audioNarrationUrl);
           if (!already) {
             list.push({
               code: langCode,
-              label: langCode.toUpperCase(),
+              label: langCode === 'vi' ? 'Tiếng Việt' : (langCode === 'en' ? 'English' : (langCode === 'fr' ? 'Français' : langCode.toUpperCase())),
               url: trans.audioNarrationUrl
             });
           }
@@ -766,6 +766,16 @@ export const Turntable360Viewer: React.FC<Turntable360ViewerProps> = ({
     };
     document.addEventListener('fullscreenchange', handleFsChange);
     return () => document.removeEventListener('fullscreenchange', handleFsChange);
+  }, []);
+
+  // Dừng thuyết minh âm thanh của hiện vật khi đóng / unmount modal
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+      }
+    };
   }, []);
 
   // 7. Xử lý Audio Thuyết Minh

@@ -1,9 +1,10 @@
 export interface Hotspot {
   id: string;
-  type: 'navigation' | 'info';
+  type: 'navigation' | 'info' | 'artifact';
   title: string;
   description?: string;
   targetRoomId?: string;
+  artifactId?: string;
   pitch: number; // -85 đến 85 (độ)
   yaw: number;   // -180 đến 180 (độ)
 }

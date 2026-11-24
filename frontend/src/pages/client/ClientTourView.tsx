@@ -328,11 +328,29 @@ export const ClientTourView: React.FC<ClientTourViewProps> = ({
     }
   };
 
+  // Khi mở cửa sổ xem hiện vật 3D, lập tức tắt thuyết minh của gian phòng
+  // để ưu tiên thuyết minh âm thanh của hiện vật, không bị đọc đè lẫn nhau
+  useEffect(() => {
+    if (active3DArtifact) {
+      stopAudio();
+    }
+  }, [active3DArtifact]);
+
   const handleHotspotClick = (hotspot: Hotspot) => {
     if (hotspot.type === 'navigation' && hotspot.targetRoomId) {
       const target = allRooms.find((r) => r.id === hotspot.targetRoomId || r.code === hotspot.targetRoomId);
       if (target) {
         onNavigateRoom(target);
+        return;
+      }
+    }
+    // Nếu là điểm neo hiện vật, dừng âm thanh phòng và mở ngay mô hình 3D
+    if (hotspot.type === 'artifact' && hotspot.artifactId) {
+      const art = matchingArtifacts.find((a) => a.id === hotspot.artifactId || a.code === hotspot.artifactId) ||
+                  roomArtifactsList.find((a) => a.id === hotspot.artifactId || a.code === hotspot.artifactId);
+      if (art) {
+        stopAudio();
+        setActive3DArtifact(art);
         return;
       }
     }
@@ -1255,7 +1273,10 @@ export const ClientTourView: React.FC<ClientTourViewProps> = ({
                   <div
                     key={art.id}
                     className="client-tour-artifact-card"
-                    onClick={() => setActive3DArtifact(art)}
+                    onClick={() => {
+                      stopAudio();
+                      setActive3DArtifact(art);
+                    }}
                     style={{
                       background: 'rgba(20, 26, 38, 0.85)',
                       border: '1px solid rgba(212, 168, 106, 0.22)',
@@ -1564,7 +1585,7 @@ export const ClientTourView: React.FC<ClientTourViewProps> = ({
                   imageUrl={getMediaUrl(active3DArtifact.thumbnailUrl || (active3DArtifact.images && active3DArtifact.images[0])) || undefined}
                   artifactName={active3DArtifact.name}
                   artifactPeriod={active3DArtifact.period || active3DArtifact.category}
-                  audioNarrationUrl={active3DArtifact.audioNarrationUrl}
+                  audioNarrationUrl={active3DArtifact.audioNarrationUrl || (active3DArtifact.translations as any)?.vi?.audioNarrationUrl}
                   translations={active3DArtifact.translations}
                   height={isMobileScreen ? 320 : 480}
                 />
