@@ -803,7 +803,7 @@ export const PocStitchingPage: React.FC = () => {
     let unknownCount = 0;
     setIsProcessing(true);
     setErrorMsg(null);
-    setVideoProcessingText('Đang duy trì kết nối & tiếp tục tạo không gian phòng...');
+    setVideoProcessingText(t('stitching.maintainingConnection', 'Đang duy trì kết nối & tiếp tục tạo không gian phòng...'));
 
     while (attempts < maxAttempts) {
       attempts++;
@@ -969,22 +969,22 @@ export const PocStitchingPage: React.FC = () => {
       setIsProcessing(true);
       setErrorMsg(null);
       setCurrentStep(1);
-      setVideoProcessingText('Bước 1/4: Đang đọc và tải video lên máy chủ...');
+      setVideoProcessingText(t('stitching.videoStep1', 'Bước 1/4: Đang đọc và tải video lên máy chủ...'));
       showToast('Đang tải video lên máy chủ để xử lý...', 'info');
 
       const stepTimer1 = setTimeout(() => {
         setCurrentStep(2);
-        setVideoProcessingText('Bước 2/4: Đang trích xuất các khung hình sắc nét từ video...');
+        setVideoProcessingText(t('stitching.videoStep2', 'Bước 2/4: Đang trích xuất các khung hình sắc nét từ video...'));
       }, 1500);
 
       const stepTimer2 = setTimeout(() => {
         setCurrentStep(3);
-        setVideoProcessingText('Bước 3/4: Đang ghép nối không gian phòng 360°...');
+        setVideoProcessingText(t('stitching.videoStep3', 'Bước 3/4: Đang ghép nối không gian phòng 360°...'));
       }, 4000);
 
       const stepTimer3 = setTimeout(() => {
         setCurrentStep(4);
-        setVideoProcessingText('Bước 4/4: Đang hoàn thiện ảnh toàn cảnh 360°...');
+        setVideoProcessingText(t('stitching.videoStep4', 'Bước 4/4: Đang hoàn thiện ảnh toàn cảnh 360°...'));
       }, 7000);
 
       const formData = new FormData();
@@ -2029,17 +2029,17 @@ export const PocStitchingPage: React.FC = () => {
                         <Loader2 size={40} className="spin" style={{ color: 'var(--accent-gold)' }} />
                         <div className="studio-overlay-stage">
                           {videoProcessingText
-                            ? videoProcessingText
+                            ? t(videoProcessingText, videoProcessingText)
                             : currentStep <= 1
-                              ? 'Bước 1/4: Đọc và kiểm tra các góc ảnh của phòng...'
+                              ? t('stitching.photoStep1', 'Bước 1/4: Đọc và kiểm tra các góc ảnh của phòng...')
                               : currentStep === 2
-                                ? 'Bước 2/4: Phân tích góc nhìn và ghép nối không gian phòng...'
+                                ? t('stitching.photoStep2', 'Bước 2/4: Phân tích góc nhìn và ghép nối không gian phòng...')
                                 : currentStep === 3
-                                  ? 'Bước 3/4: Làm mịn đường ghép và cân bằng màu sắc ánh sáng...'
-                                  : 'Bước 4/4: Hoàn thiện ảnh toàn cảnh 360°...'}
+                                  ? t('stitching.photoStep3', 'Bước 3/4: Làm mịn đường ghép và cân bằng màu sắc ánh sáng...')
+                                  : t('stitching.photoStep4', 'Bước 4/4: Hoàn thiện ảnh toàn cảnh 360°...')}
                         </div>
                         <div className="studio-overlay-note">
-                          Hệ thống đang xử lý không gian phòng 360°. Vui lòng đợi trong giây lát, không tắt trình duyệt.
+                          {t('stitching.processingNote', 'Hệ thống đang xử lý không gian phòng 360°. Vui lòng đợi trong giây lát, không tắt trình duyệt.')}
                         </div>
                         <div className="studio-overlay-steps" aria-hidden="true">
                           {[1, 2, 3, 4].map((step) => (
@@ -2055,10 +2055,10 @@ export const PocStitchingPage: React.FC = () => {
                           type="button"
                           className="studio-overlay-cancel-btn"
                           onClick={handleCancelProcess}
-                          title="Hủy tiến trình đang xử lý và làm mới"
+                          title={t('stitching.cancelProgressReset', 'Hủy tiến trình đang xử lý và làm mới')}
                         >
                           <RotateCcw size={13} />
-                          <span>Hủy tiến trình & Đặt lại</span>
+                          <span>{t('stitching.cancelProgressReset', 'Hủy tiến trình & Đặt lại')}</span>
                         </button>
                       </div>
                     )}

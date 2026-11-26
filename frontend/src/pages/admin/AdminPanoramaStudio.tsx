@@ -90,6 +90,16 @@ export const AdminPanoramaStudio: React.FC<AdminPanoramaStudioProps> = ({
   const [showScriptPopup, setShowScriptPopup] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
+  // Lọc triệt để trùng lặp hotspots theo ID để đảm bảo giao diện luôn hiển thị chính xác 100%
+  const uniqueHotspots = useMemo(() => {
+    const seen = new Set<string>();
+    return (currentRoom.hotspots || []).filter((h) => {
+      if (!h.id || seen.has(h.id)) return false;
+      seen.add(h.id);
+      return true;
+    });
+  }, [currentRoom.hotspots]);
+
   // Helper kiểm tra đường dẫn file âm thanh thật (.mp3, .ogg, .wav hoặc chứa /uploads/audio/)
   const isAudioFileUrl = (url?: string): boolean => {
     if (!url || typeof url !== 'string') return false;
@@ -630,7 +640,7 @@ export const AdminPanoramaStudio: React.FC<AdminPanoramaStudioProps> = ({
         >
           <Sliders size={14} />
           <span>Công cụ & Điểm</span>
-          <span className="studio-mobile-badge">{currentRoom.hotspots?.length || 0}</span>
+          <span className="studio-mobile-badge">{uniqueHotspots.length}</span>
         </button>
       </div>
 
@@ -686,7 +696,7 @@ export const AdminPanoramaStudio: React.FC<AdminPanoramaStudioProps> = ({
           >
             <Compass size={13} />
             <span>Điểm liên kết</span>
-            <span className="studio-tab-badge">{currentRoom.hotspots?.length || 0}</span>
+            <span className="studio-tab-badge">{uniqueHotspots.length}</span>
           </button>
 
           <button
@@ -726,9 +736,9 @@ export const AdminPanoramaStudio: React.FC<AdminPanoramaStudioProps> = ({
 
             {/* Danh sách điểm liên kết dạng 1 hàng gọn gàng */}
             <div style={{ flex: 1, overflowY: 'auto' }}>
-              {currentRoom.hotspots && currentRoom.hotspots.length > 0 ? (
+              {uniqueHotspots && uniqueHotspots.length > 0 ? (
                 <div className="studio-hotspot-list">
-                  {currentRoom.hotspots.map((hs) => {
+                  {uniqueHotspots.map((hs) => {
                     const targetRoom = allRooms.find(
                       (r) => r.id === hs.targetRoomId || String(r.id) === String(hs.targetRoomId)
                     );

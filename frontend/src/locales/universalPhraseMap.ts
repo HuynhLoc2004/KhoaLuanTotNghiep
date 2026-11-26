@@ -22,6 +22,121 @@ export interface UniversalPhraseItem {
 }
 
 export const UNIVERSAL_PHRASE_MAP: Record<string, UniversalPhraseItem> = {
+  // --- TIẾN TRÌNH GHÉP ẢNH & TẠO KHÔNG GIAN 360° (STITCHING PIPELINE STEPS) ---
+  'Bước 4/4: Đang hoàn thiện ảnh toàn cảnh 360°...': {
+    en: 'Step 4/4: Finalizing 360° panoramic image...',
+    fr: "Étape 4/4 : Finalisation de l'image panoramique 360°...",
+    zh: '步骤 4/4：正在完成360°全景图像...',
+    ja: 'ステップ 4/4：360°パノラマ画像の仕上げ中...'
+  },
+  'Bước 4/4: Đang hoàn thiện ảnh toàn cảnh 360°': {
+    en: 'Step 4/4: Finalizing 360° panoramic image',
+    fr: "Étape 4/4 : Finalisation de l'image panoramique 360°",
+    zh: '步骤 4/4：正在完成360°全景图像',
+    ja: 'ステップ 4/4：360°パノラマ画像の仕上げ中'
+  },
+  'Bước 3/4: Đang ghép nối không gian phòng 360°...': {
+    en: 'Step 3/4: Stitching 360° panoramic room space...',
+    fr: "Étape 3/4 : Assemblage de l'espace panoramique 360°...",
+    zh: '步骤 3/4：正在拼接360°全景空间...',
+    ja: 'ステップ 3/4：360°パノラマ空間を合成中...'
+  },
+  'Bước 2/4: Đang trích xuất các khung hình sắc nét từ video...': {
+    en: 'Step 2/4: Extracting sharp keyframes from video...',
+    fr: 'Étape 2/4 : Extraction des images clés nettes de la vidéo...',
+    zh: '步骤 2/4：正在从视频中提取高质关键帧...',
+    ja: 'ステップ 2/4：動画からシャープなキーフレームを抽出中...'
+  },
+  'Bước 1/4: Đang đọc và tải video lên máy chủ...': {
+    en: 'Step 1/4: Reading and uploading video to server...',
+    fr: 'Étape 1/4 : Téléversement de la vidéo vers le serveur...',
+    zh: '步骤 1/4：正在读取并上传视频到服务器...',
+    ja: 'ステップ 1/4：動画をサーバーへアップロード中...'
+  },
+  'Bước 4/4: Hoàn thiện ảnh toàn cảnh 360°...': {
+    en: 'Step 4/4: Finalizing 360° panoramic room space...',
+    fr: "Étape 4/4 : Finalisation de l'espace panoramique 360°...",
+    zh: '步骤 4/4：最终生成360°全景空间...',
+    ja: 'ステップ 4/4：360°パノラマ空間の最終生成中...'
+  },
+  'Bước 3/4: Làm mịn đường ghép và cân bằng màu sắc ánh sáng...': {
+    en: 'Step 3/4: Smoothing seams and balancing color/lighting...',
+    fr: 'Étape 3/4 : Lissage des raccords et équilibrage des couleurs...',
+    zh: '步骤 3/4：平滑接缝与色彩光影均衡...',
+    ja: 'ステップ 3/4：継ぎ目の平滑化とカラー・ライティング補正中...'
+  },
+  'Bước 2/4: Phân tích góc nhìn và ghép nối không gian phòng...': {
+    en: 'Step 2/4: Analyzing angles and stitching room space...',
+    fr: "Étape 2/4 : Analyse des perspectives et assemblage 360°...",
+    zh: '步骤 2/4：分析视角并拼接房间360°空间...',
+    ja: 'ステップ 2/4：画角解析と360°空間のスティッチング中...'
+  },
+  'Bước 1/4: Đọc và kiểm tra các góc ảnh của phòng...': {
+    en: 'Step 1/4: Reading and verifying room angle photos...',
+    fr: "Étape 1/4 : Lecture et vérification des photos d'angles...",
+    zh: '步骤 1/4：读取并校验房间各角度照片...',
+    ja: 'ステップ 1/4：部屋のアングル写真を読み込み・検証中...'
+  },
+  'Đang hoàn thiện ảnh toàn cảnh 360°...': {
+    en: 'Finalizing 360° panoramic image...',
+    fr: "Finalisation de l'image panoramique 360°...",
+    zh: '正在完成360°全景图像...',
+    ja: '360°パノラマ画像の仕上げ中...'
+  },
+  'Đang hoàn thiện ảnh toàn cảnh 360°': {
+    en: 'Finalizing 360° panoramic image',
+    fr: "Finalisation de l'image panoramique 360°",
+    zh: '正在完成360°全景图像',
+    ja: '360°パノラマ画像の仕上げ中'
+  },
+  'Đang ghép nối không gian phòng 360°...': {
+    en: 'Stitching 360° panoramic room space...',
+    fr: "Assemblage de l'espace panoramique 360°...",
+    zh: '正在拼接360°全景空间...',
+    ja: '360°パノラマ空間を合成中...'
+  },
+  'Đang trích xuất các khung hình sắc nét từ video...': {
+    en: 'Extracting sharp keyframes from video...',
+    fr: 'Extraction des images clés nettes de la vidéo...',
+    zh: '正在从视频中提取高质关键帧...',
+    ja: '動画からシャープなキーフレームを抽出中...'
+  },
+  'Đang đọc và tải video lên máy chủ...': {
+    en: 'Reading and uploading video to server...',
+    fr: 'Téléversement de la vidéo vers le serveur...',
+    zh: '正在读取并上传视频到服务器...',
+    ja: '動画をサーバーへアップロード中...'
+  },
+  'Đang duy trì kết nối & tiếp tục tạo không gian phòng...': {
+    en: 'Maintaining connection & continuing 360° room space generation...',
+    fr: 'Maintien de la connexion et poursuite de la génération 360°...',
+    zh: '正在保持连接并继续生成360°房间空间...',
+    ja: '接続を維持し、360°空間の生成を続行中...'
+  },
+  'Đọc và kiểm tra các góc ảnh của phòng...': {
+    en: 'Reading and verifying room angle photos...',
+    fr: "Lecture et vérification des photos d'angles...",
+    zh: '读取并校验房间各角度照片...',
+    ja: '部屋のアングル写真を読み込み・検証中...'
+  },
+  'Phân tích góc nhìn và ghép nối không gian phòng...': {
+    en: 'Analyzing angles and stitching room space...',
+    fr: 'Analyse des perspectives et assemblage 360°...',
+    zh: '分析视角并拼接房间360°空间...',
+    ja: '画角解析と360°空間のスティッチング中...'
+  },
+  'Làm mịn đường ghép và cân bằng màu sắc ánh sáng...': {
+    en: 'Smoothing seams and balancing color/lighting...',
+    fr: 'Lissage des raccords et équilibrage des couleurs...',
+    zh: '平滑接缝与色彩光影均衡...',
+    ja: '継ぎ目の平滑化とカラー・ライティング補正中...'
+  },
+  'Hoàn thiện ảnh toàn cảnh 360°...': {
+    en: 'Finalizing 360° panoramic room space...',
+    fr: "Finalisation de l'espace panoramique 360°...",
+    zh: '最终生成360°全景空间...',
+    ja: '360°パノラマ空間の最終生成中...'
+  },
   // --- ĐỒNG BỘ CHUẨN XÁC NỘI DUNG ADMIN & CLIENT (TRÁNH LỖI DỊCH MÁY GOOGLE) ---
   'Cuộn xuống': {
     en: 'Scroll down',

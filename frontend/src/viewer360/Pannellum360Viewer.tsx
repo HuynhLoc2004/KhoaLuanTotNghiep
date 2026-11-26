@@ -658,7 +658,7 @@ export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
           cursor: pointer !important;
           z-index: 25 !important;
         }
-        /* 3D Walking Arrow Styles */
+        /* 3D Walking Arrow Styles (Heritage Museum Edition) */
         .walking-arrow-hotspot {
           display: flex;
           flex-direction: column;
@@ -666,14 +666,13 @@ export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
           cursor: pointer !important;
           pointer-events: auto !important;
           user-select: none;
-          filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.45));
+          filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.4));
           transform: translate(-50%, -50%);
           z-index: 30 !important;
-          transition: filter 0.2s ease;
+          transition: filter 0.25s ease, transform 0.2s ease;
         }
         .walking-arrow-hotspot:hover {
-          /* Không dùng transform để triệt tiêu 100% rung giật */
-          filter: drop-shadow(0 8px 24px rgba(37, 99, 235, 0.9)) !important;
+          filter: drop-shadow(0 6px 16px rgba(212, 168, 106, 0.6)) !important;
         }
         .walking-arrow-label,
         .walking-arrow-disc,
@@ -681,77 +680,92 @@ export const Pannellum360Viewer: React.FC<Pannellum360ViewerProps> = ({
           pointer-events: auto !important;
           cursor: pointer !important;
         }
+        /* Nhãn chỉ dẫn: Mặc định ẩn để không che khuất hiện vật và không gian sàn */
         .walking-arrow-label {
-          background: rgba(15, 23, 42, 0.92);
-          backdrop-filter: blur(10px);
-          -webkit-backdrop-filter: blur(10px);
-          color: #FFFFFF;
-          font-size: 12.5px;
-          font-weight: 700;
-          padding: 6px 14px;
-          border-radius: 20px;
-          border: 1.5px solid rgba(59, 130, 246, 0.7);
-          box-shadow: 0 4px 14px rgba(37, 99, 235, 0.45);
+          background: rgba(24, 18, 14, 0.88);
+          backdrop-filter: blur(8px);
+          -webkit-backdrop-filter: blur(8px);
+          color: #F8F1E8;
+          font-size: 11.5px;
+          font-weight: 600;
+          padding: 4px 10px;
+          border-radius: 14px;
+          border: 1px solid rgba(212, 168, 106, 0.4);
+          box-shadow: 0 3px 10px rgba(0, 0, 0, 0.45);
           white-space: nowrap;
           margin-bottom: 6px;
           display: flex;
           align-items: center;
-          gap: 6px;
-          transition: all 0.2s ease;
+          gap: 5px;
+          letter-spacing: 0.2px;
+          opacity: 0;
+          visibility: hidden;
+          transform: translateY(6px) scale(0.94);
+          pointer-events: none;
+          transition: opacity 0.22s ease, transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.22s, background-color 0.2s;
         }
-        .walking-arrow-hotspot:hover .walking-arrow-label {
-          background: #1D4ED8;
-          border-color: #93C5FD;
-          box-shadow: 0 0 20px rgba(59, 130, 246, 0.95);
+        /* Khi hover hoặc chạm vào hotspot: Hiện nhãn mượt mà */
+        .walking-arrow-hotspot:hover .walking-arrow-label,
+        .walking-arrow-hotspot:focus-within .walking-arrow-label,
+        .walking-arrow-hotspot:active .walking-arrow-label {
+          opacity: 1;
+          visibility: visible;
+          transform: translateY(0) scale(1);
+          pointer-events: auto;
+          background: rgba(38, 28, 20, 0.95);
+          border-color: rgba(212, 168, 106, 0.75);
+          box-shadow: 0 4px 14px rgba(212, 168, 106, 0.35);
         }
+        /* Đĩa mũi tên điều hướng: Tinh gọn 36px, màu vàng đồng di sản hoàng gia dịu mắt */
         .walking-arrow-disc {
           position: relative;
-          width: 50px;
-          height: 50px;
+          width: 36px;
+          height: 36px;
           border-radius: 50%;
-          background: radial-gradient(circle, #2563EB 0%, #1E3A8A 100%);
-          border: 2.5px solid #FFFFFF;
-          box-shadow: 0 0 20px rgba(37, 99, 235, 0.85), 0 0 35px rgba(59, 130, 246, 0.45);
+          background: radial-gradient(circle, #D4A86A 0%, #B8823E 70%, #8C5B1C 100%);
+          border: 1.8px solid rgba(255, 250, 240, 0.9);
+          box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4), 0 0 14px rgba(212, 168, 106, 0.5);
           display: flex;
           align-items: center;
           justify-content: center;
-          animation: pulse-walking-disc 1.8s infinite ease-in-out;
-          transition: all 0.2s ease;
+          animation: pulse-walking-disc 2.2s infinite ease-in-out;
+          transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
         }
         .walking-arrow-hotspot:hover .walking-arrow-disc {
-          border-color: #93C5FD;
-          box-shadow: 0 0 30px rgba(59, 130, 246, 1);
+          transform: scale(1.08);
+          border-color: #FFFFFF;
+          box-shadow: 0 2px 12px rgba(0, 0, 0, 0.45), 0 0 22px rgba(212, 168, 106, 0.85);
         }
         @keyframes pulse-walking-disc {
           0% {
-            box-shadow: 0 0 15px rgba(37, 99, 235, 0.85), 0 0 0 0 rgba(37, 99, 235, 0.75);
+            box-shadow: 0 0 8px rgba(212, 168, 106, 0.6), 0 0 0 0 rgba(212, 168, 106, 0.5);
           }
           70% {
-            box-shadow: 0 0 25px rgba(37, 99, 235, 0.95), 0 0 0 14px rgba(37, 99, 235, 0);
+            box-shadow: 0 0 14px rgba(212, 168, 106, 0.7), 0 0 0 10px rgba(212, 168, 106, 0);
           }
           100% {
-            box-shadow: 0 0 15px rgba(37, 99, 235, 0.85), 0 0 0 0 rgba(37, 99, 235, 0);
+            box-shadow: 0 0 8px rgba(212, 168, 106, 0.6), 0 0 0 0 rgba(212, 168, 106, 0);
           }
         }
         .walking-arrow-svg {
-          width: 24px;
-          height: 24px;
+          width: 18px;
+          height: 18px;
           fill: none;
-          stroke: #FFFFFF;
-          stroke-width: 3.2;
+          stroke: #FFFDF8;
+          stroke-width: 2.6;
           stroke-linecap: round;
           stroke-linejoin: round;
-          animation: bounce-chevron 1.4s infinite ease-in-out;
+          animation: bounce-chevron 1.6s infinite ease-in-out;
         }
         @keyframes bounce-chevron {
           0%, 100% {
-            transform: translateY(2px);
-            opacity: 0.85;
+            transform: translateY(1.5px);
+            opacity: 0.9;
           }
           50% {
-            transform: translateY(-3px);
+            transform: translateY(-2px);
             opacity: 1;
-            filter: drop-shadow(0 0 5px #93C5FD);
+            filter: drop-shadow(0 0 3px rgba(255, 255, 255, 0.8));
           }
         }
 

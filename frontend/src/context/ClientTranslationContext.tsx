@@ -159,6 +159,32 @@ export function lookupUniversalPhrase(raw: string, targetLang: string): string |
     }
   }
 
+  // 5b. Xử lý định dạng tiến trình các bước: "Bước 4/4: Đang hoàn thiện ảnh toàn cảnh 360°..." -> "Step 4/4: ..."
+  const stepMatch = clean.match(/^Bước\s*(\d+(?:\/\d+)?)\s*:\s*(.*)$/i);
+  if (stepMatch) {
+    const stepNum = stepMatch[1];
+    const core = stepMatch[2].trim();
+    // Tra cứu phần nội dung sau dấu hai chấm
+    const transCore = lookupUniversalPhrase(core, targetLang);
+    const itemCore = !transCore ? getPhraseItem(core) : null;
+    const resolvedCore = transCore || (itemCore ? (itemCore as any)[tLang] || (tLang === 'en' ? itemCore.en : null) : null) || core;
+    
+    if (targetLang === 'vi') {
+      return `Bước ${stepNum}: ${resolvedCore}`;
+    }
+    const stepPrefix =
+      targetLang === 'en'
+        ? `Step ${stepNum}: `
+        : targetLang === 'fr'
+          ? `Étape ${stepNum} : `
+          : targetLang === 'zh'
+            ? `步骤 ${stepNum}：`
+            : targetLang === 'ja'
+              ? `ステップ ${stepNum}：`
+              : `Step ${stepNum}: `;
+    return `${stepPrefix}${resolvedCore}`;
+  }
+
   return null;
 }
 

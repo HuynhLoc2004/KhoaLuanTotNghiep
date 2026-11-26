@@ -63,9 +63,11 @@ roomsRouter.get('/', async (req: Request, res: Response) => {
                r.ai_voice_lang as "aiVoiceLang", r.qr_scan_count as "qrScanCount",
                r.scenes_count as "scenesCount", r.translations, r.topic_id as "topicId",
                r.audio_url as "audioUrl",
-               COUNT(DISTINCT a.id)::int as "artifactCount",
-               COALESCE(
-                 json_agg(
+               COALESCE(art.cnt, 0)::int as "artifactCount",
+               COALESCE(hs.hotspots, '[]'::json) as hotspots
+        FROM rooms r
+        LEFT JOIN LATERAL (
+          SELECT json_agg(
                    json_build_object(
                      'id', h.id,
                      'type', h.type,
@@ -76,12 +78,15 @@ roomsRouter.get('/', async (req: Request, res: Response) => {
                      'pitch', h.pitch,
                      'yaw', h.yaw
                    )
-                 ) FILTER (WHERE h.id IS NOT NULL), '[]'
-               ) as hotspots
-        FROM rooms r
-        LEFT JOIN hotspots h ON r.id = h.room_id
-        LEFT JOIN artifacts a ON (r.id = a.room_id OR (r.code = a.room_code AND a.room_code IS NOT NULL))
-        GROUP BY r.id
+                 ) as hotspots
+          FROM hotspots h
+          WHERE h.room_id = r.id
+        ) hs ON true
+        LEFT JOIN LATERAL (
+          SELECT COUNT(*)::int as cnt
+          FROM artifacts a
+          WHERE a.room_id = r.id OR (a.room_code = r.code AND a.room_code IS NOT NULL)
+        ) art ON true
         ORDER BY r.order_index ASC, r.created_at ASC;
       `);
 
