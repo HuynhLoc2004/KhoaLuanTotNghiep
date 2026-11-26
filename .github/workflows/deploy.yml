@@ -116,15 +116,20 @@ jobs:
             $COMPOSE_CMD build
 
             echo ">>> [3.2] Khởi chạy / Cập nhật các container (Chuyển đổi tức thì)..."
+            # Dừng nhanh container cũ với timeout 5s để tránh deadlock socket/I/O làm kẹt tiến trình SSH
+            docker stop -t 5 museum_backend museum_frontend 2>/dev/null || true
+            docker rm -f museum_backend museum_frontend 2>/dev/null || true
+
             DEPLOY_SUCCESS=false
             for attempt in 1 2 3; do
               echo ">>> Thực thi deploy (Lần $attempt/3)..."
-              if $COMPOSE_CMD up -d --remove-orphans; then
+              if $COMPOSE_CMD up -d -t 10 --remove-orphans; then
                 DEPLOY_SUCCESS=true
                 echo ">>> Deploy thành công ở lần thử $attempt!"
                 break
               fi
               echo "⚠️ Lần thử $attempt gặp lỗi, thử giải phóng port và thử lại sau 3s..."
+              docker stop -t 2 museum_backend museum_frontend 2>/dev/null || true
               docker rm -f museum_backend museum_frontend 2>/dev/null || true
               sleep 3
             done
